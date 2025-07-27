@@ -21,31 +21,31 @@ Originally, Quake did not support client-side game code. In this project we also
 
 A couple of things I spotted or I’m unhappy with
 
-* [_] applyBackpack: currentammo not updated
-* [_] cvars: move game related cvars to PR and QuakeJS game, less game duties on the engine
-* [_] BaseEntity: make state definitions static, right now it’s bloating up the memory footprint
+* [ ] applyBackpack: currentammo not updated
+* [ ] cvars: move game related cvars to PR and QuakeJS game, less game duties on the engine
+* [ ] BaseEntity: make state definitions static, right now it’s bloating up the memory footprint
 
 ### Entities
 
 A few NPCs and features from the original game are still missing and yet to be implemented:
 
-* [_] player: Finale screen
-* [_] monster_fish
-* [_] monster_oldone
-* [_] monster_tarbaby
-* [_] monster_wizard
-* [_] monster_boss
-* [_] monster_boss: event_lightning
+* [ ] player: Finale screen
+* [ ] monster_fish
+* [ ] monster_oldone
+* [ ] monster_tarbaby
+* [ ] monster_wizard
+* [ ] monster_boss
+* [ ] monster_boss: event_lightning
 
 ### Client-side
 
-* [_] implement a more lean Sbar/HUD
-* [_] move more of the effect handling from the engine to the game code
-* [_] handle things like gibbing, bubbles etc. on the client-side only
-  * [_] air_bubbles
-  * [_] GibEntity
-  * [_] MeatSprayEntity
-* [_] handle screen flashes like bonus flash (`bf`) through events
+* [ ] implement a more lean Sbar/HUD
+* [ ] move more of the effect handling from the engine to the game code
+* [ ] handle things like gibbing, bubbles etc. on the client-side only
+  * [ ] air_bubbles
+  * [ ] GibEntity
+  * [ ] MeatSprayEntity
+* [ ] handle screen flashes like bonus flash (`bf`) through events
 
 ## Core concepts
 
