@@ -11,6 +11,42 @@ It might not be perfect though, some idiosyncrasis will be sorted out as part of
 
 During the reimplementation I noticed some bugs/issues within the original Quake game logic that I sorted out. Always trying to keep the actual game play unaffected.
 
+## Client-side Game
+
+Originally, Quake did not support client-side game code. In this project we also move game related logic from the engine to the game code. However, this APIs are not fully specified yet and change as the client-side game code is being ported over from the engine.
+
+## Todos
+
+### General
+
+A couple of things I spotted or I’m unhappy with
+
+* [_] applyBackpack: currentammo not updated
+* [_] cvars: move game related cvars to PR and QuakeJS game, less game duties on the engine
+* [_] BaseEntity: make state definitions static, right now it’s bloating up the memory footprint
+
+### Entities
+
+A few NPCs and features from the original game are still missing and yet to be implemented:
+
+* [_] player: Finale screen
+* [_] monster_fish
+* [_] monster_oldone
+* [_] monster_tarbaby
+* [_] monster_wizard
+* [_] monster_boss
+* [_] monster_boss: event_lightning
+
+### Client-side
+
+* [_] implement a more lean Sbar/HUD
+* [_] move more of the effect handling from the engine to the game code
+* [_] handle things like gibbing, bubbles etc. on the client-side only
+  * [_] air_bubbles
+  * [_] GibEntity
+  * [_] MeatSprayEntity
+* [_] handle screen flashes like bonus flash (`bf`) through events
+
 ## Core concepts
 
 ### Conventions
@@ -38,13 +74,15 @@ RFC 2119 applies.
 * When porting over QuakeC almost verbatim, comments must be copied over as well in order to give context.
 * Settings and/or properties that are considered extensions to the original should be prefixed with `qs_`.
 
-### Edict
+### Server Edict
 
 The server keeps a list of things in the world in a structure called an Edict.
 
-Edicts will hold information such as baseline of position, orientation, velocity etc. Also keeps track of what part of the map it’s located.
+Edicts will hold information only relevant to the engine such as position in the world data tree.
 
-### Entities
+Furthermore, an Edict provides many methods to interact with the world and the game engine related to that Edict. See ServerEdict in the engine code.
+
+### Server Entities
 
 An Entity is sitting on top of an Edict. The Entity class will provide logic and keeps track of states. There are also client entities which are not related to these Entity structures.
 
@@ -57,7 +95,7 @@ However, the engine reads from a set of must be defined properties. `BaseEntity`
 | Class | Purpose |
 |-|-|
 | `ServerGameAPI` | Holds the whole server game state. It will be instantiated by the engine’s spawn server code and only lasts exactly one level. The class holds information such as the skill level and exposes methods for engine game updates. Also the engine asks the `ServerGameAPI` to spawn map objects. |
-| `ClientGameAPI` | _Not designed yet._ It is supposed to handle anything supposed to run on the client side such as HUD, temporary entities, etc. |
+| `ClientGameAPI` | _Not completely designed yet._ It is supposed to handle anything supposed to run on the client side such as HUD, temporary entities, etc. |
 | `BaseEntity` |  Every entity derives from this class. It provides all necessary information for the engine to place objects in the world. Also the engine will write back certain information directly into an entity. This class provides _lots_ of helpers such as the state machine, thinking scheduler and also provides core concepts of for instance damage handling. |
 | `PlayerEntity` | The player entity not just represents a player in the world, but it also handles impulse commands, weapon interaction, jumping, partially swimming, effects of having certain items. Some logic is outsourced to helper classes such as the `PlayerWeapons` class. |
 | `WorldspawnEntity` | Defines the world, but is mainly used to precache resources that can be used from anywhere. |
@@ -108,11 +146,35 @@ A game is limited by a map. Every map starts a new game. The engine may prepare 
 
 The server has to run every edict and it will run every edict, when certain conditions are met (e.g. `nextthink` is due).
 
-#### General Think
+#### Server Think
 
-#### Player Think
+* `ServerGameAPI.StartFrame`
+* Server goes over all active entities, for each of them:
+  * if it’s a player, it will go the Player Think route instead
+  * it will execute physics engine code
+  * invoke `entity.think()` afterwards.
 
-#### Client Connect/Disconnect
+##### Player Think
+
+* `ServerGameAPI.PlayerPreThink`
+* Server executes the physics engine code.
+* `ServerGameAPI.PlayerPostThink`
+
+#### Client Think
+
+* `ClientEntities.think` execute client-side thinking
+* `ClientEntities.emit` entity is staged for rendering in this frame
+
+### Client Connect/Disconnect
+
+* Whenever a client connects, the server is calling:
+  * Set a new `player` entity, setting `netname` (player name), `colormap`, `team`. (Subject to change)
+  * Spawn parameters (`parm0..15`) are copied from client to the game object. (Subject to change)
+  * `ServerGameAPI.ClientConnect`
+  * `ServerGameAPI.PutClientInServer`
+
+* When a client disconnects or drops, the server is calling:
+  * `ServerGameAPI.ClientDisconnect`
 
 ### Example Entity
 
