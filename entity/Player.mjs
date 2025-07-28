@@ -11,12 +11,12 @@ import { CopyToBodyQue } from './Worldspawn.mjs';
 
 /**
  * used to emit effects etc. to the client
- * @enum {string}
+ * @enum {number}
  * @readonly
  */
 export const playerEvent = {
-  BONUS_FLASH: 'bf',
-  DAMAGE_FLASH: 'dmg',
+  BONUS_FLASH: 1,
+  DAMAGE_FLASH: 2,
 };
 
 export const qc = `
@@ -705,12 +705,17 @@ export class PlayerEntity extends BaseEntity {
    * @param {playerEvent} plEvent player event
    * @param {...any} args additional parameters
    */
-  // eslint-disable-next-line no-unused-vars
   dispatchEvent(plEvent, ...args) {
-    // FIXME: another chapter of fun ahead
-    if (plEvent === playerEvent.BONUS_FLASH) {
-      this.edict.getClient().sendConsoleCommands('bf\n');
-    }
+    this.engine.DispatchClientEvent(this.edict, false, plEvent, ...args);
+  }
+
+  /**
+   * Dispatches a client event to the player’s frontend.
+   * @param {playerEvent} plEvent player event
+   * @param {...any} args additional parameters
+   */
+  dispatchExpeditedEvent(plEvent, ...args) {
+    this.engine.DispatchClientEvent(this.edict, true, plEvent, ...args);
   }
 
   decodeLevelParms() {

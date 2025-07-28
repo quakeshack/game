@@ -2,6 +2,7 @@
 
 import { BaseClientEdictHandler } from '../../../shared/ClientEdict.mjs';
 import Vector from '../../../shared/Vector.mjs';
+import { playerEvent } from '../entity/Player.mjs';
 
 const clientEdictHandlers = {
   misc_fireball_fireball: class FireballEdictHandler extends BaseClientEdictHandler {
@@ -19,6 +20,8 @@ const clientEdictHandlers = {
   },
 };
 
+/** @typedef {import('source/engine/common/GameInterfaces').ClientGameInterface} ClientGameInterface  */
+/** @augments ClientGameInterface */
 export class ClientGameAPI {
   /**
    * @param {ClientEngineAPI} engineAPI client engine API
@@ -53,6 +56,16 @@ export class ClientGameAPI {
     // this.engine.DrawString(32 + 400, 32, `Time: ${this.engine.CL.time.toFixed(3)}`, 1.5);
   }
 
+  handleClientEvent(code, ...args) {
+    // TODO: have a registry/map of client events and their handlers
+    // console.log(`Client event ${code} with args:`, ...args);
+
+    switch (code) {
+      case playerEvent.BONUS_FLASH:
+        this.engine.AppendConsoleText('bf\n');
+        break;
+    }
+  }
 
   static GetClientEdictHandler(classname) {
     return clientEdictHandlers[classname] || null;

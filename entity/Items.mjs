@@ -119,7 +119,7 @@ export class BaseItemEntity extends BaseEntity {
     // check if this items is new in player’s inventory
     if (this.items > 0 && (player.items & this.items) !== this.items) {
       for (const [item, name] of Object.entries(itemNames)) {
-        if ((this.items & ~player.items) & item) { // only mention new items
+        if ((this.items & ~player.items) & parseInt(item)) { // only mention new items
           items.push(name);
         }
       }
@@ -155,7 +155,7 @@ export class BaseItemEntity extends BaseEntity {
     }
 
     player.startSound(channel.CHAN_ITEM, this.noise);
-    player.dispatchEvent(playerEvent.BONUS_FLASH);
+    player.dispatchExpeditedEvent(playerEvent.BONUS_FLASH, true, this.edict, this.origin);
 
     this._afterTouch(player);
   }
