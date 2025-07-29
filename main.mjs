@@ -7,8 +7,11 @@ const identification = {
   author: 'chrisnew',
   version: [1, 0, 0],
   capabilities: [
-    gameCapabilities.CAP_LEGACY_UPDATESTAT,
-    gameCapabilities.CAP_LEGACY_CLIENTDATA,
+    // gameCapabilities.CAP_LEGACY_UPDATESTAT,
+    // gameCapabilities.CAP_LEGACY_CLIENTDATA,
+    gameCapabilities.CAP_HUD_INCLUDES_SBAR,
+    gameCapabilities.CAP_HUD_INCLUDES_CROSSHAIR,
+    gameCapabilities.CAP_VIEWMODEL_MANAGED,
   ],
 };
 

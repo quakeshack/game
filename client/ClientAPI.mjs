@@ -1,8 +1,12 @@
 /** @typedef {typeof import('../../../engine/common/GameAPIs.mjs').ClientEngineAPI} ClientEngineAPI */
+/** @typedef {import('../../../shared/GameInterfaces').ClientGameInterface} ClientGameInterface  */
+/** @typedef {import('../../../shared/GameInterfaces').SerializableType} SerializableType */
 
 import { BaseClientEdictHandler } from '../../../shared/ClientEdict.mjs';
 import Vector from '../../../shared/Vector.mjs';
 import { playerEvent } from '../entity/Player.mjs';
+import { weaponConfig } from '../entity/Weapons.mjs';
+import HUD from './HUD.mjs';
 
 const clientEdictHandlers = {
   misc_fireball_fireball: class FireballEdictHandler extends BaseClientEdictHandler {
@@ -20,40 +24,64 @@ const clientEdictHandlers = {
   },
 };
 
-/** @typedef {import('source/engine/common/GameInterfaces').ClientGameInterface} ClientGameInterface  */
 /** @augments ClientGameInterface */
 export class ClientGameAPI {
+  /** current player’s data */
+  clientdata = { // ['items', 'armortype', 'armorvalue', 'ammo_shells', 'ammo_nails', 'ammo_rockets', 'ammo_chells', 'weapon', 'weaponframe']
+    health: 100,
+    armorvalue: 0,
+    armortype: 0,
+    items: 0,
+
+    ammo_shells: 0,
+    ammo_nails: 0,
+    ammo_rockets: 0,
+    ammo_cells: 0,
+
+    weapon: 0,
+    weaponframe: 0,
+  };
+
+  /** @type {import('../../../shared/GameInterfaces').ViewmodelConfig} */
+  viewmodel = {
+    visible: false,
+    model: null,
+    frame: 0,
+  };
+
   /**
    * @param {ClientEngineAPI} engineAPI client engine API
    */
   constructor(engineAPI) {
     this.engine = engineAPI;
+    this.hud = new HUD(this, engineAPI);
 
     Object.seal(this);
   }
 
   init() {
+    this.hud.init();
   }
 
   shutdown() {
+    this.hud.shutdown();
+  }
+
+  startFrame() {
+    // TODO: configure viewmodel based on health etc.
+
+    if (this.clientdata.health <= 0 || !this.clientdata.weapon) {
+      this.viewmodel.visible = false;
+    } else {
+      this.viewmodel.visible = true;
+
+      this.viewmodel.model = this.engine.ModForName(weaponConfig.get(this.clientdata.weapon).weaponmodel);
+      this.viewmodel.frame = this.clientdata.weaponframe;
+    }
   }
 
   draw() {
-    // /** @type {{[key: string]: number}} */
-    // const entities = {};
-
-    // for (const entity of this.engine.GetVisibleEntities()) {
-    //   entities[entity.classname] = (entities[entity.classname] || 0) + 1;
-    // }
-
-    // const sortedEntities = Object.entries(entities).sort((a, b) => b[1] - a[1]);
-
-    // for (let i = 0; i < sortedEntities.length && i < 10; i++) {
-    //   const [classname, count] = sortedEntities[i];
-    //   this.engine.DrawString(32, 32 + i * 16, `${count.toFixed(0).padStart(3)} ${classname}`, 1.5);
-    // }
-
-    // this.engine.DrawString(32 + 400, 32, `Time: ${this.engine.CL.time.toFixed(3)}`, 1.5);
+    this.hud.draw();
   }
 
   handleClientEvent(code, ...args) {
@@ -74,11 +102,15 @@ export class ClientGameAPI {
   /**
    * @param {ClientEngineAPI} engineAPI client engine API
    */
-  // eslint-disable-next-line no-unused-vars
   static Init(engineAPI) {
+    HUD.Init(engineAPI);
   }
 
-  static Shutdown() {
+  /**
+   * @param {ClientEngineAPI} engineAPI client engine API
+   */
+  static Shutdown(engineAPI) {
+    HUD.Shutdown(engineAPI);
   }
 
   static IsServerCompatible(version) {

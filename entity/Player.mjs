@@ -221,6 +221,9 @@ export class PlayerEntity extends BaseEntity {
     this.team = 0;
     this.frags = 0;
 
+    /** @type {string[]} client data fields, will be pushed to the client each frame when updated, use the name of the entity field */
+    this.clientdataFields = ['items', 'armortype', 'armorvalue', 'ammo_shells', 'ammo_nails', 'ammo_rockets', 'ammo_cells', 'weapon', 'weaponframe']; // NOTE: must NOT change per player, otherwise delta compression will break
+
     // relevant for damage etc.
     this.bloodcolor = 73; // FIXME: hardcoded color code (73)
 
