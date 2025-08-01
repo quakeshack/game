@@ -5,7 +5,7 @@
 import { BaseClientEdictHandler } from '../../../shared/ClientEdict.mjs';
 import Vector from '../../../shared/Vector.mjs';
 import { FireballEntity } from '../entity/Misc.mjs';
-import { playerEvent } from '../entity/Player.mjs';
+import { clientEvent } from '../entity/Player.mjs';
 import { weaponConfig } from '../entity/Weapons.mjs';
 import HUD from './HUD.mjs';
 
@@ -22,6 +22,43 @@ const clientEdictHandlers = {
       this.engine.RocketTrail(this.clientEdict.originPrevious, this.clientEdict.origin, 1);
       this.engine.RocketTrail(this.clientEdict.originPrevious, this.clientEdict.origin, 6);
     }
+  },
+};
+
+// TODO: move this to a separate file, make it extendable
+const clientEventHandlers = {
+  [clientEvent.BONUS_FLASH]: (game) => {
+    game.engine.BonusFlash(new Vector(1, 0.75, 0.25), 0.25);
+  },
+
+  /** @param {ClientGameAPI} game */
+  [clientEvent.STATS_UPDATED]: (game, stat, value) => {
+    console.assert(stat in game.stats, `Unknown stat ${stat}`);
+
+    game.stats[stat] = value;
+  },
+
+  /** @param {ClientGameAPI} game */
+  [clientEvent.STATS_INIT]: (game, ...values) => {
+    game.stats.monsters_total = values[0];
+    game.stats.monsters_killed = values[1];
+    game.stats.secrets_total = values[2];
+    game.stats.secrets_found = values[3];
+  },
+
+  /** @param {ClientGameAPI} game */
+  [clientEvent.ITEM_PICKED]: (game, itemEntity, itemName, items) => {
+    if (itemName !== null) {
+      game.engine.ConsolePrint(`You got ${itemName} (${itemEntity.classname}, ${items}).\n`);
+    } else {
+      game.engine.ConsolePrint('You found an empty item.\n');
+    }
+
+    game.engine.BonusFlash(new Vector(1, 0.75, 0.25), 0.25);
+  },
+
+  [clientEvent.TEST_EVENT]: (game, ...args) => {
+    console.log(`Test event received with args:`, ...args);
   },
 };
 
@@ -43,8 +80,12 @@ export class ClientGameAPI {
     weaponframe: 0,
   };
 
-  gamedata = {
-    // TODO: add things like monster count, secret count, etc.
+  /** gamewide statistics */
+  stats = {
+    monsters_total: 0,
+    monsters_killed: 0,
+    secrets_total: 0,
+    secrets_found: 0,
   };
 
   /** @type {import('../../../shared/GameInterfaces').ViewmodelConfig} */
@@ -100,13 +141,14 @@ export class ClientGameAPI {
 
   handleClientEvent(code, ...args) {
     // TODO: have a registry/map of client events and their handlers
-    // console.log(`Client event ${code} with args:`, ...args);
+    console.log(`Client event ${code} with args:`, ...args);
 
-    switch (code) {
-      case playerEvent.BONUS_FLASH:
-        this.engine.AppendConsoleText('bf\n');
-        break;
+    if (!(code in clientEventHandlers)) {
+      this.engine.ConsoleWarning(`No handler for client event ${code}\n`);
+      return;
     }
+
+    clientEventHandlers[code].apply(null, [this, ...args]);
   }
 
   static GetClientEdictHandler(classname) {

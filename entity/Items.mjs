@@ -2,7 +2,7 @@ import Vector from '../../../shared/Vector.mjs';
 
 import { channel, flags, items, moveType, solid, tentType, worldType } from '../Defs.mjs';
 import BaseEntity from './BaseEntity.mjs';
-import { PlayerEntity, playerEvent } from './Player.mjs';
+import { PlayerEntity, clientEvent } from './Player.mjs';
 import { Sub } from './Subs.mjs';
 
 // respawn times
@@ -146,16 +146,8 @@ export class BaseItemEntity extends BaseEntity {
       return; // player’s inventory is already full
     }
 
-    if (items.length > 0) {
-      player.consolePrint(`You got ${items.join(', ')}.\n`);
-    } else if (this.netname) {
-      player.consolePrint(`You got ${this.netname}!\n`);
-    } else {
-      player.consolePrint('You found an empty item.\n');
-    }
-
     player.startSound(channel.CHAN_ITEM, this.noise);
-    player.dispatchExpeditedEvent(playerEvent.BONUS_FLASH, true, this.edict, this.origin);
+    player.dispatchExpeditedEvent(clientEvent.ITEM_PICKED, this.edict, items, this.netname || null, this.items);
 
     this._afterTouch(player);
   }

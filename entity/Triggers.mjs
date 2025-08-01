@@ -1,7 +1,7 @@
 import { attn, channel, damage, flags, moveType, solid } from '../Defs.mjs';
 import BaseEntity from './BaseEntity.mjs';
 import { TeleportEffectEntity } from './Misc.mjs';
-import { PlayerEntity, TelefragTriggerEntity } from './Player.mjs';
+import { PlayerEntity, clientEvent, TelefragTriggerEntity } from './Player.mjs';
 import { Sub } from './Subs.mjs';
 import { DamageHandler } from './Weapons.mjs';
 
@@ -256,8 +256,8 @@ export class SecretTriggerEntity extends OnceTriggerEntity {
       return false;
     }
 
-    this.game.found_secrets++;
-    this.engine.BroadcastSecretFound();
+    this.game.stats.secretFound(triggeredByEntity);
+
     return true;
   }
 
@@ -268,7 +268,7 @@ export class SecretTriggerEntity extends OnceTriggerEntity {
     this.sounds = this.sounds || 1;
     this.message = this.message || 'You found a secret area!';
 
-    this.game.total_secrets++;
+    this.game.stats.secrets_total++;
 
     super.spawn();
   }

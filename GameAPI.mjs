@@ -1,5 +1,5 @@
 
-import { GibEntity, InfoPlayerStart, InfoPlayerStartCoop, InfoPlayerStartDeathmatch, PlayerEntity, qc as playerModelQC, TelefragTriggerEntity } from './entity/Player.mjs';
+import { clientEvent, GibEntity, InfoPlayerStart, InfoPlayerStartCoop, InfoPlayerStartDeathmatch, PlayerEntity, qc as playerModelQC, TelefragTriggerEntity } from './entity/Player.mjs';
 import { BodyqueEntity, WorldspawnEntity } from './entity/Worldspawn.mjs';
 import { items, spawnflags } from './Defs.mjs';
 import * as misc from './entity/Misc.mjs';
@@ -199,10 +199,24 @@ export class ServerGameAPI {
     this.force_retouch = 0; // Engine API
 
     // stats
-    this.total_monsters = 0;
-    this.killed_monsters = 0;
-    this.total_secrets = 0;
-    this.found_secrets = 0;
+    this.stats = {
+      monsters_total: 0,
+      monsters_killed: 0,
+      secrets_total: 0,
+      secrets_found: 0,
+      monsterKilled(killerEntity) {
+        engineAPI.BroadcastClientEvent(true, clientEvent.STATS_UPDATED, 'monsters_killed', ++this.monsters_killed, killerEntity.edict);
+      },
+      secretFound(finderEntity) {
+        engineAPI.BroadcastClientEvent(true, clientEvent.STATS_UPDATED, 'secrets_found', ++this.secrets_found, finderEntity.edict);
+      },
+      sendToPlayer(playerEntity) {
+        engineAPI.DispatchClientEvent(playerEntity.edict, true, clientEvent.STATS_INIT,
+          this.monsters_total, this.monsters_killed, this.secrets_total, this.secrets_found);
+      },
+    };
+
+    Object.seal(this.stats);
 
     // checkout Player.decodeLevelParms to understand this
     this.parm1 = 0;
@@ -376,43 +390,43 @@ export class ServerGameAPI {
   }
 
   SetChangeParms(clientEdict) {
-    const playerEntity = clientEdict.entity;
+    const playerEntity = /** @type {PlayerEntity} */(clientEdict.entity);
     this._assertClientEntityIsPlayerEntity(playerEntity);
     playerEntity.setChangeParms();
   }
 
   PlayerPreThink(clientEdict) {
-    const playerEntity = clientEdict.entity;
+    const playerEntity = /** @type {PlayerEntity} */(clientEdict.entity);
     this._assertClientEntityIsPlayerEntity(playerEntity);
     playerEntity.playerPreThink();
   }
 
   PlayerPostThink(clientEdict) {
-    const playerEntity = clientEdict.entity;
+    const playerEntity = /** @type {PlayerEntity} */(clientEdict.entity);
     this._assertClientEntityIsPlayerEntity(playerEntity);
     playerEntity.playerPostThink();
   }
 
   ClientConnect(clientEdict) {
-    const playerEntity = clientEdict.entity;
+    const playerEntity = /** @type {PlayerEntity} */(clientEdict.entity);
     this._assertClientEntityIsPlayerEntity(playerEntity);
     playerEntity.connected();
   }
 
   ClientDisconnect(clientEdict) {
-    const playerEntity = clientEdict.entity;
+    const playerEntity = /** @type {PlayerEntity} */(clientEdict.entity);
     this._assertClientEntityIsPlayerEntity(playerEntity);
     playerEntity.disconnected();
   }
 
   ClientKill(clientEdict) {
-    const playerEntity = clientEdict.entity;
+    const playerEntity = /** @type {PlayerEntity} */(clientEdict.entity);
     this._assertClientEntityIsPlayerEntity(playerEntity);
     playerEntity.suicide();
   }
 
   PutClientInServer(clientEdict) {
-    const playerEntity = clientEdict.entity;
+    const playerEntity = /** @type {PlayerEntity} */(clientEdict.entity);
     this._assertClientEntityIsPlayerEntity(playerEntity);
     playerEntity.putPlayerInServer();
   }

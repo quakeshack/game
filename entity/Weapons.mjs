@@ -324,9 +324,6 @@ export class DamageHandler extends EntityWrapper {
    * @param {BaseEntity} attackerEntity attacker
    */
   _killed(attackerEntity) {
-    // don't let sbar look bad if a player
-    this._entity.health = Math.max(-99, this._entity.health);
-
     // doors, triggers, etc.
     if ([moveType.MOVETYPE_PUSH, moveType.MOVETYPE_NONE].includes(this._entity.movetype)) {
       this._entity.takedamage = damage.DAMAGE_NO; // CR: not Quake vanilla behavior here
@@ -340,8 +337,7 @@ export class DamageHandler extends EntityWrapper {
 
     // bump the monster counter
     if (this._entity.flags & flags.FL_MONSTER) {
-      this._game.killed_monsters++;
-      this._engine.BroadcastMonsterKill();
+      this._game.stats.monsterKilled(attackerEntity);
     }
 
     // CR: ClientObituary(self, attacker); is handled by PlayerEntity.thinkDie now

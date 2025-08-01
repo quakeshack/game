@@ -14,9 +14,27 @@ import { CopyToBodyQue } from './Worldspawn.mjs';
  * @enum {number}
  * @readonly
  */
-export const playerEvent = {
+export const clientEvent = {
+  /** @deprecated */
   BONUS_FLASH: 1,
+
+  /** @deprecated */
   DAMAGE_FLASH: 2,
+
+  /** single stats slot updated, args: slot name (string), value (number) */
+  STATS_UPDATED: 3,
+
+  /** stats initialized to given values */
+  STATS_INIT: 4,
+
+  /** an item has been picked up, args: itemEntity (ent), items (string[]), netname (string?), itemflags (number) */
+  ITEM_PICKED: 5,
+
+  /** damage received, args: damage (number), origin (vector) */
+  DAMAGE_RECEIVED: 6,
+
+  /** test event, args: some gargabe */
+  TEST_EVENT: 254,
 };
 
 export const qc = `
@@ -720,7 +738,7 @@ export class PlayerEntity extends BaseEntity {
 
   /**
    * Dispatches a client event to the player’s frontend.
-   * @param {playerEvent} plEvent player event
+   * @param {clientEvent} plEvent player event
    * @param {...any} args additional parameters
    */
   dispatchEvent(plEvent, ...args) {
@@ -729,7 +747,7 @@ export class PlayerEntity extends BaseEntity {
 
   /**
    * Dispatches a client event to the player’s frontend.
-   * @param {playerEvent} plEvent player event
+   * @param {clientEvent} plEvent player event
    * @param {...any} args additional parameters
    */
   dispatchExpeditedEvent(plEvent, ...args) {
@@ -1012,7 +1030,7 @@ export class PlayerEntity extends BaseEntity {
       ammo_cells: 100,
     });
 
-    this.dispatchEvent(playerEvent.BONUS_FLASH);
+    this.dispatchEvent(clientEvent.BONUS_FLASH);
   }
 
   /** @private */
@@ -1363,13 +1381,13 @@ export class PlayerEntity extends BaseEntity {
       if (this.invisible_finished < this.game.time + 3) {
         if (this.invisible_time === 1) {
           this.consolePrint('Ring of Shadows magic is fading\n');
-          this.dispatchEvent(playerEvent.BONUS_FLASH);
+          this.dispatchEvent(clientEvent.BONUS_FLASH);
           this.startSound(channel.CHAN_AUTO, 'items/inv2.wav');
           this.invisible_time = this.game.time + 1;
         }
         if (this.invisible_time < this.game.time) {
           this.invisible_time = this.game.time + 1;
-          this.dispatchEvent(playerEvent.BONUS_FLASH);
+          this.dispatchEvent(clientEvent.BONUS_FLASH);
         }
       }
 
@@ -1389,14 +1407,14 @@ export class PlayerEntity extends BaseEntity {
       if (this.invincible_finished < this.game.time + 3) {
         if (this.invincible_time === 1) {
           this.consolePrint('Protection is almost burned out\n');
-          this.dispatchEvent(playerEvent.BONUS_FLASH);
+          this.dispatchEvent(clientEvent.BONUS_FLASH);
           this.startSound(channel.CHAN_AUTO, 'items/protect2.wav');
           this.invincible_time = this.game.time + 1;
         }
 
         if (this.invincible_time < this.game.time) {
           this.invincible_time = this.game.time + 1;
-          this.dispatchEvent(playerEvent.BONUS_FLASH);
+          this.dispatchEvent(clientEvent.BONUS_FLASH);
         }
       }
 
@@ -1415,13 +1433,13 @@ export class PlayerEntity extends BaseEntity {
       if (this.super_damage_finished < this.game.time + 3) {
         if (this.super_time === 1) {
           this.consolePrint('Quad Damage is wearing off\n');
-          this.dispatchEvent(playerEvent.BONUS_FLASH);
+          this.dispatchEvent(clientEvent.BONUS_FLASH);
           this.startSound(channel.CHAN_AUTO, 'items/damage2.wav');
           this.super_time = this.game.time + 1;
         }
         if (this.super_time < this.game.time) {
           this.super_time = this.game.time + 1;
-          this.dispatchEvent(playerEvent.BONUS_FLASH);
+          this.dispatchEvent(clientEvent.BONUS_FLASH);
         }
       }
       if (this.super_damage_finished < this.game.time) {
@@ -1438,13 +1456,13 @@ export class PlayerEntity extends BaseEntity {
       if (this.radsuit_finished < this.game.time + 3) {
         if (this.rad_time === 1) {
           this.consolePrint('Air supply in Biosuit expiring\n');
-          this.dispatchEvent(playerEvent.BONUS_FLASH);
+          this.dispatchEvent(clientEvent.BONUS_FLASH);
           this.startSound(channel.CHAN_AUTO, 'items/suit2.wav');
           this.rad_time = this.game.time + 1;
         }
         if (this.rad_time < this.game.time) {
           this.rad_time = this.game.time + 1;
-          this.dispatchEvent(playerEvent.BONUS_FLASH);
+          this.dispatchEvent(clientEvent.BONUS_FLASH);
         }
       }
       if (this.radsuit_finished < this.game.time) {
@@ -1522,6 +1540,10 @@ export class PlayerEntity extends BaseEntity {
     this.angles = spot.angles.copy();
 
     this.clear(); // CR: keep clear after setting origin, otherwise setModel will trigger a touch due to relinking after setting mins/maxs
+
+    this.game.stats.sendToPlayer(this);
+
+    this.dispatchEvent(clientEvent.TEST_EVENT, [1, 2, 3], 4, 5, [], false, true, null);
 
     this._enterStandingState();
 

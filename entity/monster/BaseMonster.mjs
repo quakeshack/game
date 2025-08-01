@@ -220,7 +220,7 @@ export default class BaseMonster extends BaseEntity {
   }
 
   _postSpawn() {
-    this.game.total_monsters++;
+    this.game.stats.monsters_total++;
     this._ai.spawn();
 
     this._scheduleThink(this.nextthink + Math.random() * 0.5, () => this._ai.think());

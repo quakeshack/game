@@ -1,4 +1,3 @@
-import { clientStat } from '../../../shared/Defs.mjs';
 import Vector from '../../../shared/Vector.mjs';
 import { ClientGameAPI } from './ClientAPI.mjs';
 
