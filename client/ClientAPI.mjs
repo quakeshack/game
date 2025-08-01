@@ -4,12 +4,13 @@
 
 import { BaseClientEdictHandler } from '../../../shared/ClientEdict.mjs';
 import Vector from '../../../shared/Vector.mjs';
+import { FireballEntity } from '../entity/Misc.mjs';
 import { playerEvent } from '../entity/Player.mjs';
 import { weaponConfig } from '../entity/Weapons.mjs';
 import HUD from './HUD.mjs';
 
 const clientEdictHandlers = {
-  misc_fireball_fireball: class FireballEdictHandler extends BaseClientEdictHandler {
+  [FireballEntity.classname]: class FireballEdictHandler extends BaseClientEdictHandler {
     emit() {
       const dl = this.engine.AllocDlight(this.clientEdict.num);
 
@@ -27,7 +28,7 @@ const clientEdictHandlers = {
 /** @augments ClientGameInterface */
 export class ClientGameAPI {
   /** current player’s data */
-  clientdata = { // ['items', 'armortype', 'armorvalue', 'ammo_shells', 'ammo_nails', 'ammo_rockets', 'ammo_chells', 'weapon', 'weaponframe']
+  clientdata = {
     health: 100,
     armorvalue: 0,
     armortype: 0,
@@ -40,6 +41,10 @@ export class ClientGameAPI {
 
     weapon: 0,
     weaponframe: 0,
+  };
+
+  gamedata = {
+    // TODO: add things like monster count, secret count, etc.
   };
 
   /** @type {import('../../../shared/GameInterfaces').ViewmodelConfig} */
@@ -82,6 +87,15 @@ export class ClientGameAPI {
 
   draw() {
     this.hud.draw();
+  }
+
+  /**
+   * @param {import('../../../shared/GameInterfaces').RefDef} refdef
+   */
+  updateRefDef(refdef) {
+    if (this.clientdata.health <= 0) {
+      refdef.viewangles[2] = Math.max(80, refdef.viewangles[2] + 80); // make the player roll around
+    }
   }
 
   handleClientEvent(code, ...args) {

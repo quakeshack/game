@@ -41,14 +41,12 @@ export const weaponConfig = new Map([
 
 /** struct holding items and ammo */
 export class Backpack {
-  constructor() {
-    this.ammo_shells = 0;
-    this.ammo_nails = 0;
-    this.ammo_rockets = 0;
-    this.ammo_cells = 0;
-    this.items = 0;
-    this.weapon = 0;
-  }
+  ammo_shells = 0;
+  ammo_nails = 0;
+  ammo_rockets = 0;
+  ammo_cells = 0;
+  items = 0;
+  weapon = 0;
 };
 
 export class Explosions extends EntityWrapper {

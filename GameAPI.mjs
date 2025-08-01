@@ -228,7 +228,7 @@ export class ServerGameAPI {
     this.framecount = 0;
     this.frametime = 0;
 
-    /** @type {?BaseEntity} QuakeC: world */
+    /** @type {?WorldspawnEntity} QuakeC: world */
     this.worldspawn = null;
 
     /** @type {?BaseEntity} the last selected spawn point, used for cycling spawn spots */
@@ -557,7 +557,7 @@ export class ServerGameAPI {
   shutdown(isCrashShutdown) {
   }
 
-  /** @param {ServerEngineAPI} ServerEngineAPI */
+  /** @param {ServerEngineAPI} ServerEngineAPI engine API for server game code */
   static Init(ServerEngineAPI) {
     cvars.nomonster = ServerEngineAPI.RegisterCvar('nomonster', '0', /* Cvar.FLAG.DEFERRED */ 0, 'Do not spawn monsters.');
   }

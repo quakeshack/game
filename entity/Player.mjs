@@ -154,6 +154,19 @@ export class InfoPlayerStartCoop extends InfoNotNullEntity {
 export class PlayerEntity extends BaseEntity {
   static classname = 'player';
 
+  static clientdataFields = [
+    'items',
+    'armortype',
+    'armorvalue',
+    'ammo_shells',
+    'ammo_nails',
+    'ammo_rockets',
+    'ammo_cells',
+    'weapon',
+    'weaponframe',
+    'health',
+  ];
+
   _declareFields() {
     /** @protected */
     this._weapons = new PlayerWeapons(this);
@@ -221,8 +234,8 @@ export class PlayerEntity extends BaseEntity {
     this.team = 0;
     this.frags = 0;
 
-    /** @type {string[]} client data fields, will be pushed to the client each frame when updated, use the name of the entity field */
-    this.clientdataFields = ['items', 'armortype', 'armorvalue', 'ammo_shells', 'ammo_nails', 'ammo_rockets', 'ammo_cells', 'weapon', 'weaponframe']; // NOTE: must NOT change per player, otherwise delta compression will break
+    /** @type {string[]} client data fields, will be pushed to the client each frame when updated, use the name of the entity field, do NOT change the content during runtime */
+    this.clientdataFields = PlayerEntity.clientdataFields;
 
     // relevant for damage etc.
     this.bloodcolor = 73; // FIXME: hardcoded color code (73)
@@ -662,6 +675,8 @@ export class PlayerEntity extends BaseEntity {
 
     this.angles[0] = 0.0;
     this.angles[2] = 0.0;
+
+    this.punchangle[2] = Math.max(-this.health, 75) * Math.random() + 15; // make the player roll around
 
     if (this.weapon === items.IT_AXE) {
       this._runState('player_die_ax1');

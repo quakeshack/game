@@ -32,9 +32,11 @@ export class BaseDoorEntity extends BasePropEntity {
     /** @type {?string} */
     this.noise4 = null;
 
+    this.max_health = 0; // max health, can also be used for doors
+
     this._serializer.endFields();
 
-    /** used during linking doors for crossing entity classes @readonly @private */
+    /** used during linking doors for crossing entity classes @private */
     this._doormarker = 'door';
   }
 
@@ -45,11 +47,11 @@ export class BaseDoorEntity extends BasePropEntity {
    * @returns {TriggerFieldEntity} trigger field
    */
   _spawnTriggerField(mins, maxs) {
-    return this.engine.SpawnEntity(TriggerFieldEntity.classname, {
+    return /** @type {TriggerFieldEntity} */(this.engine.SpawnEntity(TriggerFieldEntity.classname, {
       owner: this,
       mins,
       maxs,
-    });
+    }));
   }
 
   /**
@@ -68,7 +70,8 @@ export class BaseDoorEntity extends BasePropEntity {
 
     const cmins = this.mins, cmaxs = this.maxs;
 
-    let t = this, self = this;
+    // eslint-disable-next-line consistent-this
+    let t = /** @type {BaseDoorEntity} */(this), self = /** @type {BaseDoorEntity} */(this);
 
     do {
       self.owner = this; // master door
@@ -85,20 +88,20 @@ export class BaseDoorEntity extends BasePropEntity {
         this.message = self.message;
       }
 
-      t = t.findNextEntityByFieldAndValue('_doormarker', 'door');
+      t = /** @type {BaseDoorEntity} */(t.findNextEntityByFieldAndValue('_doormarker', 'door'));
       if (!t) {
         self._linkedDoor = this; // make the chain a loop
 
         // shootable, fired, or key doors just needed the owner/enemy links,
         // they don't spawn a field
 
-        self = self.owner;
+        self = /** @type {BaseDoorEntity} */(self.owner);
 
         if (self.health || self.targetname || self.items) {
           return;
         }
 
-        self.owner._triggerField = self._spawnTriggerField(cmins, cmaxs);
+        /** @type {BaseDoorEntity} */(self.owner)._triggerField = self._spawnTriggerField(cmins, cmaxs);
 
         return;
       }
@@ -140,7 +143,8 @@ export class BaseDoorEntity extends BasePropEntity {
     if (this.spawnflags & flag.DOOR_TOGGLE) {
       // is open or opening
       if (this.state === state.STATE_UP || this.state === state.STATE_TOP) {
-        let self = this;
+        // eslint-disable-next-line consistent-this
+        let self = /** @type {BaseDoorEntity} */(this);
         do {
           self._doorGoDown(usedByEntity);
           self = self._linkedDoor;
@@ -150,7 +154,8 @@ export class BaseDoorEntity extends BasePropEntity {
     }
 
     // trigger all paired doors
-    let self = this;
+    // eslint-disable-next-line consistent-this
+    let self = /** @type {BaseDoorEntity} */(this);
     do {
       self._doorGoUp(usedByEntity);
       self = self._linkedDoor;
@@ -234,7 +239,7 @@ export class BaseDoorEntity extends BasePropEntity {
   }
 
   _doorKilled(attackerEntity) {
-    const owner = this.owner;
+    const owner = /** @type {BaseDoorEntity} */(this.owner);
 
     owner.health = owner.max_health;
     owner.takedamage = damage.DAMAGE_NO;
@@ -478,7 +483,7 @@ export class DoorEntity extends BaseDoorEntity {
 
     // mark this (and the linked) door used
     this._doorKeyUsed = true;
-    this._linkedDoor._doorKeyUsed = true;
+    /** @type {DoorEntity} */(this._linkedDoor)._doorKeyUsed = true;
 
     this.use(usedByEntity);
   }

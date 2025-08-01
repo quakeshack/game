@@ -12,6 +12,7 @@ const identification = {
     gameCapabilities.CAP_HUD_INCLUDES_SBAR,
     gameCapabilities.CAP_HUD_INCLUDES_CROSSHAIR,
     gameCapabilities.CAP_VIEWMODEL_MANAGED,
+    gameCapabilities.CAP_CLIENTDATA_DYNAMIC,
   ],
 };
 

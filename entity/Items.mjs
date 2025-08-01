@@ -61,7 +61,7 @@ export class BaseItemEntity extends BaseEntity {
     /** @type {number} seconds until respawn */
     this.regeneration_time = 20.0;
 
-    /** @private */
+    /** @protected */
     this._model_original = null;
 
     /** @type {string} sfx to play upon picking it up */
@@ -224,10 +224,12 @@ export class BaseAmmoEntity extends BaseItemEntity {
   static _weapon = 0;
 
   _precache() {
-    if ((this.spawnflags & WEAPON_BIG2) && this.constructor._modelBig) {
-      this.engine.PrecacheModel(this.constructor._modelBig);
+    const thisClass = /** @type {typeof BaseAmmoEntity} */(this.constructor);
+
+    if ((this.spawnflags & WEAPON_BIG2) && thisClass._modelBig) {
+      this.engine.PrecacheModel(thisClass._modelBig);
     } else {
-      this.engine.PrecacheModel(this.constructor._model);
+      this.engine.PrecacheModel(thisClass._model);
     }
   }
 
@@ -244,15 +246,17 @@ export class BaseAmmoEntity extends BaseItemEntity {
   spawn() {
     super.spawn();
 
-    if ((this.spawnflags & WEAPON_BIG2) && this.constructor._modelBig) {
-      this.setModel(this.constructor._modelBig);
-      this._setAmmo(this.constructor._ammoBig);
+    const thisClass = /** @type {typeof BaseAmmoEntity} */(this.constructor);
+
+    if ((this.spawnflags & WEAPON_BIG2) && thisClass._modelBig) {
+      this.setModel(thisClass._modelBig);
+      this._setAmmo(thisClass._ammoBig);
     } else {
-      this.setModel(this.constructor._model);
-      this._setAmmo(this.constructor._ammo);
+      this.setModel(thisClass._model);
+      this._setAmmo(thisClass._ammo);
     }
 
-    this.weapon = this.constructor._weapon;
+    this.weapon = thisClass._weapon;
 
     this.setSize(Vector.origin, new Vector(32.0, 32.0, 56.0));
   }
@@ -348,45 +352,6 @@ export class BaseKeyEntity extends BaseItemEntity {
     [worldType.BASE]: 'progs/b_s_key.mdl',
   };
 
-  get noise() {
-    const worldType = this.game.worldspawn.worldtype;
-
-    if (this.constructor._worldTypeToSound[worldType]) {
-      return this.constructor._worldTypeToSound[worldType];
-    }
-
-    return this.constructor._worldTypeToSound[worldType.MEDIEVAL];
-  }
-
-  set noise(noise) {
-  }
-
-  get netname() {
-    const worldType = this.game.worldspawn.worldtype;
-
-    if (this.constructor._worldTypeToNetname[worldType]) {
-      return this.constructor._worldTypeToNetname[worldType];
-    }
-
-    return this.constructor._worldTypeToNetname[worldType.MEDIEVAL];
-  }
-
-  set netname(netname) {
-  }
-
-  get model() {
-    const worldType = this.game.worldspawn.worldtype;
-
-    if (this.constructor._worldTypeToModel[worldType]) {
-      return this.constructor._worldTypeToModel[worldType];
-    }
-
-    return this.constructor._worldTypeToModel[worldType.MEDIEVAL];
-  }
-
-  set model(model) {
-  }
-
   _precache() {
     this.engine.PrecacheSound(this.noise);
     this.engine.PrecacheModel(this.model);
@@ -398,7 +363,34 @@ export class BaseKeyEntity extends BaseItemEntity {
     this.setModel(this.model);
     this.setSize(new Vector(-16.0, -16.0, -24.0), new Vector(16.0, 16.0, 32.0));
 
-    this.items = this.constructor._item;
+    this.items = /** @type {typeof BaseKeyEntity} */(this.constructor)._item;
+
+    const currentWorldType = this.game.worldspawn.worldtype;
+    const thisClass = /** @type {typeof BaseKeyEntity} */(this.constructor);
+
+    this.noise = (() => {
+      if (thisClass._worldTypeToSound[currentWorldType]) {
+        return thisClass._worldTypeToSound[currentWorldType];
+      }
+
+      return thisClass._worldTypeToSound[worldType.MEDIEVAL];
+    })();
+
+    this.netname = (() => {
+      if (thisClass._worldTypeToNetname[currentWorldType]) {
+        return thisClass._worldTypeToNetname[currentWorldType];
+      }
+
+      return thisClass._worldTypeToNetname[worldType.MEDIEVAL];
+    })();
+
+    this.model = (() => {
+      if (thisClass._worldTypeToModel[currentWorldType]) {
+        return thisClass._worldTypeToModel[currentWorldType];
+      }
+
+      return thisClass._worldTypeToModel[worldType.MEDIEVAL];
+    })();
   }
 
   regenerate() {
@@ -490,8 +482,10 @@ export class BaseArtifactEntity extends BaseItemEntity {
   static _precache = { sounds: [] };
 
   _precache() {
-    this.engine.PrecacheModel(this.constructor._model);
-    for (const sound of this.constructor._precache.sounds) {
+    const thisClass = /** @type {typeof BaseArtifactEntity} */(this.constructor);
+
+    this.engine.PrecacheModel(thisClass._model);
+    for (const sound of thisClass._precache.sounds) {
       this.engine.PrecacheSound(sound);
     }
   }
@@ -499,11 +493,13 @@ export class BaseArtifactEntity extends BaseItemEntity {
   spawn() {
     super.spawn();
 
-    this.noise = this.constructor._noise;
-    this.items |= this.constructor._item;
-    this.regeneration_time = this.constructor._regenerationTime;
+    const thisClass = /** @type {typeof BaseArtifactEntity} */(this.constructor);
 
-    this.setModel(this.constructor._model);
+    this.noise = thisClass._noise;
+    this.items |= thisClass._item;
+    this.regeneration_time = thisClass._regenerationTime;
+
+    this.setModel(thisClass._model);
     this.setSize(new Vector(-16.0, -16.0, -24.0), new Vector(16.0, 16.0, 32.0));
   }
 
@@ -654,7 +650,7 @@ export class SigilEntity extends BaseItemEntity {
 
     for (let i = 0; i < 4; i++) {
       if ((this.spawnflags & (1 << i))) {
-        this.engine.PrecacheModel(this.constructor._models[i]);
+        this.engine.PrecacheModel(/** @type {typeof SigilEntity} */(this.constructor)._models[i]);
         break;
       }
     }
@@ -690,7 +686,7 @@ export class SigilEntity extends BaseItemEntity {
 
     for (let i = 0; i < 4; i++) {
       if ((this.spawnflags & (1 << i))) {
-        this.setModel(this.constructor._models[i]);
+        this.setModel(/** @type {typeof SigilEntity} */(this.constructor)._models[i]);
         break;
       }
     }
@@ -698,6 +694,8 @@ export class SigilEntity extends BaseItemEntity {
     this.setSize(new Vector(-16.0, -16.0, -24.0), new Vector(16.0, 16.0, 32.0));
   }
 };
+
+/** @typedef {{model: string, noise: string, healamount: number, items: number}} HealthItemConfiguration */
 
 /**
  * QUAKED item_health (.3 .3 1) (0 0 0) (32 32 32) rotten megahealth
@@ -714,7 +712,10 @@ export class HealthItemEntity extends BaseItemEntity {
   static H_ROTTEN = 1;
   static H_MEGA = 2;
 
-  /** @protected */
+  /**
+   * @type {Record<number, HealthItemConfiguration>}
+   * @protected
+   */
   static _config = {
     [HealthItemEntity.H_NORMAL]: {
       model: 'maps/b_bh25.bsp',
@@ -772,8 +773,7 @@ export class HealthItemEntity extends BaseItemEntity {
   }
 
   _takeHealth() {
-    /** @type {PlayerEntity} */
-    const player = this.owner;
+    const player = /** @type {PlayerEntity} */(this.owner);
 
     if (player.health > player.max_health) {
       player.health--;
@@ -833,9 +833,15 @@ export class BaseArmorEntity extends BaseItemEntity {
     return 'the armor';
   }
 
+  /**
+   * @param {PlayerEntity} playerEntity player
+   * @returns {boolean} whether the pickup was successful
+   */
   _pickup(playerEntity) {
-    playerEntity.armortype = this.constructor._armortype;
-    playerEntity.armorvalue = this.constructor._armorvalue;
+    const thisClass = /** @type {typeof BaseArmorEntity} */(this.constructor);
+
+    playerEntity.armortype = thisClass._armortype;
+    playerEntity.armorvalue = thisClass._armorvalue;
 
     playerEntity.items &= ~(items.IT_ARMOR1 | items.IT_ARMOR2 | items.IT_ARMOR3);
     playerEntity.applyBackpack(this);
@@ -843,8 +849,14 @@ export class BaseArmorEntity extends BaseItemEntity {
     return true;
   }
 
+  /**
+   * @param {PlayerEntity} playerEntity player
+   * @returns {boolean} whether the pickup is allowed or not
+   */
   _canPickup(playerEntity) {
-    return playerEntity.armortype * playerEntity.armorvalue < this.constructor._armortype * this.constructor._armorvalue;
+    const thisClass = /** @type {typeof BaseArmorEntity} */(this.constructor);
+
+    return playerEntity.armortype * playerEntity.armorvalue < thisClass._armortype * thisClass._armorvalue;
   }
 
   _precache() {
@@ -854,8 +866,10 @@ export class BaseArmorEntity extends BaseItemEntity {
   spawn() {
     super.spawn();
 
-    this.skin = this.constructor._skin;
-    this.items = this.constructor._item;
+    const thisClass = /** @type {typeof BaseArmorEntity} */(this.constructor);
+
+    this.skin = thisClass._skin;
+    this.items = thisClass._item;
 
     this.noise = 'items/armor1.wav';
 
@@ -907,14 +921,16 @@ export class BaseWeaponEntity extends BaseItemEntity {
   static _weapon = 0;
 
   _precache() {
-    this.engine.PrecacheModel(this.constructor._model);
+    this.engine.PrecacheModel(/** @type {typeof BaseWeaponEntity} */(this.constructor)._model);
   }
 
   spawn() {
-    this.items = this.constructor._weapon;
-    this.weapon = this.constructor._weapon;
+    const thisClass = /** @type {typeof BaseWeaponEntity} */(this.constructor);
+
+    this.items = thisClass._weapon;
+    this.weapon = thisClass._weapon;
     this.regeneration_time = 30.0;
-    this.setModel(this.constructor._model);
+    this.setModel(thisClass._model);
     this.setSize(new Vector(-16.0, -16.0, 0.0), new Vector(16.0, 16.0, 56.0));
 
     super.spawn();
