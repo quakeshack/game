@@ -31,40 +31,7 @@ const clientEventHandlers = {
     game.engine.BonusFlash(new Vector(1, 0.75, 0.25), 0.25);
   },
 
-  /** @param {ClientGameAPI} game */
-  [clientEvent.STATS_UPDATED]: (game, stat, value) => {
-    console.assert(stat in game.stats, `Unknown stat ${stat}`);
 
-    game.stats[stat] = value;
-  },
-
-  /** @param {ClientGameAPI} game */
-  [clientEvent.STATS_INIT]: (game, ...values) => {
-    game.stats.monsters_total = values[0];
-    game.stats.monsters_killed = values[1];
-    game.stats.secrets_total = values[2];
-    game.stats.secrets_found = values[3];
-  },
-
-  /** @param {ClientGameAPI} game */
-  [clientEvent.ITEM_PICKED]: (game, itemEntity, itemName, items) => {
-    if (itemName !== null) {
-      game.engine.ConsolePrint(`You got ${itemName} (${itemEntity.classname}, ${items}).\n`);
-    } else {
-      game.engine.ConsolePrint('You found an empty item.\n');
-    }
-
-    game.engine.BonusFlash(new Vector(1, 0.75, 0.25), 0.25);
-  },
-
-  /** @param {ClientGameAPI} game */
-  [clientEvent.WEAPON_SELECTED]: (game, weapon) => {
-
-  },
-
-  [clientEvent.TEST_EVENT]: (game, ...args) => {
-    console.log(`Test event received with args:`, ...args);
-  },
 };
 
 /** @augments ClientGameInterface */
@@ -85,14 +52,6 @@ export class ClientGameAPI {
     weaponframe: 0,
   };
 
-  /** gamewide statistics */
-  stats = {
-    monsters_total: 0,
-    monsters_killed: 0,
-    secrets_total: 0,
-    secrets_found: 0,
-  };
-
   /** @type {import('../../../shared/GameInterfaces').ViewmodelConfig} */
   viewmodel = {
     visible: false,
@@ -102,9 +61,12 @@ export class ClientGameAPI {
 
   /**
    * @param {ClientEngineAPI} engineAPI client engine API
+   * @param {import('../../../shared/EventBus').EventBus} eventBus client event bus
    */
-  constructor(engineAPI) {
+  constructor(engineAPI, eventBus) {
     this.engine = engineAPI;
+    this.eventBus = eventBus;
+
     this.hud = new HUD(this, engineAPI);
 
     Object.seal(this);
@@ -145,15 +107,7 @@ export class ClientGameAPI {
   }
 
   handleClientEvent(code, ...args) {
-    // TODO: have a registry/map of client events and their handlers
-    console.log(`Client event ${code} with args:`, ...args);
-
-    if (!(code in clientEventHandlers)) {
-      this.engine.ConsoleWarning(`No handler for client event ${code}\n`);
-      return;
-    }
-
-    clientEventHandlers[code].apply(null, [this, ...args]);
+    this.eventBus.publish(`client.event-received.${code}`, ...args);
   }
 
   static GetClientEdictHandler(classname) {

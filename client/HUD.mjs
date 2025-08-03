@@ -1,5 +1,6 @@
 import Vector from '../../../shared/Vector.mjs';
 import { items } from '../Defs.mjs';
+import { clientEvent } from '../entity/Player.mjs';
 import { weaponConfig } from '../entity/Weapons.mjs';
 import { ClientGameAPI } from './ClientAPI.mjs';
 
@@ -54,6 +55,9 @@ const ammos = {
   ammo_cells: null,
 };
 
+/**
+ * Graphics helper class for the HUD.
+ */
 class Gfx {
   offsets = [0, 0];
 
@@ -104,19 +108,20 @@ class Gfx {
   }
 }
 
-export class Scoreboard {
-
-}
-
 export default class HUD {
   /** +showscores/-showscores */
   static #showScoreboard = false;
 
-  /** @type {Function[]} */
-  static #eventListeners = [];
-
   /** @type {Gfx} */
   static gfx = null;
+
+  /** gamewide stats */
+  stats = {
+    monsters_total: 0,
+    monsters_killed: 0,
+    secrets_total: 0,
+    secrets_found: 0,
+  };
 
   /**
    * @param {ClientGameAPI} clientGameAPI
@@ -126,15 +131,45 @@ export default class HUD {
     this.game = clientGameAPI;
     this.engine = clientEngineAPI;
     Object.seal(this);
+    Object.seal(this.stats);
   }
 
   init() {
     // make sure the HUD is initialized with the correct viewport size
     const { width, height } = this.engine.VID;
     HUD.#viewportResize(width, height);
+
+    // observe notable events
+    this.#subscribeToEvents();
   }
 
   shutdown() {
+  }
+
+  #subscribeToEvents() {
+    // subscribe to viewport resize events
+    this.game.eventBus.subscribe('vid.resize', ({ width, height }) => HUD.#viewportResize(width, height));
+
+    // picked up an item
+    this.game.eventBus.subscribe(`client.event-received.${clientEvent.ITEM_PICKED}`, (itemEntity, itemName, items) => {
+      if (itemName !== null) {
+        this.engine.ConsolePrint(`You got ${itemName} (${itemEntity.classname}, ${items}).\n`);
+      } else {
+        this.engine.ConsolePrint('You found an empty item.\n');
+      }
+
+      this.engine.BonusFlash(new Vector(1, 0.75, 0.25), 0.25);
+    });
+
+    this.game.eventBus.subscribe(`client.event-received.${clientEvent.STATS_INIT}`, (slot, value) => {
+      console.assert(slot in this.stats, `Unknown stat slot ${slot}`);
+      this.stats[slot] = value;
+    });
+
+    this.game.eventBus.subscribe(`client.event-received.${clientEvent.STATS_UPDATED}`, (slot, value) => {
+      console.assert(slot in this.stats, `Unknown stat slot ${slot}`);
+      this.stats[slot] = value;
+    });
   }
 
   #drawFace(x, y) {
@@ -256,8 +291,6 @@ export default class HUD {
     engineAPI.RegisterCommand('+showscores', () => { this.#showScoreboard = true; });
     engineAPI.RegisterCommand('-showscores', () => { this.#showScoreboard = false; });
 
-    this.#eventListeners.push(engineAPI.eventBus.subscribe('vid.resize', ({ width, height }) => this.#viewportResize(width, height)));
-
     this.gfx = new Gfx(engineAPI);
   }
 
@@ -274,9 +307,5 @@ export default class HUD {
 
     engineAPI.UnregisterCommand('+showscores');
     engineAPI.UnregisterCommand('-showscores');
-
-    for (const unsubscribe of this.#eventListeners) {
-      unsubscribe();
-    }
   }
 };

@@ -211,8 +211,10 @@ export class ServerGameAPI {
         engineAPI.BroadcastClientEvent(true, clientEvent.STATS_UPDATED, 'secrets_found', ++this.secrets_found, finderEntity.edict);
       },
       sendToPlayer(playerEntity) {
-        engineAPI.DispatchClientEvent(playerEntity.edict, true, clientEvent.STATS_INIT,
-          this.monsters_total, this.monsters_killed, this.secrets_total, this.secrets_found);
+        engineAPI.DispatchClientEvent(playerEntity.edict, true, clientEvent.STATS_INIT, 'monsters_total', this.monsters_total);
+        engineAPI.DispatchClientEvent(playerEntity.edict, true, clientEvent.STATS_INIT, 'monsters_killed', this.monsters_killed);
+        engineAPI.DispatchClientEvent(playerEntity.edict, true, clientEvent.STATS_INIT, 'secrets_total', this.secrets_total);
+        engineAPI.DispatchClientEvent(playerEntity.edict, true, clientEvent.STATS_INIT, 'secrets_found', this.secrets_found);
       },
     };
 

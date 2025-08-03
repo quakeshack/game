@@ -24,7 +24,7 @@ export const clientEvent = {
   /** single stats slot updated, args: slot name (string), value (number) */
   STATS_UPDATED: 3,
 
-  /** stats initialized to given values */
+  /** single stats slot initialized, args: slot name (string), value (number) */
   STATS_INIT: 4,
 
   /** an item has been picked up, args: itemEntity (ent), items (string[]), netname (string?), itemflags (number) */
@@ -1159,10 +1159,6 @@ export class PlayerEntity extends BaseEntity {
    * @returns {boolean} true, when cheats are allowed
    */
   _canUseCheats() {
-    if (!this.game.deathmatch && !this.game.coop) {
-      return true;
-    }
-
     if (!this.engine.GetCvar('sv_cheats').value) {
       this.consolePrint('Cheats are not enabled on this server.\n');
       return false;
@@ -1378,6 +1374,8 @@ export class PlayerEntity extends BaseEntity {
     if (this.health <= 0) {
       return;
     }
+
+    // TODO: offload to client
 
     // Invisibility
     if (this.invisible_finished) {
