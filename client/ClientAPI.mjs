@@ -4,6 +4,7 @@
 
 import { BaseClientEdictHandler } from '../../../shared/ClientEdict.mjs';
 import Vector from '../../../shared/Vector.mjs';
+import { clientEventName } from '../Defs.mjs';
 import { FireballEntity } from '../entity/Misc.mjs';
 import { clientEvent } from '../entity/Player.mjs';
 import { weaponConfig } from '../entity/Weapons.mjs';
@@ -25,15 +26,6 @@ const clientEdictHandlers = {
   },
 };
 
-// TODO: move this to a separate file, make it extendable
-const clientEventHandlers = {
-  [clientEvent.BONUS_FLASH]: (game) => {
-    game.engine.BonusFlash(new Vector(1, 0.75, 0.25), 0.25);
-  },
-
-
-};
-
 /** @augments ClientGameInterface */
 export class ClientGameAPI {
   /** current player’s data */
@@ -52,6 +44,14 @@ export class ClientGameAPI {
     weaponframe: 0,
   };
 
+  gamedata = {
+    received: false,
+
+    deathmatch: false,
+    coop: false,
+    skill: 0,
+  };
+
   /** @type {import('../../../shared/GameInterfaces').ViewmodelConfig} */
   viewmodel = {
     visible: false,
@@ -61,11 +61,9 @@ export class ClientGameAPI {
 
   /**
    * @param {ClientEngineAPI} engineAPI client engine API
-   * @param {import('../../../shared/EventBus').EventBus} eventBus client event bus
    */
-  constructor(engineAPI, eventBus) {
+  constructor(engineAPI) {
     this.engine = engineAPI;
-    this.eventBus = eventBus;
 
     this.hud = new HUD(this, engineAPI);
 
@@ -74,6 +72,14 @@ export class ClientGameAPI {
 
   init() {
     this.hud.init();
+
+    this.engine.eventBus.subscribe(clientEventName(clientEvent.GAMEDATA_CONFIGURED), (deathmatch, coop, skill) => {
+      this.gamedata.deathmatch = deathmatch;
+      this.gamedata.coop = coop;
+      this.gamedata.skill = skill;
+
+      this.gamedata.received = true;
+    });
   }
 
   shutdown() {
@@ -106,8 +112,8 @@ export class ClientGameAPI {
     }
   }
 
-  handleClientEvent(code, ...args) {
-    this.eventBus.publish(`client.event-received.${code}`, ...args);
+  handleClientEvent(eventId, ...args) {
+    this.engine.eventBus.publish(clientEventName(eventId), ...args);
   }
 
   static GetClientEdictHandler(classname) {

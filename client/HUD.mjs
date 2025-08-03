@@ -1,5 +1,6 @@
+import Q from '../../../shared/Q.mjs';
 import Vector from '../../../shared/Vector.mjs';
-import { items } from '../Defs.mjs';
+import { clientEventName, items } from '../Defs.mjs';
 import { clientEvent } from '../entity/Player.mjs';
 import { weaponConfig } from '../entity/Weapons.mjs';
 import { ClientGameAPI } from './ClientAPI.mjs';
@@ -60,6 +61,7 @@ const ammos = {
  */
 class Gfx {
   offsets = [0, 0];
+  scale = 1.0;
 
   #nums = [
     new Array(11).fill(null),
@@ -86,11 +88,11 @@ class Gfx {
   }
 
   drawPic(x, y, pic) {
-    this.clientEngineAPI.DrawPic(x + this.offsets[0], y + this.offsets[1], pic);
+    this.clientEngineAPI.DrawPic((x + this.offsets[0]), (y + this.offsets[1]), pic, this.scale);
   }
 
   drawString(x, y, text, scale = 1.0, color = new Vector(1.0, 1.0, 1.0)) {
-    this.clientEngineAPI.DrawString(x + this.offsets[0], y + this.offsets[1], text, scale, color);
+    this.clientEngineAPI.DrawString((x + this.offsets[0]), (y + this.offsets[1]), text, scale * this.scale, color);
   }
 
   drawNumber(x, y, number, digits = 3, color = 0) {
@@ -148,10 +150,10 @@ export default class HUD {
 
   #subscribeToEvents() {
     // subscribe to viewport resize events
-    this.game.eventBus.subscribe('vid.resize', ({ width, height }) => HUD.#viewportResize(width, height));
+    this.engine.eventBus.subscribe('vid.resize', ({ width, height }) => HUD.#viewportResize(width, height));
 
     // picked up an item
-    this.game.eventBus.subscribe(`client.event-received.${clientEvent.ITEM_PICKED}`, (itemEntity, itemName, items) => {
+    this.engine.eventBus.subscribe(clientEventName(clientEvent.ITEM_PICKED), (itemEntity, itemName, items) => {
       if (itemName !== null) {
         this.engine.ConsolePrint(`You got ${itemName} (${itemEntity.classname}, ${items}).\n`);
       } else {
@@ -161,12 +163,19 @@ export default class HUD {
       this.engine.BonusFlash(new Vector(1, 0.75, 0.25), 0.25);
     });
 
-    this.game.eventBus.subscribe(`client.event-received.${clientEvent.STATS_INIT}`, (slot, value) => {
+    // still used for some fading item effects
+    this.engine.eventBus.subscribe(clientEventName(clientEvent.BONUS_FLASH), () => {
+      this.engine.BonusFlash(new Vector(1, 0.75, 0.25), 0.33);
+    });
+
+    // game stats base value
+    this.engine.eventBus.subscribe(clientEventName(clientEvent.STATS_INIT), (slot, value) => {
       console.assert(slot in this.stats, `Unknown stat slot ${slot}`);
       this.stats[slot] = value;
     });
 
-    this.game.eventBus.subscribe(`client.event-received.${clientEvent.STATS_UPDATED}`, (slot, value) => {
+    // game stats updates during game play
+    this.engine.eventBus.subscribe(clientEventName(clientEvent.STATS_UPDATED), (slot, value) => {
       console.assert(slot in this.stats, `Unknown stat slot ${slot}`);
       this.stats[slot] = value;
     });
@@ -201,8 +210,10 @@ export default class HUD {
     HUD.gfx.drawPic(x, y, faces.faces[health >= 100.0 ? 4 : Math.floor(health / 20.0)][0]);
   }
 
+  /**
+   * Draw the status bar, inventory bar, and score bar.
+   */
   #drawStatusBar() {
-    // Draw the status bar, inventory bar, and score bar
     HUD.gfx.drawPic(0, 0, backgrounds.statusbar);
 
     // Draw armor
@@ -242,14 +253,48 @@ export default class HUD {
     }
   }
 
+  #drawInventory(offsetY = 0) {
+    HUD.gfx.drawPic(0, offsetY, backgrounds.inventorybar);
+
+    // TODO: the rest of the inventory
+  }
+
+  #drawScoreboard() {
+    this.engine.DrawString(8, 8, 'Scoreboard is not implemented yet', 2.0, new Vector(1.0, 1.0, 0.0));
+  }
+
+  /**
+   * Draws a mini info bar at the top of the screen with game stats and level name.
+   */
+  #drawMiniInfo(offsetY = 0) {
+    HUD.gfx.drawPic(0, offsetY, backgrounds.scorebar);
+
+    const monsters = `Monsters: ${this.stats.monsters_killed} / ${this.stats.monsters_total}`;
+    const secrets = ` Secrets: ${this.stats.secrets_found} / ${this.stats.secrets_total}`;
+
+    HUD.gfx.drawString(8, offsetY + 4,  `${monsters.padEnd(19)} ${Q.secsToTime(this.engine.CL.time).padStart(18)}`);
+    HUD.gfx.drawString(8, offsetY + 12, `${secrets.padEnd(19)} ${new String(this.engine.CL.levelname).trim().padStart(18)}`.substring(0, 38));
+  }
+
   draw() {
     if (HUD.#showScoreboard) {
-      // TODO: if not deathmatch, show the intermission basically
-      this.engine.DrawString(8, 8, 'Scoreboard is not implemented yet', 2.0, new Vector(1.0, 1.0, 0.0));
+      if (this.engine.CL.maxclients > 1) {
+        this.#drawScoreboard();
+      } else {
+        this.#drawMiniInfo();
+        return;
+      }
+    }
+
+    if (this.engine.SCR.viewsize <= 90) {
+      this.#drawMiniInfo(-48);
+    }
+
+    if (this.engine.SCR.viewsize <= 100) {
+      this.#drawInventory(-24);
     }
 
     this.#drawStatusBar();
-
   }
 
   /**
@@ -257,8 +302,13 @@ export default class HUD {
    * @param {number} height viewport height
    */
   static #viewportResize(width, height) {
-    this.gfx.offsets[0] = width / 2 - 160;
-    this.gfx.offsets[1] = height - 24;
+    // TODO: scale is broken
+    // if (width > 1024 && height > 768) {
+    //   this.gfx.scale = 1.5;
+    // }
+
+    this.gfx.offsets[0] = width / 2 - 160 * this.gfx.scale;
+    this.gfx.offsets[1] = height - 24 * this.gfx.scale;
   }
 
   /**

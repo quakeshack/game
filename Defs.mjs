@@ -142,3 +142,11 @@ export const spawnflags = Object.freeze({
   SPAWNFLAG_NOT_HARD: 1024,
   SPAWNFLAG_NOT_DEATHMATCH: 2048,
 });
+
+/**
+ * @param {number} eventId event id from clientEvent
+ * @returns {string} event name for the client event bus
+ */
+export function clientEventName(eventId) {
+  return `client.event-received.${eventId}`;
+};

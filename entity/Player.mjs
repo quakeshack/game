@@ -33,6 +33,9 @@ export const clientEvent = {
   /** weapon has been selected, args: weapon id (number) */
   WEAPON_SELECTED: 6,
 
+  /** configures game data, args: deathmatch, coop, skill, mapname  */
+  GAMEDATA_CONFIGURED: 7,
+
   /** TODO: damage received, args: damage (number), origin (vector) */
   DAMAGE_RECEIVED: 99,
 
@@ -744,20 +747,20 @@ export class PlayerEntity extends BaseEntity {
 
   /**
    * Dispatches a client event to the player’s frontend.
-   * @param {clientEvent} plEvent player event
+   * @param {clientEvent} clientEvent player event
    * @param {...any} args additional parameters
    */
-  dispatchEvent(plEvent, ...args) {
-    this.engine.DispatchClientEvent(this.edict, false, plEvent, ...args);
+  dispatchEvent(clientEvent, ...args) {
+    this.engine.DispatchClientEvent(this.edict, false, clientEvent, ...args);
   }
 
   /**
    * Dispatches a client event to the player’s frontend.
-   * @param {clientEvent} plEvent player event
+   * @param {clientEvent} clientEvent player event
    * @param {...any} args additional parameters
    */
-  dispatchExpeditedEvent(plEvent, ...args) {
-    this.engine.DispatchClientEvent(this.edict, true, plEvent, ...args);
+  dispatchExpeditedEvent(clientEvent, ...args) {
+    this.engine.DispatchClientEvent(this.edict, true, clientEvent, ...args);
   }
 
   decodeLevelParms() {
@@ -2028,6 +2031,8 @@ export class PlayerEntity extends BaseEntity {
     if (this.game.intermission_running) {
       this._intermissionExit();
     }
+
+    this.dispatchEvent(clientEvent.GAMEDATA_CONFIGURED, this.game.deathmatch, this.game.coop, this.game.skill);
 
     this.game.sendMissingEntitiesToPlayer(this);
   }
