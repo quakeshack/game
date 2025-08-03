@@ -27,16 +27,17 @@ export function Precache(engine) {
 
 /**
  * handy map to manage weapon slots
+ * TODO: move this to a separate file, it’s shared with client
  */
 export const weaponConfig = new Map([
-  [items.IT_AXE, { currentammo: null, weaponmodel: 'progs/v_axe.mdl', priority: 0, weaponframe: 0 }],
-  [items.IT_SHOTGUN, { currentammo: 'ammo_shells', weaponmodel: 'progs/v_shot.mdl', items: 'IT_SHELLS', priority: 1, weaponframe: 0 }],
-  [items.IT_SUPER_SHOTGUN, { currentammo: 'ammo_shells', weaponmodel: 'progs/v_shot2.mdl', items: 'IT_SHELLS', priority: 2, weaponframe: 0 }],
-  [items.IT_NAILGUN, { currentammo: 'ammo_nails', weaponmodel: 'progs/v_nail.mdl', items: 'IT_NAILS', priority: 3, weaponframe: 0 }],
-  [items.IT_SUPER_NAILGUN, { currentammo: 'ammo_nails', weaponmodel: 'progs/v_nail2.mdl', items: 'IT_NAILS', priority: 4, weaponframe: 0 }],
-  [items.IT_GRENADE_LAUNCHER, { currentammo: 'ammo_rockets', weaponmodel: 'progs/v_rock.mdl', items: 'IT_ROCKETS', priority: 5, weaponframe: 0 }],
-  [items.IT_ROCKET_LAUNCHER, { currentammo: 'ammo_rockets', weaponmodel: 'progs/v_rock2.mdl', items: 'IT_ROCKETS', priority: 6, weaponframe: 0 }],
-  [items.IT_LIGHTNING, { currentammo: 'ammo_cells', weaponmodel: 'progs/v_light.mdl', items: 'IT_CELLS', priority: 7, weaponframe: 0 }],
+  [items.IT_AXE, { ammoSlot: null, viewModel: 'progs/v_axe.mdl', priority: 0 }],
+  [items.IT_SHOTGUN, { ammoSlot: 'ammo_shells', viewModel: 'progs/v_shot.mdl', items: 'IT_SHELLS', priority: 1 }],
+  [items.IT_SUPER_SHOTGUN, { ammoSlot: 'ammo_shells', viewModel: 'progs/v_shot2.mdl', items: 'IT_SHELLS', priority: 2 }],
+  [items.IT_NAILGUN, { ammoSlot: 'ammo_nails', viewModel: 'progs/v_nail.mdl', items: 'IT_NAILS', priority: 3 }],
+  [items.IT_SUPER_NAILGUN, { ammoSlot: 'ammo_nails', viewModel: 'progs/v_nail2.mdl', items: 'IT_NAILS', priority: 4 }],
+  [items.IT_GRENADE_LAUNCHER, { ammoSlot: 'ammo_rockets', viewModel: 'progs/v_rock.mdl', items: 'IT_ROCKETS', priority: 5 }],
+  [items.IT_ROCKET_LAUNCHER, { ammoSlot: 'ammo_rockets', viewModel: 'progs/v_rock2.mdl', items: 'IT_ROCKETS', priority: 6 }],
+  [items.IT_LIGHTNING, { ammoSlot: 'ammo_cells', viewModel: 'progs/v_light.mdl', items: 'IT_CELLS', priority: 7 }],
 ]);
 
 /** struct holding items and ammo */
@@ -826,7 +827,7 @@ export class PlayerWeapons extends EntityWrapper {
       return true;
     }
 
-    const key = weaponConfig.get(this._player.weapon).currentammo;
+    const key = weaponConfig.get(this._player.weapon).ammoSlot;
 
     if (key && this._player[key] > 0) {
       return true;

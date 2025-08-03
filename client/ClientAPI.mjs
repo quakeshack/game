@@ -57,6 +57,11 @@ const clientEventHandlers = {
     game.engine.BonusFlash(new Vector(1, 0.75, 0.25), 0.25);
   },
 
+  /** @param {ClientGameAPI} game */
+  [clientEvent.WEAPON_SELECTED]: (game, weapon) => {
+
+  },
+
   [clientEvent.TEST_EVENT]: (game, ...args) => {
     console.log(`Test event received with args:`, ...args);
   },
@@ -121,7 +126,7 @@ export class ClientGameAPI {
     } else {
       this.viewmodel.visible = true;
 
-      this.viewmodel.model = this.engine.ModForName(weaponConfig.get(this.clientdata.weapon).weaponmodel);
+      this.viewmodel.model = this.engine.ModForName(weaponConfig.get(this.clientdata.weapon).viewModel);
       this.viewmodel.frame = this.clientdata.weaponframe;
     }
   }

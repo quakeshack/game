@@ -30,8 +30,11 @@ export const clientEvent = {
   /** an item has been picked up, args: itemEntity (ent), items (string[]), netname (string?), itemflags (number) */
   ITEM_PICKED: 5,
 
-  /** damage received, args: damage (number), origin (vector) */
-  DAMAGE_RECEIVED: 6,
+  /** weapon has been selected, args: weapon id (number) */
+  WEAPON_SELECTED: 6,
+
+  /** TODO: damage received, args: damage (number), origin (vector) */
+  DAMAGE_RECEIVED: 99,
 
   /** test event, args: some gargabe */
   TEST_EVENT: 254,
@@ -213,9 +216,12 @@ export class PlayerEntity extends BaseEntity {
     this.ammo_nails = 0; // SV.WriteClientdataToMessage
     this.ammo_rockets = 0; // SV.WriteClientdataToMessage
     this.ammo_cells = 0; // SV.WriteClientdataToMessage
+    /** @type {number} current weapon id */
     this.weapon = 0; // SV.WriteClientdataToMessage
     this.max_health = 100; // players maximum health is stored here
+    /** @type {number} always set to whatever current weapon is active and the ammo for it */
     this.currentammo = 0; // SV.WriteClientdataToMessage
+    /** @type {string} view model @deprecated handled by client code now */
     this.weaponmodel = null; // SV.WriteClientdataToMessage
     this.weaponframe = 0; // SV.WriteClientdataToMessage
     this.impulse = 0; // cycle weapons, cheats, etc.
@@ -811,9 +817,9 @@ export class PlayerEntity extends BaseEntity {
 
     const config = weaponConfig.get(this.weapon);
     if (config) {
-      this.currentammo = config.currentammo ? this[config.currentammo] : null;
-      this.weaponmodel = config.weaponmodel;
-      this.weaponframe = config.weaponframe;
+      this.currentammo = config.ammoSlot ? this[config.ammoSlot] : 0;
+      this.weaponmodel = config.viewModel;
+      this.weaponframe = 0;
       if (config.items) {
         this.items |= items[config.items];
       }
@@ -822,6 +828,8 @@ export class PlayerEntity extends BaseEntity {
       this.weaponmodel = null;
       this.weaponframe = 0;
     }
+
+    this.dispatchExpeditedEvent(clientEvent.WEAPON_SELECTED, this.weapon);
 
     this._enterRunningState(); // get out of any weapon firing states
   }
@@ -837,7 +845,7 @@ export class PlayerEntity extends BaseEntity {
 
     for (const [weapon, config] of weaponConfig.entries()) {
       const hasWeapon = it & weapon; // Check if player has this weapon
-      const hasAmmo = config.currentammo === 0 || this[config.currentammo] > 0; // Check if ammo is available
+      const hasAmmo = config.ammoSlot === 0 || this[config.ammoSlot] > 0; // Check if ammo is available
       const isUsable = !(weapon === items.IT_LIGHTNING && this.waterlevel > 1); // Lightning unusable in water
 
       if (hasWeapon && hasAmmo && isUsable && config.priority > maxPriority) {
