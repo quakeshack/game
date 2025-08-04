@@ -67,6 +67,8 @@ export class BaseItemEntity extends BaseEntity {
     /** @type {string} sfx to play upon picking it up */
     this.noise = 'weapons/lock4.wav';
 
+    this.netname = 'Unknown Item';
+
     this._serializer.endFields();
 
     this._sub = new Sub(this);
@@ -345,18 +347,12 @@ export class BaseKeyEntity extends BaseItemEntity {
   };
 
   _precache() {
+    this._setInfo();
     this.engine.PrecacheSound(this.noise);
     this.engine.PrecacheModel(this.model);
   }
 
-  spawn() {
-    super.spawn();
-
-    this.setModel(this.model);
-    this.setSize(new Vector(-16.0, -16.0, -24.0), new Vector(16.0, 16.0, 32.0));
-
-    this.items = /** @type {typeof BaseKeyEntity} */(this.constructor)._item;
-
+  _setInfo() {
     const currentWorldType = this.game.worldspawn.worldtype;
     const thisClass = /** @type {typeof BaseKeyEntity} */(this.constructor);
 
@@ -383,6 +379,17 @@ export class BaseKeyEntity extends BaseItemEntity {
 
       return thisClass._worldTypeToModel[worldType.MEDIEVAL];
     })();
+  }
+
+  spawn() {
+    super.spawn();
+
+    this._setInfo();
+
+    this.setModel(this.model);
+    this.setSize(new Vector(-16.0, -16.0, -24.0), new Vector(16.0, 16.0, 32.0));
+
+    this.items = /** @type {typeof BaseKeyEntity} */(this.constructor)._item;
   }
 
   regenerate() {
@@ -621,11 +628,8 @@ export class SuperDamageEntity extends BaseArtifactEntity {
 export class SigilEntity extends BaseItemEntity {
   static classname = 'item_sigil';
 
+  static _items = [items.IT_SIGIL1, items.IT_SIGIL2, items.IT_SIGIL3, items.IT_SIGIL4];
   static _models = ['progs/end1.mdl', 'progs/end2.mdl', 'progs/end3.mdl', 'progs/end4.mdl'];
-
-  get netname() {
-    return 'the rune';
-  }
 
   // CR: I’m not sure at all if this logic is actually being used (see QuakeC: items.qc/sigil_touch)
   // get classname() {
@@ -662,6 +666,8 @@ export class SigilEntity extends BaseItemEntity {
     this.game.serverflags |= this.spawnflags & 15;
     this.spawnflags = 15; // used in the classname hack
 
+    super._pickup(playerEntity);
+
     return true;
   }
 
@@ -678,12 +684,16 @@ export class SigilEntity extends BaseItemEntity {
 
     for (let i = 0; i < 4; i++) {
       if ((this.spawnflags & (1 << i))) {
-        this.setModel(/** @type {typeof SigilEntity} */(this.constructor)._models[i]);
+        const ctor = /** @type {typeof SigilEntity} */(this.constructor);
+        this.items |= ctor._items[i];
+        this.setModel(ctor._models[i]);
         break;
       }
     }
 
     this.setSize(new Vector(-16.0, -16.0, -24.0), new Vector(16.0, 16.0, 32.0));
+
+    this.netname = 'the rune';
   }
 };
 
@@ -736,10 +746,6 @@ export class HealthItemEntity extends BaseItemEntity {
     this.healamount = 0;
 
     this._serializer.endFields();
-  }
-
-  get netname() {
-    return `${this.healamount} health`;
   }
 
   /** @protected */
@@ -811,6 +817,8 @@ export class HealthItemEntity extends BaseItemEntity {
     this.healamount = this._config.healamount;
     this.items = this._config.items;
 
+    this.netname = `${this.healamount} health`;
+
     super.spawn();
   }
 };
@@ -820,10 +828,6 @@ export class BaseArmorEntity extends BaseItemEntity {
   static _armorvalue = 0;
   static _item = 0;
   static _skin = 0;
-
-  get netname() {
-    return 'the armor';
-  }
 
   /**
    * @param {PlayerEntity} playerEntity player
@@ -869,6 +873,8 @@ export class BaseArmorEntity extends BaseItemEntity {
 
     this.setModel('progs/armor.mdl');
     this.setSize(new Vector(-16.0, -16.0, 0.0), new Vector(16.0, 16.0, 56.0));
+
+    this.netname = 'the armor';
   }
 };
 

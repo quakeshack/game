@@ -56,6 +56,44 @@ const ammos = {
   ammo_cells: null,
 };
 
+const labels = {
+  /** @type {GLTexture} */
+  ranking: null,
+  /** @type {GLTexture} */
+  complete: null,
+  /** @type {GLTexture} */
+  inter: null,
+  /** @type {GLTexture} */
+  finale: null,
+};
+
+const inventory = [
+  // weapons
+  { item: items.IT_SHOTGUN, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'SHOTGUN', iconPrefix: 'INV' },
+  { item: items.IT_SUPER_SHOTGUN, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'SSHOTGUN', iconPrefix: 'INV' },
+  { item: items.IT_NAILGUN, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'NAILGUN', iconPrefix: 'INV' },
+  { item: items.IT_SUPER_NAILGUN, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'SNAILGUN', iconPrefix: 'INV' },
+  { item: items.IT_GRENADE_LAUNCHER, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'RLAUNCH', iconPrefix: 'INV' },
+  { item: items.IT_ROCKET_LAUNCHER, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'SRLAUNCH', iconPrefix: 'INV' },
+  { item: items.IT_LIGHTNING, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'LIGHTNG', iconPrefix: 'INV' },
+
+  // keys
+  { item: items.IT_KEY1, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'KEY1', iconPrefix: 'SB' },
+  { item: items.IT_KEY2, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'KEY2', iconPrefix: 'SB' },
+
+  // powerups
+  { item: items.IT_INVISIBILITY, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'INVIS', iconPrefix: 'SB' },
+  { item: items.IT_INVULNERABILITY, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'INVULN', iconPrefix: 'SB' },
+  { item: items.IT_SUIT, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'SUIT', iconPrefix: 'SB' },
+  { item: items.IT_QUAD, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'QUAD', iconPrefix: 'SB' },
+
+  // runes
+  { item: items.IT_SIGIL1, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'SIGIL1', iconPrefix: 'SB' },
+  { item: items.IT_SIGIL2, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'SIGIL2', iconPrefix: 'SB' },
+  { item: items.IT_SIGIL3, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'SIGIL3', iconPrefix: 'SB' },
+  { item: items.IT_SIGIL4, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'SIGIL4', iconPrefix: 'SB' },
+];
+
 /**
  * Graphics helper class for the HUD.
  */
@@ -110,12 +148,22 @@ class Gfx {
   }
 }
 
+const ammoLowColor = new Vector(1.0, 1.0, 1.0);
+const ammoColor = new Vector(1.0, 1.0, 1.0);
+
 export default class HUD {
   /** +showscores/-showscores */
   static #showScoreboard = false;
 
   /** @type {Gfx} */
   static gfx = null;
+
+  static viewport = {
+    /** viewport width */
+    width: 0,
+    /** viewport height */
+    height: 0,
+  };
 
   /** gamewide stats */
   stats = {
@@ -125,9 +173,26 @@ export default class HUD {
     secrets_found: 0,
   };
 
+  /** damage related states */
+  damage = {
+    /** time when the last damage was received based on CL.time */
+    time: -Infinity,
+
+    /** attack origin vector */
+    attackOrigin: new Vector(0, 0, 0),
+
+    /** damage received, it will automatically decrease over time */
+    damageReceived: 0,
+  };
+
+  intermission = {
+    running: false,
+    message: null,
+  };
+
   /**
-   * @param {ClientGameAPI} clientGameAPI
-   * @param {ClientEngineAPI} clientEngineAPI
+   * @param {ClientGameAPI} clientGameAPI this game’s API
+   * @param {ClientEngineAPI} clientEngineAPI engine API
    */
   constructor(clientGameAPI, clientEngineAPI) {
     this.game = clientGameAPI;
@@ -143,6 +208,9 @@ export default class HUD {
 
     // observe notable events
     this.#subscribeToEvents();
+
+    ammoColor.set(this.engine.IndexToRGB(127));
+    ammoLowColor.set(this.engine.IndexToRGB(250));
   }
 
   shutdown() {
@@ -152,6 +220,17 @@ export default class HUD {
     // subscribe to viewport resize events
     this.engine.eventBus.subscribe('vid.resize', ({ width, height }) => HUD.#viewportResize(width, height));
 
+    // damage received
+    this.engine.eventBus.subscribe('client.damage', (/** @type {import('../../../shared/GameInterfaces').ClientDamageEvent} */ clientDamageEvent) => {
+      this.damage.time = this.engine.CL.time;
+      this.damage.attackOrigin.set(clientDamageEvent.attackOrigin);
+      this.damage.damageReceived += clientDamageEvent.damageReceived;
+
+      if (this.damage.damageReceived > 150) {
+        this.damage.damageReceived = 150; // cap the damage to prevent a stuck damage screen
+      }
+    });
+
     // picked up an item
     this.engine.eventBus.subscribe(clientEventName(clientEvent.ITEM_PICKED), (itemEntity, itemName, items) => {
       if (itemName !== null) {
@@ -159,6 +238,8 @@ export default class HUD {
       } else {
         this.engine.ConsolePrint('You found an empty item.\n');
       }
+
+      // TODO: do the picked up animation effect
 
       this.engine.BonusFlash(new Vector(1, 0.75, 0.25), 0.25);
     });
@@ -178,6 +259,14 @@ export default class HUD {
     this.engine.eventBus.subscribe(clientEventName(clientEvent.STATS_UPDATED), (slot, value) => {
       console.assert(slot in this.stats, `Unknown stat slot ${slot}`);
       this.stats[slot] = value;
+    });
+
+    // intermission screen
+    this.engine.eventBus.subscribe(clientEventName(clientEvent.INTERMISSION_START), (message) => {
+      this.intermission.running = true;
+      this.intermission.message = message || null;
+
+      this.engine.CL.intermission = true;
     });
   }
 
@@ -206,18 +295,21 @@ export default class HUD {
 
     const health = Math.max(0, this.game.clientdata.health);
 
-    // TODO: pain states
-    HUD.gfx.drawPic(x, y, faces.faces[health >= 100.0 ? 4 : Math.floor(health / 20.0)][0]);
+    HUD.gfx.drawPic(x, y, faces.faces[health >= 100.0 ? 4 : Math.floor(health / 20.0)][this.damage.damageReceived > 0 ? 1 : 0]);
   }
 
   /**
    * Draw the status bar, inventory bar, and score bar.
    */
   #drawStatusBar() {
-    HUD.gfx.drawPic(0, 0, backgrounds.statusbar);
+    const isFullscreen = this.engine.SCR.viewsize === 120;
+
+    if (!isFullscreen) {
+      HUD.gfx.drawPic(0, 0, backgrounds.statusbar);
+    }
 
     // Draw armor
-    if (this.game.clientdata.armorvalue > 0) {
+    if (this.game.clientdata.armorvalue >= 0) {
       switch (true) {
         case (this.game.clientdata.items & items.IT_ARMOR3) !== 0:
           HUD.gfx.drawPic(0, 0, armors.armor3);
@@ -225,11 +317,13 @@ export default class HUD {
         case (this.game.clientdata.items & items.IT_ARMOR2) !== 0:
           HUD.gfx.drawPic(0, 0, armors.armor2);
           break;
+        case isFullscreen:
         case (this.game.clientdata.items & items.IT_ARMOR1) !== 0:
           HUD.gfx.drawPic(0, 0, armors.armor1);
           break;
       }
 
+      // Draw armor value
       HUD.gfx.drawNumber(24, 0, this.game.clientdata.armorvalue, 3, this.game.clientdata.armorvalue <= 25 ? 1 : 0);
     }
 
@@ -256,15 +350,61 @@ export default class HUD {
   #drawInventory(offsetY = 0) {
     HUD.gfx.drawPic(0, offsetY, backgrounds.inventorybar);
 
-    // TODO: the rest of the inventory
+    // Draw ammo slots
+    const ammoSlots = ['ammo_shells', 'ammo_nails', 'ammo_rockets', 'ammo_cells'];
+    for (let i = 0; i < ammoSlots.length; i++) {
+      const ammoSlot = ammoSlots[i];
+      if (this.game.clientdata[ammoSlot] > 0) {
+        HUD.gfx.drawString((6 * i + 1) * 8 - 2, -24, this.game.clientdata[ammoSlot].toFixed(0).padStart(3), 1.0, this.game.clientdata[ammoSlot] <= 10 ? ammoLowColor : ammoColor);
+      }
+    }
+
+    // Draw inventory slots (both weapons and items)
+    for (let i = 0, wsOffsetX = 0; i < inventory.length; i++) {
+      const inv = inventory[i];
+      // TODO: do the picked up animation effect
+      if (this.game.clientdata.items & inv.item) {
+        if (this.game.clientdata.health > 0 && this.game.clientdata.weapon === inv.item) {
+          HUD.gfx.drawPic(wsOffsetX, offsetY + 8, inv.icon);
+        } else {
+          HUD.gfx.drawPic(wsOffsetX, offsetY + 8, inv.iconInactive);
+        }
+      }
+      wsOffsetX += inv.iconWidth;
+    }
   }
 
   #drawScoreboard() {
-    this.engine.DrawString(8, 8, 'Scoreboard is not implemented yet', 2.0, new Vector(1.0, 1.0, 0.0));
+    this.engine.DrawPic((HUD.viewport.width - labels.ranking.width) / 2, 32, labels.ranking);
+
+    const x = HUD.viewport.width / 2 - 240;
+    const y = 64;
+
+    const scores = [];
+
+    for (let i = 0; i < this.engine.CL.maxclients; i++) {
+      if (!this.engine.CL.score(i).isActive) {
+        continue;
+      }
+
+      scores.push(this.engine.CL.score(i));
+    }
+
+    scores.sort((a, b) => b.frags - a.frags);
+
+    for (let i = 0; i < scores.length; i++) {
+      const score = scores[i];
+
+      this.engine.DrawRect(x, y + 24 * i + 0, 80, 8, this.engine.IndexToRGB((score.colors & 0xf0) + 8));
+      this.engine.DrawRect(x, y + 24 * i + 8, 80, 8, this.engine.IndexToRGB((score.colors & 0xf) * 16 + 8));
+
+      this.engine.DrawString(x, y + 24 * i, `[${score.frags.toFixed(0).padStart(3)}] ${score.name.padEnd(16)} (${score.ping.toFixed(1)} ms)`, 2.0);
+    }
   }
 
   /**
    * Draws a mini info bar at the top of the screen with game stats and level name.
+   * @param {number} offsetY vertical offset for the mini info bar
    */
   #drawMiniInfo(offsetY = 0) {
     HUD.gfx.drawPic(0, offsetY, backgrounds.scorebar);
@@ -277,17 +417,21 @@ export default class HUD {
   }
 
   draw() {
+    if (this.intermission.running) {
+      this.engine.DrawString(16, 16, 'TODO: Intermission', 2.0);
+      return;
+    }
+
     if (HUD.#showScoreboard) {
       if (this.engine.CL.maxclients > 1) {
         this.#drawScoreboard();
       } else {
+        if (this.engine.SCR.viewsize === 120 || this.engine.SCR.viewsize <= 100) {
+          this.#drawInventory(-24);
+        }
         this.#drawMiniInfo();
         return;
       }
-    }
-
-    if (this.engine.SCR.viewsize <= 90) {
-      this.#drawMiniInfo(-48);
     }
 
     if (this.engine.SCR.viewsize <= 100) {
@@ -295,6 +439,16 @@ export default class HUD {
     }
 
     this.#drawStatusBar();
+  }
+
+  startFrame() {
+    if (this.damage.damageReceived > 0) {
+      this.damage.damageReceived -= this.engine.CL.frametime * 25; // decrease damage over time
+
+      if (this.damage.damageReceived < 0) {
+        this.damage.damageReceived = 0;
+      }
+    }
   }
 
   /**
@@ -306,6 +460,9 @@ export default class HUD {
     // if (width > 1024 && height > 768) {
     //   this.gfx.scale = 1.5;
     // }
+
+    this.viewport.width = width;
+    this.viewport.height = height;
 
     this.gfx.offsets[0] = width / 2 - 160 * this.gfx.scale;
     this.gfx.offsets[1] = height - 24 * this.gfx.scale;
@@ -337,6 +494,23 @@ export default class HUD {
     armors.armor1 = engineAPI.LoadPicFromWad('SB_ARMOR1');
     armors.armor2 = engineAPI.LoadPicFromWad('SB_ARMOR2');
     armors.armor3 = engineAPI.LoadPicFromWad('SB_ARMOR3');
+
+    labels.ranking = engineAPI.LoadPicFromLump('ranking');
+    labels.complete = engineAPI.LoadPicFromLump('complete');
+    labels.inter = engineAPI.LoadPicFromLump('inter');
+    labels.finale = engineAPI.LoadPicFromLump('finale');
+
+    for (const weapon of inventory) {
+      if (weapon.iconPrefix === 'INV') {
+        weapon.icon = engineAPI.LoadPicFromWad(`INV2_${weapon.iconSuffix}`);
+        weapon.iconInactive = engineAPI.LoadPicFromWad(`INV_${weapon.iconSuffix}`);
+      } else {
+        weapon.icon = engineAPI.LoadPicFromWad(`${weapon.iconPrefix}_${weapon.iconSuffix}`);
+        weapon.iconInactive = weapon.icon; // no inactive icon for keys
+      }
+
+      weapon.iconWidth = weapon.icon.width;
+    }
 
     engineAPI.RegisterCommand('+showscores', () => { this.#showScoreboard = true; });
     engineAPI.RegisterCommand('-showscores', () => { this.#showScoreboard = false; });

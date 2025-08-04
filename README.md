@@ -21,7 +21,7 @@ Originally, Quake did not support client-side game code. In this project we also
 
 A couple of things I spotted or I’m unhappy with
 
-* [ ] applyBackpack: currentammo not updated
+* [X] applyBackpack: currentammo not updated --> fixed by the new client code
 * [ ] cvars: move game related cvars to PR and QuakeJS game, less game duties on the engine
 * [ ] BaseEntity: make state definitions static, right now it’s bloating up the memory footprint
 
@@ -39,13 +39,16 @@ A few NPCs and features from the original game are still missing and yet to be i
 
 ### Client-side
 
-* [ ] implement a more lean Sbar/HUD
-* [ ] move more of the effect handling from the engine to the game code
+* [X] implement a more lean Sbar/HUD
+  * [ ] implement intermission, finale etc. screens
+* [X] move more of the effect handling from the engine to the game code
+* [ ] implement damage effects (red flash)
+* [ ] implement powerup effects (quad, invis etc.)
 * [ ] handle things like gibbing, bubbles etc. on the client-side only
   * [ ] air_bubbles
   * [ ] GibEntity
   * [ ] MeatSprayEntity
-* [ ] handle screen flashes like bonus flash (`bf`) through events
+* [X] handle screen flashes like bonus flash (`bf`) through events
 
 ## Core concepts
 

@@ -4,7 +4,7 @@
 
 import { BaseClientEdictHandler } from '../../../shared/ClientEdict.mjs';
 import Vector from '../../../shared/Vector.mjs';
-import { clientEventName } from '../Defs.mjs';
+import { clientEventName, items } from '../Defs.mjs';
 import { FireballEntity } from '../entity/Misc.mjs';
 import { clientEvent } from '../entity/Player.mjs';
 import { weaponConfig } from '../entity/Weapons.mjs';
@@ -87,9 +87,7 @@ export class ClientGameAPI {
   }
 
   startFrame() {
-    // TODO: configure viewmodel based on health etc.
-
-    if (this.clientdata.health <= 0 || !this.clientdata.weapon) {
+    if (this.clientdata.health <= 0 || !this.clientdata.weapon || (this.clientdata.items & items.IT_INVISIBILITY)) {
       this.viewmodel.visible = false;
     } else {
       this.viewmodel.visible = true;
@@ -97,6 +95,8 @@ export class ClientGameAPI {
       this.viewmodel.model = this.engine.ModForName(weaponConfig.get(this.clientdata.weapon).viewModel);
       this.viewmodel.frame = this.clientdata.weaponframe;
     }
+
+    this.hud.startFrame();
   }
 
   draw() {

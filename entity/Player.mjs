@@ -36,6 +36,9 @@ export const clientEvent = {
   /** configures game data, args: deathmatch, coop, skill, mapname  */
   GAMEDATA_CONFIGURED: 7,
 
+  /** enters intermission, args: message (optional) */
+  INTERMISSION_START: 8,
+
   /** TODO: damage received, args: damage (number), origin (vector) */
   DAMAGE_RECEIVED: 99,
 
@@ -655,6 +658,12 @@ export class PlayerEntity extends BaseEntity {
       regeneration_time: 0, // do not regenerate
       remove_after: 120, // remove after 120s
     }));
+
+    this.ammo_cells = 0;
+    this.ammo_nails = 0;
+    this.ammo_rockets = 0;
+    this.ammo_shells = 0;
+    this.items &= ~this.weapon | items.IT_AXE;
 
     // toss it around
     backpack.toss();

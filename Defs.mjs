@@ -77,6 +77,11 @@ export const items = Object.freeze({
   IT_ARMOR2: 16384,
   IT_ARMOR3: 32768,
   IT_SUPERHEALTH: 65536,
+
+  IT_SIGIL1: (1 << 26),
+  IT_SIGIL2: (1 << 27),
+  IT_SIGIL3: (1 << 28),
+  IT_SIGIL4: (1 << 29),
 });
 
 /**

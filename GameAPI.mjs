@@ -492,15 +492,14 @@ export class ServerGameAPI {
     this.intermission_running = 1;
     this.intermission_exittime = this.time + (this.deathmatch ? 5.0 : 2.0); // 5s for dm games
 
-    this.engine.PlayTrack(3, 3);
+    this.engine.PlayTrack(3, 3); // TODO: client responsibility
 
     for (const player of this.engine.FindAllByFieldAndValue('classname', PlayerEntity.classname)) {
       /** @type {PlayerEntity} */
       const playerEntity = player.entity;
       playerEntity.startIntermission();
+      playerEntity.dispatchExpeditedEvent(clientEvent.INTERMISSION_START);
     }
-
-    this.engine.EnterIntermission();
   }
 
   /**
