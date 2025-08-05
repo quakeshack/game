@@ -1179,48 +1179,67 @@ export class PlayerEntity extends BaseEntity {
     return true;
   }
 
+  _finishMap() {
+    if (!this._canUseCheats()) {
+      return;
+    }
+
+    this.game.gameover = true;
+    this.engine.BroadcastPrint(`${this.netname} decided that this map has concluded.\n`);
+    this.game.startIntermission();
+  }
+
   /**
    * handles impulse commands
    * @private
    */
   _handleImpulseCommands() {
-    if (this.impulse >= 1 && this.impulse <= 8) {
+    if (this.impulse <= 0) {
+      return; // invalid impulse command
+    } else if (this.impulse >= 1 && this.impulse <= 8) {
       // CR: in vanilla Quake impulse code represents the weapon slot within this range
       this._weaponChange(this.impulse);
-    }
+    } else {
+      switch (this.impulse) {
+        case 66:
+          this._explainEntity();
+          break;
 
-    switch (this.impulse) {
-      case 66:
-        this._explainEntity();
-        break;
+        case 102:
+          this._finishMap();
+          break;
 
-      case 101:
-        this._testStuff();
-        break;
+        case 101:
+          this._testStuff();
+          break;
 
-      case 100:
-        this._killRay();
-        break;
+        case 100:
+          this._killRay();
+          break;
 
-      case 9:
-        this._cheatCommandGeneric();
-        break;
+        case 9:
+          this._cheatCommandGeneric();
+          break;
 
-      case 10:
-        this._cycleWeaponCommand();
-        break;
+        case 10:
+          this._cycleWeaponCommand();
+          break;
 
-      case 11:
-        this.consolePrint('Not implemented.\n');
-        break;
+        case 11:
+          this.consolePrint('Not implemented.\n');
+          break;
 
-      case 12:
-        this._cycleWeaponReverseCommand();
-        break;
+        case 12:
+          this._cycleWeaponReverseCommand();
+          break;
 
-      case 255:
-        this._cheatCommandQuad();
-        break;
+        case 255:
+          this._cheatCommandQuad();
+          break;
+
+        default:
+          this.consolePrint(`Unknown impulse #${this.impulse}.\n`);
+      }
     }
 
     this.impulse = 0;
@@ -1841,6 +1860,7 @@ export class PlayerEntity extends BaseEntity {
     // CR: in vanilla Quake, everyone sees the same spot
     const spot = this._intermissionFindSpot();
 
+    // we actually move the player to the intermission spot, so that PVS checks and delta updates work correctly
     this.view_ofs.clear();
     this.angles.set(spot.mangle || spot.angles);
     this.v_angle.set(spot.mangle || spot.angles);
@@ -1851,6 +1871,9 @@ export class PlayerEntity extends BaseEntity {
     this.movetype = moveType.MOVETYPE_NONE;
     this.unsetModel();
     this.setOrigin(spot.origin);
+
+    // tell the client to start intermission
+    this.dispatchExpeditedEvent(clientEvent.INTERMISSION_START, null, spot.origin, spot.angles);
   }
 
   /**
@@ -2036,12 +2059,12 @@ export class PlayerEntity extends BaseEntity {
     this.clear();
     this.frags = 0;
 
+    this.dispatchEvent(clientEvent.GAMEDATA_CONFIGURED, this.game.deathmatch, this.game.coop, this.game.skill);
+
     // a client connecting during an intermission can cause problems
     if (this.game.intermission_running) {
       this._intermissionExit();
     }
-
-    this.dispatchEvent(clientEvent.GAMEDATA_CONFIGURED, this.game.deathmatch, this.game.coop, this.game.skill);
 
     this.game.sendMissingEntitiesToPlayer(this);
   }

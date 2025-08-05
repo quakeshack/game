@@ -1,3 +1,4 @@
+import Q from '../../../shared/Q.mjs';
 import Vector from '../../../shared/Vector.mjs';
 
 import { damage, dead, flags, moveType, solid, content, attn, channel } from '../Defs.mjs';
@@ -412,11 +413,11 @@ export default class BaseEntity {
 
       switch (true) {
         case this[key] instanceof Vector:
-          this[key] = value instanceof Vector ? value.copy() : new Vector(...value.split(' ').map((n) => parseFloat(n)));
+          this[key] = value instanceof Vector ? value.copy() : new Vector(...value.split(' ').map((n) => Q.atof(n)));
           break;
 
         case typeof (this[key]) === 'number':
-          this[key] = parseFloat(value);
+          this[key] = Q.atof(value);
           break;
 
         default:
@@ -445,6 +446,12 @@ export default class BaseEntity {
    * @param {string} modelname e.g. progs/player.mdl
    */
   setModel(modelname) {
+    if (!modelname || modelname.length === 0) {
+      this.modelindex = 0;
+      this.model = null;
+      return;
+    }
+
     if (this.engine.IsLoading()) {
       this.engine.PrecacheModel(modelname);
     }

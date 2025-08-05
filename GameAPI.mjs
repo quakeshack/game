@@ -498,7 +498,6 @@ export class ServerGameAPI {
       /** @type {PlayerEntity} */
       const playerEntity = player.entity;
       playerEntity.startIntermission();
-      playerEntity.dispatchExpeditedEvent(clientEvent.INTERMISSION_START);
     }
   }
 

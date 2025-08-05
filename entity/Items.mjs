@@ -67,7 +67,8 @@ export class BaseItemEntity extends BaseEntity {
     /** @type {string} sfx to play upon picking it up */
     this.noise = 'weapons/lock4.wav';
 
-    this.netname = 'Unknown Item';
+    /** @type {string?} optional nickname */
+    this.netname = null;
 
     this._serializer.endFields();
 
@@ -121,7 +122,7 @@ export class BaseItemEntity extends BaseEntity {
     // check if this items is new in player’s inventory
     if (this.items > 0 && (player.items & this.items) !== this.items) {
       for (const [item, name] of Object.entries(itemNames)) {
-        if ((this.items & ~player.items) & parseInt(item)) { // only mention new items
+        if ((this.items & ~player.items) & (+item)) { // only mention new items
           items.push(name);
         }
       }
@@ -661,7 +662,7 @@ export class SigilEntity extends BaseItemEntity {
     this._serializer.endFields();
   }
 
-  // eslint-disable-next-line no-unused-vars
+
   _pickup(playerEntity) {
     this.game.serverflags |= this.spawnflags & 15;
     this.spawnflags = 15; // used in the classname hack
