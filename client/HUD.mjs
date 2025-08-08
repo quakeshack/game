@@ -312,12 +312,12 @@ export default class HUD {
       // TODO: do the picked up animation effect
       console.debug(`Picked up item: ${itemEntity.classname} (items = ${items})`);
 
-      this.engine.ContentShift(contentShift.bonus, this.engine.IndexToRGB(111), 0.5);
+      this.engine.ContentShift(contentShift.bonus, this.engine.IndexToRGB(111), 0.2);
     });
 
     // still used for some fading item effects
     this.engine.eventBus.subscribe(clientEventName(clientEvent.BONUS_FLASH), () => {
-      this.engine.ContentShift(contentShift.bonus, this.engine.IndexToRGB(111), 0.5);
+      this.engine.ContentShift(contentShift.bonus, this.engine.IndexToRGB(111), 0.2);
     });
 
     // game stats base value
@@ -332,7 +332,7 @@ export default class HUD {
       this.stats[slot] = value;
 
       if (slot === 'secrets_found') {
-        this.engine.ContentShift(contentShift.info, this.engine.IndexToRGB(128), 0.125);
+        this.engine.ContentShift(contentShift.info, this.engine.IndexToRGB(128), 0.2);
       }
     });
 
