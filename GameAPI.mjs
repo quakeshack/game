@@ -179,6 +179,8 @@ const cvars = {
   nomonster: null,
 };
 
+/** @typedef {import('../../shared/GameInterfaces').ServerGameInterface} ServerGameInterface */
+/** @augments {ServerGameInterface} */
 export class ServerGameAPI {
   /**
    * Invoked by spawning a server or a changelevel. It will initialize the global game state.
@@ -288,14 +290,14 @@ export class ServerGameAPI {
     /** cvar cache @type {{[key: string]: Cvar}} @private */
     this._cvars = {
       skill: engineAPI.GetCvar('skill'),
-      teamplay: engineAPI.GetCvar('teamplay'),
+      teamplay: engineAPI.GetCvar('teamplay'), // TODO: game rules
       registered: engineAPI.GetCvar('registered'),
-      timelimit: engineAPI.GetCvar('timelimit'),
-      fraglimit: engineAPI.GetCvar('fraglimit'),
-      deathmatch: engineAPI.GetCvar('deathmatch'),
-      coop: engineAPI.GetCvar('coop'),
-      samelevel: engineAPI.GetCvar('samelevel'),
-      noexit: engineAPI.GetCvar('noexit'),
+      timelimit: engineAPI.GetCvar('timelimit'), // TODO: game rules
+      fraglimit: engineAPI.GetCvar('fraglimit'), // TODO: game rules
+      deathmatch: engineAPI.GetCvar('deathmatch'), // TODO: game rules
+      coop: engineAPI.GetCvar('coop'), // TODO: game rules
+      samelevel: engineAPI.GetCvar('samelevel'), // TODO: game rules
+      noexit: engineAPI.GetCvar('noexit'), // TODO: game rules
       gravity: engineAPI.GetCvar('sv_gravity'),
     };
 
@@ -352,7 +354,7 @@ export class ServerGameAPI {
     return featureFlags.includes(feature);
   }
 
-  StartFrame() {
+  startFrame() {
     this.framecount++;
   }
 
@@ -381,55 +383,38 @@ export class ServerGameAPI {
     }
   }
 
-  /**
-   * @param {BaseEntity|PlayerEntity} clientEntity client entity
-   * @private
-   */
-  _assertClientEntityIsPlayerEntity(clientEntity) {
-    if (!(clientEntity instanceof PlayerEntity)) {
-      throw new Error('clientEdict must carry a PlayerEntity!');
-    }
-  }
-
   SetChangeParms(clientEdict) {
     const playerEntity = /** @type {PlayerEntity} */(clientEdict.entity);
-    this._assertClientEntityIsPlayerEntity(playerEntity);
     playerEntity.setChangeParms();
   }
 
   PlayerPreThink(clientEdict) {
     const playerEntity = /** @type {PlayerEntity} */(clientEdict.entity);
-    this._assertClientEntityIsPlayerEntity(playerEntity);
     playerEntity.playerPreThink();
   }
 
   PlayerPostThink(clientEdict) {
     const playerEntity = /** @type {PlayerEntity} */(clientEdict.entity);
-    this._assertClientEntityIsPlayerEntity(playerEntity);
     playerEntity.playerPostThink();
   }
 
   ClientConnect(clientEdict) {
     const playerEntity = /** @type {PlayerEntity} */(clientEdict.entity);
-    this._assertClientEntityIsPlayerEntity(playerEntity);
     playerEntity.connected();
   }
 
   ClientDisconnect(clientEdict) {
     const playerEntity = /** @type {PlayerEntity} */(clientEdict.entity);
-    this._assertClientEntityIsPlayerEntity(playerEntity);
     playerEntity.disconnected();
   }
 
   ClientKill(clientEdict) {
     const playerEntity = /** @type {PlayerEntity} */(clientEdict.entity);
-    this._assertClientEntityIsPlayerEntity(playerEntity);
     playerEntity.suicide();
   }
 
   PutClientInServer(clientEdict) {
     const playerEntity = /** @type {PlayerEntity} */(clientEdict.entity);
-    this._assertClientEntityIsPlayerEntity(playerEntity);
     playerEntity.putPlayerInServer();
   }
 
