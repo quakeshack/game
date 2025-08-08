@@ -9,6 +9,8 @@ import { MeatSprayEntity } from './monster/BaseMonster.mjs';
 import { Backpack, DamageHandler, PlayerWeapons, weaponConfig } from './Weapons.mjs';
 import { CopyToBodyQue } from './Worldspawn.mjs';
 
+/** @typedef {import('../../../shared/GameInterfaces').PlayerEntitySpawnParamsDynamic} PlayerEntitySpawnParamsDynamic */
+
 /**
  * used to emit effects etc. to the client
  * @enum {number}
@@ -178,6 +180,7 @@ export class InfoPlayerStartCoop extends InfoNotNullEntity {
   static classname = 'info_player_coop';
 };
 
+/** @mixes {PlayerEntitySpawnParamsDynamic} */
 export class PlayerEntity extends BaseEntity {
   static classname = 'player';
 
@@ -197,6 +200,9 @@ export class PlayerEntity extends BaseEntity {
   _declareFields() {
     /** @protected */
     this._weapons = new PlayerWeapons(this);
+
+    /** @type {string?} restored spawn parameters */
+    this._spawnParameters = null;
 
     this._serializer.startFields();
 
@@ -252,8 +258,9 @@ export class PlayerEntity extends BaseEntity {
     this.invisible_finished = 0;
     this.invincible_time = 0;
     this.invincible_finished = 0;
-    /** @type {{[key: number]: number}} next invincible sound time per attacking entity */
+    /** @type {Record<number, number>} next invincible sound time per attacking entity */
     this.invincible_sound_time = {};
+    Serializer.makeSerializable(this.invincible_sound_time, this.engine);
 
     // time related checks
     this.super_sound = 0; // time for next super attack sound
@@ -285,7 +292,7 @@ export class PlayerEntity extends BaseEntity {
       eyes: null,
     };
 
-    Serializer.makeSerializable(this._modelIndex);
+    Serializer.makeSerializable(this._modelIndex, this.engine);
 
     this._serializer.endFields();
 
@@ -772,47 +779,68 @@ export class PlayerEntity extends BaseEntity {
     this.engine.DispatchClientEvent(this.edict, true, clientEvent, ...args);
   }
 
-  decodeLevelParms() {
-    if (this.game.serverflags) {
+  #freshSpawnParameters() {
+    this.items = items.IT_SHOTGUN | items.IT_AXE;
+    this.health = 100;
+    this.armorvalue = 0;
+    this.ammo_shells = 25;
+    this.ammo_nails = 0;
+    this.ammo_rockets = 0;
+    this.ammo_cells = 0;
+    this.weapon = 1;
+    this.armortype = 0;
+  }
+
+  saveSpawnParameters() {
+    if (this.health <= 0) {
+      this.#freshSpawnParameters();
+    }
+
+    this._spawnParameters = JSON.stringify([
+      null,
+      this.items & ~(items.IT_KEY1 | items.IT_KEY2 | items.IT_INVISIBILITY | items.IT_INVULNERABILITY | items.IT_SUIT | items.IT_QUAD), // remove items
+      Math.max(50, Math.min(100, this.health)), // cap super health, but give 50 hp at least
+      this.armorvalue,
+      this.ammo_shells,
+      this.ammo_nails,
+      this.ammo_rockets,
+      this.ammo_cells,
+      this.weapon,
+      this.armortype * 100, // convert from value to percent
+    ]);
+
+    return this._spawnParameters;
+  }
+
+  restoreSpawnParameters(data) {
+    this._spawnParameters = data;
+  }
+
+  #decodeLevelParms() {
+    if (this.game.serverflags) { // player arrived via changelevel carrying serverflags
       // HACK: maps/start.bsp
-      if (this.game.worldspawn.model === 'maps/start.bsp') {
-        this.game.SetNewParms();
+      if (this.game.worldspawn.model === 'maps/start.bsp') { // start map will always reset the parms
+        this.#freshSpawnParameters();
+        return;
       }
     }
 
-    this.items = this.game.parm1;
-    this.health = this.game.parm2;
-    this.armorvalue = this.game.parm3;
-    this.ammo_shells = this.game.parm4;
-    this.ammo_nails = this.game.parm5;
-    this.ammo_rockets = this.game.parm6;
-    this.ammo_cells = this.game.parm7;
-    this.weapon = this.game.parm8;
-    this.armortype = this.game.parm9 * 0.01;
-  }
-
-  setChangeParms() {
-    if (this.health <= 0) {
-      this.game.SetNewParms();
+    if (!this._spawnParameters) {
+      this.#freshSpawnParameters();
       return;
     }
 
-    // remove items
-    this.items &= ~(items.IT_KEY1 | items.IT_KEY2 | items.IT_INVISIBILITY | items.IT_INVULNERABILITY | items.IT_SUIT | items.IT_QUAD);
-
-    // cap super health
-    this.health = Math.max(50, Math.min(100, this.health)); // CR: what about max_health?
-    this.game.parm1 = this.items;
-    this.game.parm2 = this.health;
-    this.game.parm3 = this.armorvalue;
-
-    this.game.parm4 = Math.max(25, this.ammo_shells);
-
-    this.game.parm5 = this.ammo_nails;
-    this.game.parm6 = this.ammo_rockets;
-    this.game.parm7 = this.ammo_cells;
-    this.game.parm8 = this.weapon;
-    this.game.parm9 = this.armortype * 100;
+    /** @type {number[]} */
+    const params = JSON.parse(this._spawnParameters);
+    this.items = params[1];
+    this.health = params[2];
+    this.armorvalue = params[3];
+    this.ammo_shells = params[4];
+    this.ammo_nails = params[5];
+    this.ammo_rockets = params[6];
+    this.ammo_cells = params[7];
+    this.weapon = params[8];
+    this.armortype = params[9] * 0.01; // convert from percent to value
   }
 
   /**
@@ -1564,7 +1592,7 @@ export class PlayerEntity extends BaseEntity {
 
     this.setSize(hull[0][0], hull[0][1]);
 
-    this.decodeLevelParms();
+    this.#decodeLevelParms();
     this.setWeapon();
   }
 
@@ -2098,7 +2126,7 @@ export class PlayerEntity extends BaseEntity {
       CopyToBodyQue(this.game, this);
 
       // get the spawn parms as they were at level start
-      this.game.SetSpawnParms(this);
+      this.#decodeLevelParms();
 
       // respawn
       this.putPlayerInServer();
@@ -2110,7 +2138,7 @@ export class PlayerEntity extends BaseEntity {
       CopyToBodyQue(this.game, this);
 
       // set default spawn parms
-      this.game.SetNewParms();
+      this.#freshSpawnParameters();
 
       // respawn
       this.putPlayerInServer();

@@ -220,6 +220,13 @@ export class ServerGameAPI {
       },
     };
 
+    Serializer.makeSerializable(this.stats, engineAPI, [
+      'monsters_total',
+      'monsters_killed',
+      'secrets_total',
+      'secrets_found',
+    ]);
+
     Object.seal(this.stats);
 
     // checkout Player.decodeLevelParms to understand this
@@ -356,36 +363,6 @@ export class ServerGameAPI {
 
   startFrame() {
     this.framecount++;
-  }
-
-  SetNewParms() {
-    this.parm1 = items.IT_SHOTGUN | items.IT_AXE;
-    this.parm2 = 100;
-    this.parm3 = 0;
-    this.parm4 = 25;
-    this.parm5 = 0;
-    this.parm6 = 0;
-    this.parm7 = 0;
-    this.parm8 = 1;
-    this.parm9 = 0;
-  };
-
-  /**
-   * Restore the original spawn parameters of a client entity. Doesn’t work if client is not a player.
-   * @param {PlayerEntity} clientEntity client
-   */
-  SetSpawnParms(clientEntity) {
-    const spawnParams = clientEntity.edict.getClient().spawn_parms;
-
-    for (let i = 0; i < spawnParams.length; i++) {
-      console.assert(`parm${i + 1}` in this);
-      this[`parm${i + 1}`] = spawnParams[i];
-    }
-  }
-
-  SetChangeParms(clientEdict) {
-    const playerEntity = /** @type {PlayerEntity} */(clientEdict.entity);
-    playerEntity.setChangeParms();
   }
 
   PlayerPreThink(clientEdict) {

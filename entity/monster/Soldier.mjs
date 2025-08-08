@@ -108,9 +108,10 @@ export class ArmySoldierMonster extends WalkMonster {
     this._serializer.startFields();
 
     this._aiState = null;
-    this._damageInflictor = new DamageInflictor(this);
 
     this._serializer.endFields();
+
+    this._damageInflictor = new DamageInflictor(this);
   }
 
   _initStates() {

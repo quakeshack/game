@@ -9,7 +9,7 @@ import { Serializer } from '../helper/MiscHelpers.mjs';
 
 class ScheduledThink {
   constructor(nextThink, callback, identifier, isRequired) {
-    this._serializer = new Serializer(this);
+    this._serializer = new Serializer(this, null);
     this._serializer.startFields();
     this.nextThink = nextThink;
     this.callback = callback;

@@ -141,6 +141,18 @@ However, the engine reads from a set of must be defined properties. `BaseEntity`
 
 `CL.Init` will do the similar thing, but on `ClientGameAPI.Init` and `ClientGameAPI.init` while connecting to a game session.
 
+### Spawn Parameters
+
+There’s a way to store information across maps. This is done by Spawn Parameters. Classic Quake uses `SetSpawnParms`, `SetNewParms`, `SetChangeParms, `parm0..15`.
+
+By enabling the `CAP_SPAWNPARMS_DYNAMIC` flag, the engine will not use the classic API, but a modern API:
+
+* Engine can call:
+  * `saveSpawnParameters(): string` for clients
+  * `restoreSpawnParameters(data: string)` for clients
+
+That API will allow for more complex serialization/deserialization of spawn parameters.
+
 ### Game Lifecycle
 
 A game is limited by a map. Every map starts a new game. The engine may prepare the game state by filling `parm0` to `parm15` and calling `SetSpawnParms`.
@@ -172,7 +184,8 @@ The server has to run every edict and it will run every edict, when certain cond
 
 * Whenever a client connects, the server is calling:
   * Set a new `player` entity, setting `netname` (player name), `colormap`, `team`. (Subject to change)
-  * Spawn parameters (`parm0..15`) are copied from client to the game object. (Subject to change)
+  * ~~Spawn parameters (`parm0..15`) are copied from client to the game object. (Subject to change)~~
+  * Spawn parameters are restored by invoking `restoreSpawnParameters`.
   * `ServerGameAPI.ClientConnect`
   * `ServerGameAPI.PutClientInServer`
 

@@ -559,6 +559,21 @@ export default class HUD {
     }
   }
 
+  saveState() {
+    return {
+      damage: this.damage,
+      intermission: this.intermission,
+      stats: this.stats,
+    };
+  }
+
+  loadState(state) {
+    this.damage = Object.assign(this.damage, state.damage);
+    this.damage.attackOrigin = new Vector(...state.damage.attackOrigin);
+    this.intermission = Object.assign(this.intermission, state.intermission);
+    this.stats = Object.assign(this.stats, state.stats);
+  }
+
   /**
    * @param {number} width viewport width
    * @param {number} height viewport height

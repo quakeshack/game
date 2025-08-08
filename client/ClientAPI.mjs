@@ -116,6 +116,25 @@ export class ClientGameAPI {
     this.engine.eventBus.publish(clientEventName(eventId), ...args);
   }
 
+  saveGame() {
+    const data = {
+      clientdata: this.clientdata,
+      gamedata: this.gamedata,
+      hud: this.hud.saveState(),
+    };
+
+    return JSON.stringify(data);
+  }
+
+  loadGame(data) {
+    const parsedData = JSON.parse(data);
+
+    this.clientdata = Object.assign(this.clientdata, parsedData.clientdata);
+    this.gamedata = Object.assign(this.gamedata, parsedData.gamedata);
+
+    this.hud.loadState(parsedData.hud);
+  }
+
   static GetClientEdictHandler(classname) {
     return clientEdictHandlers[classname] || null;
   }

@@ -1,3 +1,4 @@
+import { ServerEngineAPI } from '../../../engine/common/GameAPIs.mjs';
 import Vector from '../../../shared/Vector.mjs';
 
 /**
@@ -113,8 +114,9 @@ export class EntityWrapper {
 /**
  * Serializes and deserializes objects.
  * It’s mainly used to save and load the game.
+ * NOTE: This is not a general-purpose serialization, it’s only used for game state. Also its function serialization support is limited.
  */
-export class Serializer {
+export class Serializer { // TODO: move to shared
   static TYPE_PRIMITIVE = 'P';
   static TYPE_ARRAY = 'A';
   static TYPE_EDICT = 'E';
@@ -122,6 +124,10 @@ export class Serializer {
   static TYPE_SERIALIZABLE = 'S';
   static TYPE_VECTOR = 'V';
 
+  /**
+   * @param {object} object object to serialize
+   * @param {typeof ServerEngineAPI} engine Server Engine API
+   */
   constructor(object, engine) {
     /** @private */
     this._object_wf = new WeakRef(object);
@@ -177,6 +183,7 @@ export class Serializer {
         case value === null:
           return [Serializer.TYPE_PRIMITIVE, value];
 
+        // this type only exists due to our state machine
         case typeof value === 'function':
           return [Serializer.TYPE_FUNCTION, value.toString()];
 
@@ -216,6 +223,7 @@ export class Serializer {
         case Serializer.TYPE_EDICT:
           return this._engine.GetEdictById(value[1]).entity;
 
+        // this type only exists due to our state machine
         case Serializer.TYPE_FUNCTION: {
           let code = value[1];
 
@@ -225,7 +233,12 @@ export class Serializer {
           }
 
           // arrow functions are a pain, we need to convert it into a regular function (though, no return value)
-          code = 'function ' + code.replace('=>', '{') + '}';
+          if (code.includes('=>')) { // FIXME: this check is not perfect, but it’s good enough for now
+            code = 'function ' + code.replace('=>', '{') + '}'; // FIXME: “=>” might break
+          } else {
+            code = 'function ' + code; // third case, a regular function without the “function” keyword, four example "method() { ... }" on an object
+          }
+
           return (new Function('return ' + code))();
         }
 
@@ -254,7 +267,13 @@ export class Serializer {
     }
   }
 
-  static makeSerializable(object, engine) {
+  /**
+   * @param {object} object object to serialize
+   * @param {typeof ServerEngineAPI} engine Server Engine API
+   * @param {?string[]} fields fields to serialize, if null, all fields are serialized
+   * @returns {Serializer} serializer instance
+   */
+  static makeSerializable(object, engine, fields = null) {
     console.assert(object._serializer === undefined, 'object is already serializable');
 
     const serializer = new Serializer(object, engine);
@@ -266,7 +285,7 @@ export class Serializer {
       value: serializer,
     });
 
-    serializer._serializableFields = Object.keys(object);
+    serializer._serializableFields = fields ? fields : Object.keys(object);
 
     return serializer;
   }

@@ -1,7 +1,7 @@
 import Vector from '../../../shared/Vector.mjs';
 
 import { channel, moveType, solid } from '../Defs.mjs';
-import { EntityWrapper } from '../helper/MiscHelpers.mjs';
+import { EntityWrapper, Serializer } from '../helper/MiscHelpers.mjs';
 import BaseEntity from './BaseEntity.mjs';
 import { PlayerEntity } from './Player.mjs';
 
@@ -121,8 +121,25 @@ export class Sub extends EntityWrapper {
   constructor(entity) {
     super(entity);
 
-    this._moveData = {};
-    this._useData = {};
+    this._serializer = new Serializer(this, this._engine);
+    this._serializer.startFields();
+
+    this._moveData = {
+      finalOrigin: null,
+      finalAngle: null,
+      callback: null,
+      active: false,
+    };
+
+    Serializer.makeSerializable(this._moveData, this._engine);
+
+    this._useData = {
+      callback: null,
+    };
+
+    Serializer.makeSerializable(this._useData, this._engine);
+
+    this._serializer.endFields();
 
     this.reset();
   }

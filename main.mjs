@@ -13,6 +13,7 @@ const identification = {
     gameCapabilities.CAP_HUD_INCLUDES_CROSSHAIR,
     gameCapabilities.CAP_VIEWMODEL_MANAGED,
     gameCapabilities.CAP_CLIENTDATA_DYNAMIC,
+    gameCapabilities.CAP_SPAWNPARMS_DYNAMIC,
   ],
 };
 
