@@ -407,7 +407,7 @@ export default class BaseEntity {
       }
 
       if (!(key in this)) {
-        console.warn(`BaseEntity.assignInitialData: invalid key on entity (${this})`, this, key, value);
+        console.warn(`BaseEntity.assignInitialData: invalid key on entity (${this})`, key, value);
         continue;
       }
 
@@ -485,10 +485,12 @@ export default class BaseEntity {
 
   /**
    * Determines the center point of the entity by looking at the absolute bounding box.
+   * If the origin is set, it will return the origin, otherwise it will return the center of the bounding box.
+   * Can still be at [0, 0, 0].
    * @returns {Vector} center point of the entity
    */
   get centerPoint() {
-    return this.absmin.copy().add(this.absmax).multiply(0.5);
+    return this.origin.isOrigin() ? this.absmin.copy().add(this.absmax).multiply(0.5) : this.origin.copy();
   }
 
   /**
@@ -506,10 +508,10 @@ export default class BaseEntity {
 
   /**
    * Returns allocated Edict number.
-   * @returns {number} edict Id
+   * @returns {?number} edict Id (can be undefined if not allocated yet or freed)
    */
   get edictId() {
-    return this.edict.num;
+    return this.edict !== undefined ? this.edict.num : undefined;
   }
 
   /**

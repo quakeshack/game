@@ -44,12 +44,12 @@ export class ClientGameAPI {
     weaponframe: 0,
   };
 
-  gamedata = {
-    received: false,
-
-    deathmatch: false,
-    coop: false,
-    skill: 0,
+  /** @type {Record<string,string>} server cvar values */
+  serverInfo = {
+    hostname: '',
+    coop: '0',
+    deathmatch: '0',
+    skill: '0',
   };
 
   /** @type {import('../../../shared/GameInterfaces').ViewmodelConfig} */
@@ -73,12 +73,12 @@ export class ClientGameAPI {
   init() {
     this.hud.init();
 
-    this.engine.eventBus.subscribe(clientEventName(clientEvent.GAMEDATA_CONFIGURED), (deathmatch, coop, skill) => {
-      this.gamedata.deathmatch = deathmatch;
-      this.gamedata.coop = coop;
-      this.gamedata.skill = skill;
+    this.engine.eventBus.subscribe('client.server-info.ready', (serverInfo) => {
+      Object.assign(this.serverInfo, serverInfo);
+    });
 
-      this.gamedata.received = true;
+    this.engine.eventBus.subscribe('client.server-info.updated', (key, value) => {
+      this.serverInfo[key] = value;
     });
   }
 
@@ -119,7 +119,7 @@ export class ClientGameAPI {
   saveGame() {
     const data = {
       clientdata: this.clientdata,
-      gamedata: this.gamedata,
+      serverInfo: this.serverInfo,
       hud: this.hud.saveState(),
     };
 
@@ -130,7 +130,7 @@ export class ClientGameAPI {
     const parsedData = JSON.parse(data);
 
     this.clientdata = Object.assign(this.clientdata, parsedData.clientdata);
-    this.gamedata = Object.assign(this.gamedata, parsedData.gamedata);
+    this.serverInfo = Object.assign(this.serverInfo, parsedData.serverInfo);
 
     this.hud.loadState(parsedData.hud);
   }

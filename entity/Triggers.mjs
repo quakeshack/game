@@ -247,6 +247,13 @@ export class OnceTriggerEntity extends MultipleTriggerEntity {
 export class SecretTriggerEntity extends OnceTriggerEntity {
   static classname = 'trigger_secret';
 
+  _declareFields() {
+    super._declareFields();
+
+    this.sounds = 1;
+    this.message = 'You found a secret area!';
+  }
+
   _canTrigger(triggeredByEntity) {
     return triggeredByEntity instanceof PlayerEntity;
   }
@@ -263,10 +270,6 @@ export class SecretTriggerEntity extends OnceTriggerEntity {
 
   spawn() {
     this.wait = -1;
-
-    // keep this before super.spawn() due to sounds to noise mapping
-    this.sounds = this.sounds || 1;
-    this.message = this.message || 'You found a secret area!';
 
     this.game.stats.secrets_total++;
 

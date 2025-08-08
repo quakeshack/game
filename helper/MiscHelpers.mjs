@@ -117,6 +117,7 @@ export class EntityWrapper {
  * NOTE: This is not a general-purpose serialization, it’s only used for game state. Also its function serialization support is limited.
  */
 export class Serializer { // TODO: move to shared
+  static TYPE_SKIPPED = 'X';
   static TYPE_PRIMITIVE = 'P';
   static TYPE_ARRAY = 'A';
   static TYPE_EDICT = 'E';
@@ -177,6 +178,9 @@ export class Serializer { // TODO: move to shared
 
     const serialize = (value) => {
       switch (true) {
+        case value === undefined:
+          return [Serializer.TYPE_SKIPPED];
+
         case typeof value === 'string':
         case typeof value === 'boolean':
         case typeof value === 'number':
@@ -205,7 +209,11 @@ export class Serializer { // TODO: move to shared
     for (const field of this._serializableFields) {
       const value = this._object[field];
       console.assert(value !== undefined, 'missing field', field);
-      data[field] = serialize(value);
+      const serializedValue = serialize(value);
+      if (serializedValue[0] === Serializer.TYPE_SKIPPED) {
+        continue; // skip undefined values
+      }
+      data[field] = serializedValue;
     }
 
     return data;

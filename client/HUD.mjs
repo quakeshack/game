@@ -330,6 +330,10 @@ export default class HUD {
     this.engine.eventBus.subscribe(clientEventName(clientEvent.STATS_UPDATED), (slot, value) => {
       console.assert(slot in this.stats, `Unknown stat slot ${slot}`);
       this.stats[slot] = value;
+
+      if (slot === 'secrets_found') {
+        this.engine.BonusFlash(this.engine.IndexToRGB(128), 0.25);
+      }
     });
 
     // intermission screen
@@ -449,10 +453,13 @@ export default class HUD {
   }
 
   #drawScoreboard() {
-    this.overlay.drawPic(this.overlay.alignCenterHorizontally(labels.ranking.width), 32, labels.ranking);
+    const secondaryColor = this.engine.IndexToRGB(240);
+
+    this.overlay.drawPic(this.overlay.width - labels.ranking.width, 32, labels.ranking);
+    this.overlay.drawString((labels.ranking.height - 16) / 2, 32, this.game.serverInfo.hostname, 2.0, secondaryColor);
 
     const x = 0;
-    const y = 64;
+    let y = 64;
 
     const scores = [];
 
@@ -466,7 +473,7 @@ export default class HUD {
 
     scores.sort((a, b) => b.frags - a.frags);
 
-    this.overlay.drawBorderedRect(x, y, this.overlay.width, this.overlay.height - 88, this.engine.IndexToRGB(20), 0.66);
+    this.overlay.drawBorderedRect(x, y, this.overlay.width, this.overlay.height - 88, this.engine.IndexToRGB(16), 0.66);
 
     for (let i = 0; i < scores.length; i++) {
       const score = scores[i];
@@ -474,6 +481,18 @@ export default class HUD {
       this.overlay.drawRect(x + 8, y + 24 * i + 8, 80, 8, this.engine.IndexToRGB((score.colors & 0xf0) + 8));
       this.overlay.drawRect(x + 8, y + 24 * i + 16, 80, 8, this.engine.IndexToRGB((score.colors & 0xf) * 16 + 8));
       this.overlay.drawString(x + 8, y + 24 * i + 8, `[${score.frags.toFixed(0).padStart(3)}] ${score.name.padEnd(25)} ${score.ping.toFixed(0).padStart(4)} ms`, 2.0);
+    }
+
+    y += this.overlay.height - 88;
+
+    if (this.game.serverInfo.coop !== '0') {
+      const monsters = `Monsters: ${this.stats.monsters_killed.toFixed(0).padStart(3)} / ${this.stats.monsters_total.toFixed(0).padStart(3)}`;
+      const secrets =  `Secrets:  ${this.stats.secrets_found.toFixed(0).padStart(3)} / ${this.stats.secrets_total.toFixed(0).padStart(3)}`;
+      this.overlay.drawString(x + 8, y + 8, monsters, 1.0, secondaryColor);
+      this.overlay.drawString(x + 8, y + 16, secrets, 1.0, secondaryColor);
+
+      const time = Q.secsToTime(this.engine.CL.gametime);
+      this.overlay.drawString(this.overlay.width - 8 - 16 * time.length, y + 8, time, 2.0, secondaryColor);
     }
   }
 
@@ -516,7 +535,7 @@ export default class HUD {
     const monsters = `Monsters: ${this.stats.monsters_killed} / ${this.stats.monsters_total}`;
     const secrets = ` Secrets: ${this.stats.secrets_found} / ${this.stats.secrets_total}`;
 
-    this.sbar.drawString(8, offsetY + 4,  `${monsters.padEnd(19)} ${Q.secsToTime(this.engine.CL.time).padStart(18)}`);
+    this.sbar.drawString(8, offsetY + 4,  `${monsters.padEnd(19)} ${Q.secsToTime(this.engine.CL.gametime).padStart(18)}`);
     this.sbar.drawString(8, offsetY + 12, `${secrets.padEnd(19)} ${new String(this.engine.CL.levelname).trim().padStart(18)}`.substring(0, 38));
   }
 

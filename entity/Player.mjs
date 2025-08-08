@@ -35,9 +35,6 @@ export const clientEvent = {
   /** weapon has been selected, args: weapon id (number) */
   WEAPON_SELECTED: 6,
 
-  /** configures game data, args: deathmatch, coop, skill, mapname  */
-  GAMEDATA_CONFIGURED: 7,
-
   /** enters intermission, args: message (optional) */
   INTERMISSION_START: 8,
 
@@ -2086,8 +2083,6 @@ export class PlayerEntity extends BaseEntity {
     // make sure the player gets a clean player, including no score (frags, etc.)
     this.clear();
     this.frags = 0;
-
-    this.dispatchEvent(clientEvent.GAMEDATA_CONFIGURED, this.game.deathmatch, this.game.coop, this.game.skill);
 
     // a client connecting during an intermission can cause problems
     if (this.game.intermission_running) {
