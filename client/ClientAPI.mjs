@@ -80,6 +80,20 @@ export class ClientGameAPI {
     this.engine.eventBus.subscribe('client.server-info.updated', (key, value) => {
       this.serverInfo[key] = value;
     });
+
+    this.engine.eventBus.subscribe('client.chat.message', (name, message, isDirect) => {
+      if (isDirect) {
+        this.engine.ConsolePrint(`${name} to you: ${message}\n`);
+      } else {
+        this.engine.ConsolePrint(`${name}: ${message}\n`);
+      }
+
+      this.engine.LoadSound('misc/talk.wav').play();
+    });
+
+    this.engine.eventBus.subscribe(clientEventName(clientEvent.OBITUARY), (...args) => {
+      console.log('OBITUARY event received', args);
+    });
   }
 
   shutdown() {

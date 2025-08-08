@@ -155,3 +155,13 @@ export const spawnflags = Object.freeze({
 export function clientEventName(eventId) {
   return `client.event-received.${eventId}`;
 };
+
+/**
+ * @enum {number}
+ */
+export const contentShift = Object.freeze({
+  damage: 0,
+  bonus: 1,
+  powerup: 2,
+  info: 3,
+});

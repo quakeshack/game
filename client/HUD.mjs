@@ -1,6 +1,6 @@
 import Q from '../../../shared/Q.mjs';
 import Vector from '../../../shared/Vector.mjs';
-import { clientEventName, items } from '../Defs.mjs';
+import { clientEventName, contentShift, items } from '../Defs.mjs';
 import { clientEvent } from '../entity/Player.mjs';
 import { weaponConfig } from '../entity/Weapons.mjs';
 import { ClientGameAPI } from './ClientAPI.mjs';
@@ -312,12 +312,12 @@ export default class HUD {
       // TODO: do the picked up animation effect
       console.debug(`Picked up item: ${itemEntity.classname} (items = ${items})`);
 
-      this.engine.BonusFlash(this.engine.IndexToRGB(111), 0.25);
+      this.engine.ContentShift(contentShift.bonus, this.engine.IndexToRGB(111), 0.5);
     });
 
     // still used for some fading item effects
     this.engine.eventBus.subscribe(clientEventName(clientEvent.BONUS_FLASH), () => {
-      this.engine.BonusFlash(this.engine.IndexToRGB(111), 0.33);
+      this.engine.ContentShift(contentShift.bonus, this.engine.IndexToRGB(111), 0.5);
     });
 
     // game stats base value
@@ -332,7 +332,7 @@ export default class HUD {
       this.stats[slot] = value;
 
       if (slot === 'secrets_found') {
-        this.engine.BonusFlash(this.engine.IndexToRGB(128), 0.25);
+        this.engine.ContentShift(contentShift.info, this.engine.IndexToRGB(128), 0.125);
       }
     });
 
@@ -568,6 +568,31 @@ export default class HUD {
     this.#drawStatusBar();
   }
 
+  #powerupFlash() {
+    const color = new Vector();
+
+    switch (true) {
+      case (this.game.clientdata.items & items.IT_QUAD) !== 0:
+        color.set(this.engine.IndexToRGB(208));
+        break;
+      case (this.game.clientdata.items & items.IT_INVULNERABILITY) !== 0:
+        color.set(this.engine.IndexToRGB(250));
+        break;
+      case (this.game.clientdata.items & items.IT_SUIT) !== 0:
+        color.set(this.engine.IndexToRGB(192));
+        break;
+      case (this.game.clientdata.items & items.IT_INVISIBILITY) !== 0:
+        color.set(this.engine.IndexToRGB(15));
+        break;
+    }
+
+    if (color.isOrigin()) {
+      return;
+    }
+
+    this.engine.ContentShift(contentShift.powerup, color, 0.01 + Math.random() * 0.1);
+  }
+
   startFrame() {
     if (this.damage.damageReceived > 0) {
       this.damage.damageReceived -= this.engine.CL.frametime * 25; // decrease damage over time
@@ -576,6 +601,8 @@ export default class HUD {
         this.damage.damageReceived = 0;
       }
     }
+
+    this.#powerupFlash();
   }
 
   saveState() {

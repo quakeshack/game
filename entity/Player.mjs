@@ -35,6 +35,9 @@ export const clientEvent = {
   /** weapon has been selected, args: weapon id (number) */
   WEAPON_SELECTED: 6,
 
+  /** someone got killed, args: killing object (ent), killer (ent), victim (ent), weapon (number), items (number) */
+  OBITUARY: 7,
+
   /** enters intermission, args: message (optional) */
   INTERMISSION_START: 8,
 
@@ -2047,7 +2050,8 @@ export class PlayerEntity extends BaseEntity {
     })();
 
     this.engine.BroadcastPrint(`${name} killed ${this.netname}.\n`); // FIXME: ClientObituary needs to be more fun again
-    this.engine.BroadcastObituary(actualAttacker.edictId, this.edictId, actualAttacker.weapon || 0, actualAttacker.items || 0);
+
+    this.engine.BroadcastClientEvent(true, clientEvent.OBITUARY, this.edictId, actualAttacker.edictId, actualAttacker.weapon || 0, actualAttacker.items || 0);
 
     if (actualAttacker instanceof PlayerEntity) {
       // friendly fire subtracts a frag
