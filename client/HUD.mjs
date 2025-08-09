@@ -571,6 +571,8 @@ export default class HUD {
   #powerupFlash() {
     const color = new Vector();
 
+    let isFlickering = true;
+
     switch (true) {
       case (this.game.clientdata.items & items.IT_QUAD) !== 0:
         color.set(this.engine.IndexToRGB(208));
@@ -580,6 +582,7 @@ export default class HUD {
         break;
       case (this.game.clientdata.items & items.IT_SUIT) !== 0:
         color.set(this.engine.IndexToRGB(192));
+        isFlickering = false; // no flickering for suit
         break;
       case (this.game.clientdata.items & items.IT_INVISIBILITY) !== 0:
         color.set(this.engine.IndexToRGB(15));
@@ -590,7 +593,7 @@ export default class HUD {
       return;
     }
 
-    this.engine.ContentShift(contentShift.powerup, color, 0.01 + Math.random() * 0.1);
+    this.engine.ContentShift(contentShift.powerup, color, isFlickering ? 0.01 + Math.random() * 0.1 : this.engine.CL.frametime * 10.0);
   }
 
   startFrame() {
