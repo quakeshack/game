@@ -463,6 +463,7 @@ export class QuakeEntityAI extends EntityAI {
     }
 
     if (this._game.time > this._entity.pausetime) {
+      // CR: this will for most enemies to just walk in place, they need a goaltarget or an enemy to walk somewhere useful
       this._entity.thinkWalk();
       return;
     }

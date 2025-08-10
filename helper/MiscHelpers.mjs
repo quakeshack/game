@@ -125,6 +125,7 @@ export class EntityWrapper {
 export class Serializer { // TODO: move to shared
   static TYPE_SKIPPED = 'X';
   static TYPE_PRIMITIVE = 'P';
+  static TYPE_INFINITY = 'I'; // used for infinite values, like Infinity or -Infinity
   static TYPE_ARRAY = 'A';
   static TYPE_EDICT = 'E';
   static TYPE_FUNCTION = 'F';
@@ -184,8 +185,16 @@ export class Serializer { // TODO: move to shared
 
     const serialize = (value) => {
       switch (true) {
+        // do not serialize undefined values, they will be skipped
         case value === undefined:
           return [Serializer.TYPE_SKIPPED];
+
+        // special case for Infinity and -Infinity, since they are a number but will end up as null
+        // keep this before the typeof check, because typeof Infinity is 'number'
+        case value === Infinity:
+          return [Serializer.TYPE_INFINITY, 1];
+        case value === -Infinity:
+          return [Serializer.TYPE_INFINITY, -1];
 
         case typeof value === 'string':
         case typeof value === 'boolean':
@@ -217,7 +226,7 @@ export class Serializer { // TODO: move to shared
       console.assert(value !== undefined, 'missing field', field);
       const serializedValue = serialize(value);
       if (serializedValue[0] === Serializer.TYPE_SKIPPED) {
-        continue; // skip undefined values
+        continue; // do not serialize skipped values
       }
       data[field] = serializedValue;
     }
@@ -228,6 +237,9 @@ export class Serializer { // TODO: move to shared
   deserialize(data) {
     const deserialize = (value) => {
       switch (value[0]) {
+        case Serializer.TYPE_INFINITY:
+          return value[1] * Infinity;
+
         case Serializer.TYPE_PRIMITIVE:
           return value[1];
 
