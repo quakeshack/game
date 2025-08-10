@@ -1,7 +1,7 @@
 
 import { clientEvent, GibEntity, InfoPlayerStart, InfoPlayerStartCoop, InfoPlayerStartDeathmatch, PlayerEntity, qc as playerModelQC, TelefragTriggerEntity } from './entity/Player.mjs';
 import { BodyqueEntity, WorldspawnEntity } from './entity/Worldspawn.mjs';
-import { items, spawnflags } from './Defs.mjs';
+import { spawnflags } from './Defs.mjs';
 import * as misc from './entity/Misc.mjs';
 import * as door from './entity/props/Doors.mjs';
 import * as platform from './entity/props/Platforms.mjs';
@@ -467,7 +467,7 @@ export class ServerGameAPI {
    * simply optimizes the entityRegister into a map for more efficient access
    * @private
    */
-  _loadEntityRegistry() {
+  _loadEntityRegistry() { // TODO: make static
     /** @private */
     this._entityRegistry = new Map();
 
@@ -535,7 +535,13 @@ export class ServerGameAPI {
 
   /** @param {ServerEngineAPI} ServerEngineAPI engine API for server game code */
   static Init(ServerEngineAPI) {
+    // define game cvars
     cvars.nomonster = ServerEngineAPI.RegisterCvar('nomonster', '0', /* Cvar.FLAG.DEFERRED */ 0, 'Do not spawn monsters.');
+
+    // initialize all entity classes
+    for (const entityClass of entityRegistry) {
+      entityClass._initStates();
+    }
   }
 
   static Shutdown() {
