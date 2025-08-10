@@ -781,6 +781,10 @@ export class PlayerEntity extends BaseEntity {
     this.engine.DispatchClientEvent(this.edict, true, clientEvent, ...args);
   }
 
+  /**
+   * This is where fresh spawn parameters are set.
+   * Essentially it sets the initial weapon, some ammo etc.
+   */
   #freshSpawnParameters() {
     this.items = items.IT_SHOTGUN | items.IT_AXE;
     this.health = 100;
@@ -818,7 +822,11 @@ export class PlayerEntity extends BaseEntity {
     this._spawnParameters = data;
   }
 
-  #decodeLevelParms() {
+  /**
+   * This sets the spawn parameters from the saved data or freshly initializes them.
+   * Essentially it gives the initial weapon, some ammo etc.
+   */
+  #applySpawnParameters() {
     if (this.game.serverflags) { // player arrived via changelevel carrying serverflags
       // HACK: maps/start.bsp
       if (this.game.worldspawn.model === 'maps/start.bsp') { // start map will always reset the parms
@@ -1574,6 +1582,12 @@ export class PlayerEntity extends BaseEntity {
     this.effects = 0;
     this.invincible_time = 0;
 
+    // clear incoming commands
+    this.button0 = false; // attack
+    this.button1 = false; // use
+    this.button2 = false; // jump
+    this.impulse = 0; // impulse command
+
     this.attack_finished = this.game.time;
     this.deadflag = dead.DEAD_NO;
     this.pausetime = 0; // CR: used by teleporters
@@ -1587,6 +1601,7 @@ export class PlayerEntity extends BaseEntity {
     this.fixangle = true;
     this.view_ofs.setTo(0.0, 0.0, 22.0);
 
+    // FIXME: this needs to be moved somewhere else, setModel also triggers touch triggers
     this.setModel('progs/eyes.mdl');
     this._modelIndex.eyes = this.modelindex;
     this.setModel('progs/player.mdl');
@@ -1594,7 +1609,7 @@ export class PlayerEntity extends BaseEntity {
 
     this.setSize(hull[0][0], hull[0][1]);
 
-    this.#decodeLevelParms();
+    this.#applySpawnParameters();
     this.setWeapon();
   }
 
@@ -1602,18 +1617,18 @@ export class PlayerEntity extends BaseEntity {
    * called by PutClientInServer
    */
   putPlayerInServer() {
+    // select spawn spot
     const spot = this._selectSpawnPoint();
     this.origin = spot.origin.copy().add(new Vector(0.0, 0.0, 1.0));
     this.angles = spot.angles.copy();
+    this.setOrigin(this.origin);
 
-    this.clear(); // CR: keep clear after setting origin, otherwise setModel will trigger a touch due to relinking after setting mins/maxs
-
+    // update client on stats
     this.game.stats.sendToPlayer(this);
-
-    this.dispatchEvent(clientEvent.TEST_EVENT, [1, 2, 3], 4, 5, [], false, true, null);
 
     this._enterStandingState();
 
+    // display a neat teleport effect upon spawn
     if (this.game.deathmatch || this.game.coop) {
       const { forward } = this.angles.angleVectors();
       const origin = forward.multiply(20.0).add(this.origin);
@@ -1621,6 +1636,7 @@ export class PlayerEntity extends BaseEntity {
       this.engine.SpawnEntity(TeleportEffectEntity.classname, { origin });
     }
 
+    // add a telefrag trigger, in case some one is on the spawn spot already
     this.engine.SpawnEntity(TelefragTriggerEntity.classname, {
       origin: this.origin,
       owner: this,
@@ -2127,9 +2143,10 @@ export class PlayerEntity extends BaseEntity {
       CopyToBodyQue(this.game, this);
 
       // get the spawn parms as they were at level start
-      this.#decodeLevelParms();
+      this.#applySpawnParameters();
 
       // respawn
+      this.clear();
       this.putPlayerInServer();
       return;
     }
@@ -2142,6 +2159,7 @@ export class PlayerEntity extends BaseEntity {
       this.#freshSpawnParameters();
 
       // respawn
+      this.clear();
       this.putPlayerInServer();
       return;
     }
