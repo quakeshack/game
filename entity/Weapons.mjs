@@ -40,6 +40,8 @@ export const weaponConfig = new Map([
   [items.IT_LIGHTNING, { ammoSlot: 'ammo_cells', viewModel: 'progs/v_light.mdl', items: 'IT_CELLS', priority: 7 }],
 ]);
 
+/** @typedef {2 | 4096 | 1 | 4 | 8 | 16 | 32 | 64} WeaponConfigKey */
+
 /** struct holding items and ammo */
 export class Backpack {
   ammo_shells = 0;

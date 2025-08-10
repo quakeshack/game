@@ -106,7 +106,7 @@ export class ClientGameAPI {
     } else {
       this.viewmodel.visible = true;
 
-      this.viewmodel.model = this.engine.ModForName(weaponConfig.get(this.clientdata.weapon).viewModel);
+      this.viewmodel.model = this.engine.ModForName(weaponConfig.get(/** @type {import('../entity/Weapons.mjs').WeaponConfigKey} */(this.clientdata.weapon)).viewModel);
       this.viewmodel.frame = this.clientdata.weaponframe;
     }
 

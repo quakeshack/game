@@ -412,8 +412,8 @@ export default class HUD {
     this.#drawFace(112, 0);
 
     // Draw current ammo
-    if (weaponConfig.has(this.game.clientdata.weapon)) {
-      const weapon = weaponConfig.get(this.game.clientdata.weapon);
+    if (weaponConfig.has(/** @type {import('../entity/Weapons.mjs').WeaponConfigKey} */(this.game.clientdata.weapon))) {
+      const weapon = weaponConfig.get(/** @type {import('../entity/Weapons.mjs').WeaponConfigKey} */(this.game.clientdata.weapon));
 
       if (weapon.ammoSlot) {
         this.sbar.drawPic(224, 0, ammos[weapon.ammoSlot]);

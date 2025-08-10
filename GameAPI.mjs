@@ -177,6 +177,13 @@ const entityRegistry = [
  */
 const cvars = {
   nomonster: null,
+  fraglimit: null,
+  timelimit: null,
+  samelevel: null,
+  noexit: null,
+  skill: null,
+  deathmatch: null,
+  coop: null,
 };
 
 /** @typedef {import('../../shared/GameInterfaces').ServerGameInterface} ServerGameInterface */
@@ -296,15 +303,8 @@ export class ServerGameAPI {
     // FIXME: I’m not happy about this structure, especially with the getters down below
     /** cvar cache @type {{[key: string]: Cvar}} @private */
     this._cvars = {
-      skill: engineAPI.GetCvar('skill'),
-      teamplay: engineAPI.GetCvar('teamplay'), // TODO: game rules
+      teamplay: engineAPI.GetCvar('teamplay'),
       registered: engineAPI.GetCvar('registered'),
-      timelimit: engineAPI.GetCvar('timelimit'), // TODO: game rules
-      fraglimit: engineAPI.GetCvar('fraglimit'), // TODO: game rules
-      deathmatch: engineAPI.GetCvar('deathmatch'), // TODO: game rules
-      coop: engineAPI.GetCvar('coop'), // TODO: game rules
-      samelevel: engineAPI.GetCvar('samelevel'), // TODO: game rules
-      noexit: engineAPI.GetCvar('noexit'), // TODO: game rules
       gravity: engineAPI.GetCvar('sv_gravity'),
     };
 
@@ -314,7 +314,7 @@ export class ServerGameAPI {
   }
 
   get skill() {
-    return this._cvars.skill.value;
+    return cvars.skill.value;
   }
 
   get teamplay() {
@@ -326,27 +326,27 @@ export class ServerGameAPI {
   }
 
   get timelimit() {
-    return this._cvars.timelimit.value;
+    return cvars.timelimit.value;
   }
 
   get fraglimit() {
-    return this._cvars.fraglimit.value;
+    return cvars.fraglimit.value;
   }
 
   get deathmatch() {
-    return this._cvars.deathmatch.value;
+    return cvars.deathmatch.value;
   }
 
   get coop() {
-    return this._cvars.coop.value;
+    return cvars.coop.value;
   }
 
   get samelevel() {
-    return this._cvars.samelevel.value;
+    return cvars.samelevel.value;
   }
 
   get noexit() {
-    return this._cvars.noexit.value;
+    return cvars.noexit.value;
   }
 
   get nomonsters() {
@@ -527,6 +527,15 @@ export class ServerGameAPI {
   init(mapname, serverflags) {
     this.mapname = mapname;
     this.serverflags = serverflags;
+
+    // coop automatically disables deathmatch
+    if (cvars.coop.value) {
+      cvars.coop.set(true);
+      cvars.deathmatch.set(false);
+    }
+
+    // make sure skill is in range
+    cvars.skill.set(Math.max(0, Math.min(3, Math.floor(cvars.skill.value))));
   }
 
   // eslint-disable-next-line no-unused-vars
@@ -537,6 +546,13 @@ export class ServerGameAPI {
   static Init(ServerEngineAPI) {
     // define game cvars
     cvars.nomonster = ServerEngineAPI.RegisterCvar('nomonster', '0', /* Cvar.FLAG.DEFERRED */ 0, 'Do not spawn monsters.');
+    cvars.samelevel = ServerEngineAPI.RegisterCvar('samelevel', '0', 0, 'Set to 1 to stay on the same map even the map is over');
+    cvars.fraglimit = ServerEngineAPI.RegisterCvar('fraglimit', '0');
+    cvars.timelimit = ServerEngineAPI.RegisterCvar('timelimit', '0');
+    cvars.noexit = ServerEngineAPI.RegisterCvar('noexit', '0');
+    cvars.skill = ServerEngineAPI.RegisterCvar('skill', '1');
+    cvars.deathmatch = ServerEngineAPI.RegisterCvar('deathmatch', '0');
+    cvars.coop = ServerEngineAPI.RegisterCvar('coop', '0');
 
     // initialize all entity classes
     for (const entityClass of entityRegistry) {
@@ -545,7 +561,11 @@ export class ServerGameAPI {
   }
 
   static Shutdown() {
-    cvars.nomonster.free();
+    // free all cvars
+    for (const [key, cvar] of Object.entries(cvars).filter(cvar => cvar !== null)) {
+      cvar.free();
+      cvars[key] = null;
+    }
   }
 
   serialize() {
