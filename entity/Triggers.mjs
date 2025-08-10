@@ -1,7 +1,7 @@
 import { attn, channel, damage, flags, moveType, solid } from '../Defs.mjs';
 import BaseEntity from './BaseEntity.mjs';
 import { TeleportEffectEntity } from './Misc.mjs';
-import { PlayerEntity, clientEvent, TelefragTriggerEntity } from './Player.mjs';
+import { PlayerEntity, TelefragTriggerEntity } from './Player.mjs';
 import { Sub } from './Subs.mjs';
 import { DamageHandler } from './Weapons.mjs';
 

@@ -389,9 +389,11 @@ export class PlayerEntity extends BaseEntity {
     return true;
   }
 
-  _initStates() {
+  static _initStates() {
     // CR:  This state machine not only controls animations, but also defines when an axe attack is actually launched.
     //      Yet another fun was unrolling the running and standing states to fit it our state machine infrastructure.
+
+    this._states = {};
 
     this._defineState('player_run1', 'rockrun1', 'player_run2', function () { this._stateAssertRunning(); this.weaponframe = 0; });
     this._defineState('player_run2', 'rockrun2', 'player_run3', function () { this._stateAssertRunning(); });

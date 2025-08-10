@@ -54,7 +54,9 @@ export default class TarbabyMonsterEntity extends WalkMonster {
     return new QuakeEntityAI(this);
   }
 
-  _initStates() {
+  static _initStates() {
+    this._states = {};
+
     this._defineState('tbaby_stand1', 'walk1', 'tbaby_stand1', () => { this._ai.stand(); });
     this._defineState('tbaby_hang1', 'walk1', 'tbaby_hang1', () => { this._ai.stand(); });
 

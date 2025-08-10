@@ -78,7 +78,9 @@ export default class ShamblerMonsterEntity extends WalkMonster {
     this.engine.PrecacheSound('shambler/smack.wav');
   }
 
-  _initStates() {
+  static _initStates() {
+    this._states = {};
+
     // Stand states
     this._defineState('sham_stand1', 'stand1', 'sham_stand2', () => { this._ai.stand(); });
     this._defineState('sham_stand2', 'stand2', 'sham_stand3', () => { this._ai.stand(); });

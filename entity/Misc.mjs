@@ -375,11 +375,11 @@ export class BaseAmbientSound extends BaseEntity {
   static _volume = 0;
 
   _precache() {
-    this.engine.PrecacheSound(this.constructor._sfxName);
+    this.engine.PrecacheSound(/** @type {typeof BaseAmbientSound} */(this.constructor)._sfxName);
   }
 
   spawn() {
-    this.spawnAmbientSound(this.constructor._sfxName, this.constructor._volume, attn.ATTN_STATIC);
+    this.spawnAmbientSound(/** @type {typeof BaseAmbientSound} */(this.constructor)._sfxName, /** @type {typeof BaseAmbientSound} */(this.constructor)._volume, attn.ATTN_STATIC);
   }
 };
 
@@ -562,8 +562,8 @@ export class BaseBarrelEntity extends BaseEntity {
   static _noise = null;
 
   _precache() {
-    this.engine.PrecacheModel(this.constructor._model);
-    this.engine.PrecacheSound(this.constructor._noise);
+    this.engine.PrecacheModel(/** @type {typeof BaseBarrelEntity} */(this.constructor)._model);
+    this.engine.PrecacheSound(/** @type {typeof BaseBarrelEntity} */(this.constructor)._noise);
   }
 
   _declareFields() {
@@ -578,8 +578,9 @@ export class BaseBarrelEntity extends BaseEntity {
     this._explosion = new Explosions(this);
   }
 
-  _initStates() {
-    this._explosion.initStates();
+  static _initStates() {
+    this._states = {};
+    Explosions.initStates(this);
   }
 
   get netname() {
@@ -589,7 +590,7 @@ export class BaseBarrelEntity extends BaseEntity {
   thinkDie() {
     this.takedamage = damage.DAMAGE_NO; // prevents explosion recursion
     this._damageInflictor.blastDamage(160, this, this.centerPoint, this);
-    this.startSound(channel.CHAN_VOICE, this.constructor._noise);
+    this.startSound(channel.CHAN_VOICE, /** @type {typeof BaseBarrelEntity} */(this.constructor)._noise);
     this.engine.StartParticles(this.origin, Vector.origin, colors.FIRE, 255);
 
     this.origin[2] += 32;
@@ -602,7 +603,7 @@ export class BaseBarrelEntity extends BaseEntity {
     this.movetype = moveType.MOVETYPE_NONE;
     this.takedamage = damage.DAMAGE_AIM;
 
-    this.setModel(this.constructor._model);
+    this.setModel(/** @type {typeof BaseBarrelEntity} */(this.constructor)._model);
 
     this.origin[2] += 2.0;
     this.dropToFloor();
@@ -790,11 +791,11 @@ export class BubbleSpawnerEntity extends BaseEntity {
     console.assert(bubbles > 0, 'bubble() requires a positive number of bubbles');
     console.assert(bubbles < 50, 'bubble() requires a number of bubbles less than 50');
 
-    return entity.engine.SpawnEntity(BubbleSpawnerEntity.classname, {
+    return /** @type {BubbleSpawnerEntity} */(entity.engine.SpawnEntity(BubbleSpawnerEntity.classname, {
       origin: entity.origin.copy().add(entity.view_ofs || Vector.origin),
       bubble_count: bubbles,
       spread: 5,
-    });
+    }));
   }
 };
 
@@ -850,6 +851,7 @@ export class BubbleEntity extends BaseEntity {
 
   spawn() {
     console.assert(this.owner instanceof BubbleSpawnerEntity, 'BubbleEntity requires a BubbleSpawnerEntity as owner');
+    const owner = /** @type {BubbleSpawnerEntity} */(this.owner);
 
     // FIXME: this should be moveType.MOVETYPE_BOUNCE but with buoyancy handled by the engine
 
@@ -860,10 +862,10 @@ export class BubbleEntity extends BaseEntity {
     // CR: make sure world touching the bubbles make them go away
     this.solid = solid.SOLID_TRIGGER;
 
-    this.origin.set(this.owner.origin);
-    this.origin[0] += crandom() * this.owner.spread;
-    this.origin[1] += crandom() * this.owner.spread;
-    this.origin[2] += crandom() * this.owner.spread;
+    this.origin.set(owner.origin);
+    this.origin[0] += crandom() * owner.spread;
+    this.origin[1] += crandom() * owner.spread;
+    this.origin[2] += crandom() * owner.spread;
     this.setOrigin(this.origin);
     this.setSize(new Vector(-8.0, -8.0, -8.0), new Vector(8.0, 8.0, 8.0));
     this.setModel('progs/s_bubble.spr');

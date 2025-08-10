@@ -69,7 +69,9 @@ export default class OgreMonsterEntity extends WalkMonster {
     return new QuakeEntityAI(this);
   }
 
-  _initStates() {
+  static _initStates() {
+    this._states = {};
+
     // Stand states
     this._defineState('ogre_stand1', 'stand1', 'ogre_stand2', function() { this._ai.stand(); });
     this._defineState('ogre_stand2', 'stand2', 'ogre_stand3', function() { this._ai.stand(); });

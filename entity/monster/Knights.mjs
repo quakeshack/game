@@ -124,7 +124,9 @@ export class KnightMonster extends WalkMonster {
     this.engine.PrecacheSound('knight/idle.wav');
   }
 
-  _initStates() {
+  static _initStates() {
+    this._states = {};
+
     // Standing states
     this._defineState('knight_stand1', 'stand1', 'knight_stand2', function () { this._ai.stand(); });
     this._defineState('knight_stand2', 'stand2', 'knight_stand3', function () { this._ai.stand(); });
@@ -370,7 +372,9 @@ export class HellKnightMonster extends KnightMonster {
     this.engine.PrecacheSound('knight/sword2.wav');
   }
 
-  _initStates() {
+  static _initStates() {
+    this._states = {};
+
     // Standing states
     this._defineState('hknight_stand1', 'stand1', 'hknight_stand2', function () { this._ai.stand(); });
     this._defineState('hknight_stand2', 'stand2', 'hknight_stand3', function () { this._ai.stand(); });

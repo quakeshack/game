@@ -129,7 +129,7 @@ class Gfx {
   }
 
   /**
-   * @param {ClientEngineAPI} clientEngineAPI
+   * @param {ClientEngineAPI} clientEngineAPI client engine API
    */
   static loadAssets(clientEngineAPI) {
     for (let i = 0; i < 10; i++) {

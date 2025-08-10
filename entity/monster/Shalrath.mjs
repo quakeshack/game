@@ -43,7 +43,9 @@ export default class ShalrathMonsterEntity extends WalkMonster {
     return new QuakeEntityAI(this);
   }
 
-  _initStates() {
+  static _initStates() {
+    this._states = {};
+
     // Stand
     this._defineState('shal_stand', 'walk1', 'shal_stand', function () { this._ai.stand(); });
 

@@ -749,7 +749,10 @@ export class HealthItemEntity extends BaseItemEntity {
     this._serializer.endFields();
   }
 
-  /** @protected */
+  /**
+   * @protected
+   * @returns {HealthItemConfiguration} configuration for this item
+   */
   get _config() {
     return HealthItemEntity._config[this.spawnflags & 3];
   }

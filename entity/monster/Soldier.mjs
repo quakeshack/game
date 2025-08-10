@@ -114,7 +114,9 @@ export class ArmySoldierMonster extends WalkMonster {
     this._damageInflictor = new DamageInflictor(this);
   }
 
-  _initStates() {
+  static _initStates() {
+    this._states = {};
+
     this._defineState('army_stand1', 'stand1', 'army_stand2', function () { this._ai.stand(); });
     this._defineState('army_stand2', 'stand2', 'army_stand3', function () { this._ai.stand(); });
     this._defineState('army_stand3', 'stand3', 'army_stand4', function () { this._ai.stand(); });
@@ -369,7 +371,9 @@ export class ArmyEnforcerMonster extends WalkMonster {
     this.engine.PrecacheSound('enforcer/sight4.wav');
   }
 
-  _initStates() {
+  static _initStates() {
+    this._states = {};
+
     this._defineState('enf_stand1', 'stand1', 'enf_stand2', function () { this._ai.stand(); });
     this._defineState('enf_stand2', 'stand2', 'enf_stand3', function () { this._ai.stand(); });
     this._defineState('enf_stand3', 'stand3', 'enf_stand4', function () { this._ai.stand(); });

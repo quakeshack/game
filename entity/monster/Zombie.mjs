@@ -100,7 +100,9 @@ export default class ZombieMonster extends WalkMonster {
     return new QuakeEntityAI(this);
   }
 
-  _initStates() {
+  static _initStates() {
+    this._states = {};
+
     this._defineState('zombie_stand1', 'stand1', 'zombie_stand2', function () { this._ai.stand(); });
     this._defineState('zombie_stand2', 'stand2', 'zombie_stand3', function () { this._ai.stand(); });
     this._defineState('zombie_stand3', 'stand3', 'zombie_stand4', function () { this._ai.stand(); });

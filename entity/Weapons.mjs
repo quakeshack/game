@@ -51,13 +51,17 @@ export class Backpack {
 };
 
 export class Explosions extends EntityWrapper {
-  initStates() {
-    this._entity._defineState('s_explode1', 0, 's_explode2');
-    this._entity._defineState('s_explode2', 1, 's_explode3');
-    this._entity._defineState('s_explode3', 2, 's_explode4');
-    this._entity._defineState('s_explode4', 3, 's_explode5');
-    this._entity._defineState('s_explode5', 4, 's_explode6');
-    this._entity._defineState('s_explode6', 5, null, function () { this.remove(); });
+  /**
+   *
+   * @param {import('./BaseEntity.mjs').BaseEntityType} entityClass entity class, not instance
+   */
+  static initStates(entityClass) {
+    entityClass._defineState('s_explode1', 0, 's_explode2');
+    entityClass._defineState('s_explode2', 1, 's_explode3');
+    entityClass._defineState('s_explode3', 2, 's_explode4');
+    entityClass._defineState('s_explode4', 3, 's_explode5');
+    entityClass._defineState('s_explode5', 4, 's_explode6');
+    entityClass._defineState('s_explode6', 5, null, function () { this.remove(); });
   }
 
   becomeExplosion() {
@@ -515,8 +519,9 @@ export class BaseProjectile extends BaseEntity {
     this._explosions = new Explosions(this);
   }
 
-  _initStates() {
-    this._explosions.initStates();
+  static _initStates() {
+    this._states = {};
+    Explosions.initStates(this);
   }
 
   /** @protected */

@@ -118,7 +118,7 @@ export class ClientGameAPI {
   }
 
   /**
-   * @param {import('../../../shared/GameInterfaces').RefDef} refdef
+   * @param {import('../../../shared/GameInterfaces').RefDef} refdef current refresh definition
    */
   updateRefDef(refdef) {
     if (this.clientdata.health <= 0) {

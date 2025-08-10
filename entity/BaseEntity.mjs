@@ -9,7 +9,7 @@ import { Serializer } from '../helper/MiscHelpers.mjs';
 
 class ScheduledThink {
   constructor(nextThink, callback, identifier, isRequired) {
-    this._serializer = new Serializer(this, null);
+    this._serializer = new Serializer(this);
     this._serializer.startFields();
     this.nextThink = nextThink;
     this.callback = callback;
@@ -18,6 +18,8 @@ class ScheduledThink {
     this._serializer.endFields();
   }
 };
+
+/** @typedef {typeof BaseEntity} BaseEntityType */
 
 /**
  * @access package
@@ -142,14 +144,10 @@ export default class BaseEntity {
 
     this._serializer.endFields();
 
-    /** @private */
-    this._states = {};
-
     /** @type {?import('./Weapons.mjs').DamageHandler} @public */
     this._damageHandler = null; // needs to be initialized optionally
 
     this._declareFields();
-    this._initStates();
 
     Object.seal(this);
 
@@ -158,6 +156,8 @@ export default class BaseEntity {
       this._precache();
     }
   }
+
+  static _states = null;
 
   /** @returns {number} volume */
   get volume() {
@@ -189,22 +189,26 @@ export default class BaseEntity {
 
   /**
    * Configures the state machine.
-   * @protected
+   * @access package
    */
-  _initStates() {
-    // place all animation states and scripted sequences here
-    // this._defineState('army_stand1', 'stand1', 'army_stand2', function () { this._ai.stand(); });
+  static _initStates() {
+    // first, initialize the states object:
+    //  this._states = {};
+
+    // then place all animation states and scripted sequences like this:
+    //  this._defineState('army_stand1', 'stand1', 'army_stand2', function () { this._ai.stand(); });
   }
 
   /**
    * Defines a state for the state machine.
-   * @protected
+   * @access package
    * @param {string} state state name
    * @param {?string|number} keyframe frame/keyframe name the model should be in
    * @param {?string} nextState state name of the automatic next state
    * @param {?Function} handler additional code to be executed
    */
-  _defineState(state, keyframe, nextState = null, handler = null) {
+  static _defineState(state, keyframe, nextState = null, handler = null) {
+    console.assert(state, 'state must be set to an object, e.g. `this._states = {};` in `_initStates()`');
     this._states[state] = { keyframe, nextState, handler };
   }
 
@@ -213,6 +217,7 @@ export default class BaseEntity {
    * If you leave state null, it will simply continue with the next state.
    * @param {?string} state optional new state
    * @returns {boolean} whether the state is valid
+   * @access package
    */
   _runState(state = null) {
     // console.debug('_runState: requested, next, current', state, this._stateNext, this._stateCurrent);
@@ -225,12 +230,14 @@ export default class BaseEntity {
       return false;
     }
 
-    if (!this._states[state]) {
+    const states = /** @type {typeof BaseEntity} */(this.constructor)._states;
+
+    if (!states[state]) {
       // console.warn('_runState: state not defined!', state);
       return false;
     }
 
-    const data = this._states[state];
+    const data = states[state];
 
     this._stateCurrent = state;
     // CR: for some reason I spent an hour to figure out why the nextState is not set, and it was because of this line:
@@ -548,8 +555,8 @@ export default class BaseEntity {
 
   /**
    * Moves self in the given direction. Returns success as a boolean.
-   * @param {number} yaw
-   * @param {number} dist
+   * @param {number} yaw yaw angle in degrees
+   * @param {number} dist distance to move in the given direction
    * @returns {boolean} true, if the move was successful
    */
   walkMove(yaw, dist) {

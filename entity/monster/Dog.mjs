@@ -70,7 +70,9 @@ export default class DogMonsterEntity extends WalkMonster {
     this.engine.PrecacheSound('dog/idle.wav');
   }
 
-  _initStates() {
+  static _initStates() {
+    this._states = {};
+
     this._defineState('dog_stand1', 'stand1', 'dog_stand2', function () { this._ai.stand(); });
     this._defineState('dog_stand2', 'stand2', 'dog_stand3', function () { this._ai.stand(); });
     this._defineState('dog_stand3', 'stand3', 'dog_stand4', function () { this._ai.stand(); });
@@ -302,7 +304,7 @@ export default class DogMonsterEntity extends WalkMonster {
     return this._ai.enemyRange === range.RANGE_MELEE;
   }
 
-  /** @private */
+  /** @returns {boolean} if true, good to do a jump attack @private */
   _checkJump() {
     console.assert(this.enemy, 'active enemy required');
 

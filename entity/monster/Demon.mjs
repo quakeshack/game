@@ -69,7 +69,9 @@ export default class DemonMonster extends WalkMonster {
     }
   }
 
-  _initStates() {
+  static _initStates() {
+    this._states = {};
+
     // stand states
     this._defineState('demon1_stand1', 'stand1', 'demon1_stand2', function() { this._ai.stand(); });
     this._defineState('demon1_stand2', 'stand2', 'demon1_stand3', function() { this._ai.stand(); });

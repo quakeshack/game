@@ -96,12 +96,18 @@ export class EntityWrapper {
     return this._entity_wf.deref();
   }
 
-  /** @protected */
+  /**
+   * @returns {import('../GameAPI.mjs').ServerGameAPI} game API
+   * @protected
+   */
   get _game() {
     return this._entity.game;
   }
 
-  /** @protected */
+  /**
+   * @returns {ServerEngineAPI} engine API
+   * @protected
+   */
   get _engine() {
     return this._entity.engine;
   }
