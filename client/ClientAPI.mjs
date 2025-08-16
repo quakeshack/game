@@ -3,8 +3,7 @@
 /** @typedef {import('../../../shared/GameInterfaces').SerializableType} SerializableType */
 
 import { BaseClientEdictHandler } from '../../../shared/ClientEdict.mjs';
-import Vector from '../../../shared/Vector.mjs';
-import { clientEvent, clientEventName, items } from '../Defs.mjs';
+import { clientEvent, clientEventName, colors, items } from '../Defs.mjs';
 import { FireballEntity } from '../entity/Misc.mjs';
 import { PlayerEntity } from '../entity/Player.mjs';
 import { weaponConfig } from '../entity/Weapons.mjs';
@@ -15,7 +14,7 @@ const clientEdictHandlers = {
     emit() {
       const dl = this.engine.AllocDlight(this.clientEdict.num);
 
-      dl.color = this.engine.IndexToRGB(250);
+      dl.color = this.engine.IndexToRGB(colors.FIRE);
       dl.origin = this.clientEdict.origin.copy();
       dl.radius = 285 + Math.random() * 15;
       dl.die = this.engine.CL.time + 0.1;

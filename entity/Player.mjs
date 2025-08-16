@@ -1,6 +1,6 @@
 import Vector from '../../../shared/Vector.mjs';
 
-import { attn, channel, clientEvent, content, damage, dead, deathType, effect, flags, hull, items, moveType, solid } from '../Defs.mjs';
+import { attn, channel, clientEvent, colors, content, damage, dead, deathType, effect, flags, hull, items, moveType, solid } from '../Defs.mjs';
 import { crandom, Flag, Serializer } from '../helper/MiscHelpers.mjs';
 import BaseEntity from './BaseEntity.mjs';
 import { BackpackEntity } from './Items.mjs';
@@ -234,11 +234,11 @@ export class PlayerEntity extends BaseEntity {
     this.team = 0;
     this.frags = 0;
 
-    /** @type {string[]} client data fields, will be pushed to the client each frame when updated, use the name of the entity field, do NOT change the content during runtime */
+    /** @type {string[]} client data fields, will be pushed to the client each frame when updated, use the name of the entity field, do NOT change the content during runtime, also consider this client data private, it won’t be sent to other clients */
     this.clientdataFields = PlayerEntity.clientdataFields;
 
     // relevant for damage etc.
-    this.bloodcolor = 73; // FIXME: hardcoded color code (73)
+    this.bloodcolor = colors.BLOOD;
 
     /** @type {number} used for forced movement time (e.g. trigger_push) */
     this.fly_time = 0;

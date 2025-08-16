@@ -128,13 +128,28 @@ export const tentType = Object.freeze({
 /**
  * @readonly
  * @enum {number}
- * color codes for blood and gore, should match palette.lmp colors
+ * indexed color for blood and gore, should match palette.lmp colors
  */
 export const colors = Object.freeze({
   DUST: 0,
   BLOOD: 73,
   FIRE: 75,
   SPARK: 225,
+
+  HUD_AMMO_NORMAL: 240,
+  HUD_AMMO_WARNING: 250,
+
+  HUD_CSHIFT_BONUSFLASH: 192,
+  HUD_CSHIFT_DAMAGE: 193,
+  HUD_CSHIFT_SECRET: 128,
+
+  HUD_CSHIFT_POWERUP_QUAD: 208,
+  HUD_CSHIFT_POWERUP_INVULN: 250,
+  HUD_CSHIFT_POWERUP_SUIT: 192,
+  HUD_CSHIFT_POWERUP_INVIS: 15,
+
+  HUD_RANKING_TEXT: 240,
+  HUD_RANKING_BACKGROUND: 16,
 });
 
 /**
