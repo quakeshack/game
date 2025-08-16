@@ -34,8 +34,11 @@ class ScheduledThink {
 export default class BaseEntity {
   static classname = null;
 
-  /** @type {?BaseClientEdictHandler} optional client side handler of this entity */
+  /** @type {?typeof BaseClientEdictHandler} optional client side handler of this entity */
   static clientEdictHandler = null;
+
+  /** @type {string[]} fields that are exposed to the client, do NOT change the content during runtime, engine will take care of compressing data */
+  static clientEntityFields = [];
 
   /** @returns {string} entity classname */
   get classname() {
@@ -175,7 +178,7 @@ export default class BaseEntity {
   }
 
   /**
-   * Allows initialization of fields before the object gets frozen.
+   * Allows initialization of fields before the object gets frozen. Also allows setting default values.
    * @protected
    */
   _declareFields() {

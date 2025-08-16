@@ -512,6 +512,18 @@ export class ServerGameAPI {
     return true;
   }
 
+  getClientEntityFields() {
+    const clientEntityFields = {};
+
+    for (const [classname, entityClass] of entityRegistry) {
+      if (entityClass.clientEntityFields.length > 0) {
+        clientEntityFields[classname] = entityClass.clientEntityFields;
+      }
+    }
+
+    return clientEntityFields;
+  }
+
   init(mapname, serverflags) {
     this.mapname = mapname;
     this.serverflags = serverflags;

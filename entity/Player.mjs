@@ -1,3 +1,4 @@
+import { BaseClientEdictHandler } from '../../../shared/ClientEdict.mjs';
 import Vector from '../../../shared/Vector.mjs';
 
 import { attn, channel, clientEvent, colors, content, damage, dead, deathType, effect, flags, hull, items, moveType, solid } from '../Defs.mjs';
@@ -159,6 +160,30 @@ export class PlayerEntity extends BaseEntity {
     'weaponframe',
     'health',
   ];
+
+  static clientEntityFields = [
+    'items',
+  ];
+
+  static clientEdictHandler = class PlayerClientEntity extends BaseClientEdictHandler {
+    emit() {
+      if (+this.clientEdict.extended.items & items.IT_QUAD) {
+        const dl = this.engine.AllocDlight(this.clientEdict.num);
+
+        dl.color = this.engine.IndexToRGB(colors.HUD_CSHIFT_POWERUP_QUAD);
+        dl.origin = this.clientEdict.origin.copy();
+        dl.radius = 295 + Math.random() * 5;
+        dl.die = this.engine.CL.time + 0.1;
+      } else if (+this.clientEdict.extended.items & items.IT_INVULNERABILITY) {
+        const dl = this.engine.AllocDlight(this.clientEdict.num);
+
+        dl.color = this.engine.IndexToRGB(colors.HUD_CSHIFT_POWERUP_INVULN);
+        dl.origin = this.clientEdict.origin.copy();
+        dl.radius = 295 + Math.random() * 5;
+        dl.die = this.engine.CL.time + 0.1;
+      }
+    }
+  };
 
   _declareFields() {
     /** @protected */
@@ -1464,8 +1489,6 @@ export class PlayerEntity extends BaseEntity {
         this.invincible_finished = 0;
         this.invincible_sound_time = {};
       }
-
-      this.effects = this.invincible_finished > this.game.time ? this.effects | effect.EF_DIMLIGHT : this.effects & ~effect.EF_DIMLIGHT;
     }
 
     // Super Damage
@@ -1487,7 +1510,6 @@ export class PlayerEntity extends BaseEntity {
         this.super_damage_finished = 0;
         this.super_time = 0;
       }
-      this.effects = this.super_damage_finished > this.game.time ? this.effects | effect.EF_DIMLIGHT : this.effects & ~effect.EF_DIMLIGHT;
     }
 
     // Suit

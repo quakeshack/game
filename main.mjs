@@ -13,6 +13,7 @@ const identification = {
     gameCapabilities.CAP_CLIENTDATA_DYNAMIC,
     gameCapabilities.CAP_SPAWNPARMS_DYNAMIC,
     gameCapabilities.CAP_CHAT_MANAGED,
+    gameCapabilities.CAP_ENTITY_EXTENDED,
   ],
 };
 
