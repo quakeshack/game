@@ -263,7 +263,7 @@ export class SecretTriggerEntity extends OnceTriggerEntity {
       return false;
     }
 
-    this.game.stats.secretFound(triggeredByEntity);
+    this.engine.eventBus.publish('game.secret.found', this, triggeredByEntity);
 
     return true;
   }
@@ -271,7 +271,7 @@ export class SecretTriggerEntity extends OnceTriggerEntity {
   spawn() {
     this.wait = -1;
 
-    this.game.stats.secrets_total++;
+    this.engine.eventBus.publish('game.secret.spawned', this);
 
     super.spawn();
   }

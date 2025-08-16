@@ -189,6 +189,58 @@ const cvars = {
   coop: null,
 };
 
+/**
+ * Game statistics class.
+ * It tracks monsters and secrets.
+ * It is used to send statistics to clients.
+ */
+class GameStats {
+  /**
+   * @param {ServerGameAPI} gameAPI game API
+   * @param {ServerEngineAPI} engineAPI engineAPI
+   */
+  constructor(gameAPI, engineAPI) {
+    this.game = gameAPI;
+    this.engine = engineAPI;
+
+    this._serializer = new Serializer(this, engineAPI);
+    this._serializer.startFields();
+    this.reset();
+    this._serializer.endFields();
+
+    Object.seal(this);
+  }
+
+  reset() {
+    this.monsters_total = 0;
+    this.monsters_killed = 0;
+    this.secrets_total = 0;
+    this.secrets_found = 0;
+  }
+
+  subscribeToEvents() {
+    this.engine.eventBus.subscribe('game.secret.spawned', () => { this.secrets_total++; });
+    this.engine.eventBus.subscribe('game.secret.found', (secretEntity, finderEntity) => {
+      this.engine.BroadcastClientEvent(true, clientEvent.STATS_UPDATED, 'secrets_found', ++this.secrets_found, finderEntity.edict);
+    });
+
+    this.engine.eventBus.subscribe('game.monster.spawned', () => { this.monsters_total++; });
+    this.engine.eventBus.subscribe('game.monster.killed', (monsterEntity, attackerEntity) => {
+      this.engine.BroadcastClientEvent(true, clientEvent.STATS_UPDATED, 'monsters_killed', ++this.monsters_killed, attackerEntity.edict);
+    });
+  }
+
+  /**
+   * @param {PlayerEntity} playerEntity client player entity
+   */
+  sendToPlayer(playerEntity) {
+    this.engine.DispatchClientEvent(playerEntity.edict, true, clientEvent.STATS_INIT, 'monsters_total', this.monsters_total);
+    this.engine.DispatchClientEvent(playerEntity.edict, true, clientEvent.STATS_INIT, 'monsters_killed', this.monsters_killed);
+    this.engine.DispatchClientEvent(playerEntity.edict, true, clientEvent.STATS_INIT, 'secrets_total', this.secrets_total);
+    this.engine.DispatchClientEvent(playerEntity.edict, true, clientEvent.STATS_INIT, 'secrets_found', this.secrets_found);
+  }
+};
+
 /** @typedef {import('../../shared/GameInterfaces').ServerGameInterface} ServerGameInterface */
 /** @augments {ServerGameInterface} */
 export class ServerGameAPI {
@@ -209,33 +261,7 @@ export class ServerGameAPI {
     this.force_retouch = 0; // Engine API
 
     // stats
-    this.stats = {
-      monsters_total: 0,
-      monsters_killed: 0,
-      secrets_total: 0,
-      secrets_found: 0,
-      monsterKilled(killerEntity) {
-        engineAPI.BroadcastClientEvent(true, clientEvent.STATS_UPDATED, 'monsters_killed', ++this.monsters_killed, killerEntity.edict);
-      },
-      secretFound(finderEntity) {
-        engineAPI.BroadcastClientEvent(true, clientEvent.STATS_UPDATED, 'secrets_found', ++this.secrets_found, finderEntity.edict);
-      },
-      sendToPlayer(playerEntity) {
-        engineAPI.DispatchClientEvent(playerEntity.edict, true, clientEvent.STATS_INIT, 'monsters_total', this.monsters_total);
-        engineAPI.DispatchClientEvent(playerEntity.edict, true, clientEvent.STATS_INIT, 'monsters_killed', this.monsters_killed);
-        engineAPI.DispatchClientEvent(playerEntity.edict, true, clientEvent.STATS_INIT, 'secrets_total', this.secrets_total);
-        engineAPI.DispatchClientEvent(playerEntity.edict, true, clientEvent.STATS_INIT, 'secrets_found', this.secrets_found);
-      },
-    };
-
-    Serializer.makeSerializable(this.stats, engineAPI, [
-      'monsters_total',
-      'monsters_killed',
-      'secrets_total',
-      'secrets_found',
-    ]);
-
-    Object.seal(this.stats);
+    this.stats = new GameStats(this, engineAPI);
 
     // checkout Player.decodeLevelParms to understand this
     this.parm1 = 0;
@@ -536,6 +562,9 @@ export class ServerGameAPI {
 
     // make sure skill is in range
     cvars.skill.set(Math.max(0, Math.min(3, Math.floor(cvars.skill.value))));
+
+    // make sure stats are resubscribed
+    this.stats.subscribeToEvents();
   }
 
   // eslint-disable-next-line no-unused-vars

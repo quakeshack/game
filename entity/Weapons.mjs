@@ -353,7 +353,7 @@ export class DamageHandler extends EntityWrapper {
 
     // bump the monster counter
     if (this._entity.flags & flags.FL_MONSTER) {
-      this._game.stats.monsterKilled(attackerEntity);
+      this._engine.eventBus.publish('game.monster.killed', this._entity, attackerEntity);
     }
 
     // CR: ClientObituary(self, attacker); is handled by PlayerEntity.thinkDie now
@@ -468,6 +468,11 @@ export class DamageHandler extends EntityWrapper {
     if (this._entity.health <= 0) {
       this._killed(attackerEntity);
       return;
+    }
+
+    // publish injured event
+    if (this._entity.flags & flags.FL_MONSTER) {
+      this._engine.eventBus.publish('game.monster.injured', this._entity, attackerEntity, inflictorEntity);
     }
 
     if (this._entity.thinkPain) {
