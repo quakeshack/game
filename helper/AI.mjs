@@ -38,6 +38,14 @@ export class EntityAI extends EntityWrapper {
     return /** @type {BaseMonster}*/(super._entity);
   }
 
+  get enemyRange() {
+    return /** @type {range} */(range.RANGE_FAR); // override in derived classes
+  }
+
+  get enemyIsVisible() {
+    return false; // override in derived classes
+  }
+
   clear() {
     // implement this
     console.assert(false, 'implement this');
