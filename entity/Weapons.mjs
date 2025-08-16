@@ -3,6 +3,7 @@ import Vector, { DirectionalVectors } from '../../../shared/Vector.mjs';
 import { attn, channel, colors, content, damage, flags, items, moveType, solid, tentType } from '../Defs.mjs';
 import { crandom, EntityWrapper } from '../helper/MiscHelpers.mjs';
 import BaseEntity from './BaseEntity.mjs';
+import BaseMonster from './monster/BaseMonster.mjs';
 import { PlayerEntity } from './Player.mjs';
 
 /**
@@ -84,6 +85,10 @@ export class Explosions extends EntityWrapper {
  * Methods to cause damage to something else, e.g. fire bullets etc.
  */
 export class DamageInflictor extends EntityWrapper {
+  get _entity() {
+    return /** @type {PlayerEntity|BaseMonster} */ (super._entity);
+  }
+
   /** @type {BaseEntity} */
   _multiEntity = null;
   /** @type {number} */
@@ -298,7 +303,7 @@ export class DamageInflictor extends EntityWrapper {
 };
 
 /**
- * Methods to handle damage on an entity, wrapped entity must support:
+ * Methods to handle damage on an entity, wrapped entity must be either PlayerEntity or BaseMonster and support:
  * - takedamage
  * - dmg_attacker, dmg_inflictor, dmg_take, dmg_save
  * - health
@@ -313,7 +318,11 @@ export class DamageInflictor extends EntityWrapper {
  * `this._damageHandler = new DamageHandler(this);` must be placed in `_declareFields` last!
  */
 export class DamageHandler extends EntityWrapper {
-  /** @type {{[key: string]: number}} multiplier for damping received damage */
+  get _entity() {
+    return /** @type {PlayerEntity|BaseMonster} */ (super._entity);
+  }
+
+  /** @type {Record<string,number>} multiplier for damping received damage */
   receiveDamageFactor = {
     regular: 1.0,
     blast: 1.0,
@@ -332,13 +341,13 @@ export class DamageHandler extends EntityWrapper {
    */
   _killed(attackerEntity) {
     // doors, triggers, etc.
-    if ([moveType.MOVETYPE_PUSH, moveType.MOVETYPE_NONE].includes(this._entity.movetype)) {
+    if (this._entity.movetype === moveType.MOVETYPE_PUSH || this._entity.movetype === moveType.MOVETYPE_NONE) {
       this._entity.takedamage = damage.DAMAGE_NO; // CR: not Quake vanilla behavior here
       this._entity.thinkDie(attackerEntity);
       return;
     }
 
-    if (typeof (this._entity.enemy) !== 'undefined') {
+    if (this._entity instanceof BaseMonster) {
       this._entity.enemy = attackerEntity;
     }
 
@@ -374,7 +383,7 @@ export class DamageHandler extends EntityWrapper {
    * @param {Vector} hitPoint exact hit point
    */
   damage(inflictorEntity, attackerEntity, inflictedDamage, hitPoint) {
-    if (this._entity.takedamage === damage.DAMAGE_NO) {
+    if (this._entity.takedamage === damage.DAMAGE_NO || this._entity.health <= 0) {
       // this entity cannot take any damage (anymore)
       return;
     }
@@ -385,7 +394,7 @@ export class DamageHandler extends EntityWrapper {
     // used by buttons and triggers to set activator for target firing
     this._entity.dmg_attacker = attackerEntity;
 
-    if (attackerEntity.super_damage_finished > this._game.time) {
+    if (attackerEntity instanceof PlayerEntity && attackerEntity.super_damage_finished > this._game.time) {
       inflictedDamage *= 4.0; // QUAD DAMAGE
     }
 
@@ -396,8 +405,7 @@ export class DamageHandler extends EntityWrapper {
 
     // save damage based on the target's armor level
     let save = 0, take = 0;
-    if (typeof (this._entity.armortype) !== 'undefined' &&
-      typeof (this._entity.armorvalue) !== 'undefined') {
+    if (this._entity instanceof PlayerEntity) {
       save = Math.ceil(this._entity.armortype * inflictedDamage);
 
       if (save >= this._entity.armorvalue) {
@@ -436,7 +444,7 @@ export class DamageHandler extends EntityWrapper {
     }
 
     // check for invincibility and play protection sounds to indicate invincibility
-    if (this._entity.invincible_finished >= this._game.time) {
+    if (this._entity instanceof PlayerEntity && this._entity.invincible_finished >= this._game.time) {
       if ((this._entity.invincible_sound_time[inflictorEntity.edictId] || 0) < this._game.time) {
         this._entity.startSound(channel.CHAN_ITEM, 'items/protect3.wav');
         this._entity.invincible_sound_time[inflictorEntity.edictId] = this._game.time + 2.0;
@@ -445,7 +453,8 @@ export class DamageHandler extends EntityWrapper {
     }
 
     // no friendly fire
-    if (this._game.teamplay === 1 && this._entity.team > 0 && this._entity.team === attackerEntity.team) {
+    if (this._entity instanceof PlayerEntity && attackerEntity instanceof PlayerEntity &&
+        this._game.teamplay === 1 && this._entity.team > 0 && this._entity.team === attackerEntity.team) {
       return;
     }
 
@@ -663,7 +672,7 @@ export class Missile extends BaseProjectile {
 
     const damage = 100 + Math.random() * 20;
 
-    if (touchedByEntity.health > 0) {
+    if ((touchedByEntity instanceof BaseMonster || touchedByEntity instanceof PlayerEntity) && touchedByEntity.health > 0) {
       this.damage(touchedByEntity, damage, this.owner, this.origin); // FIXME: better hitpoint
     }
 
@@ -719,11 +728,13 @@ export class BaseSpike extends BaseProjectile {
       return; // do not trigger fields
     }
 
-    if (touchedByEntity.health > 0) {
-      this.damage(touchedByEntity, this.constructor._damage, this.owner, this.origin);
+    const ctor = /** @type {typeof BaseSpike} */(this.constructor);
+
+    if ((touchedByEntity instanceof BaseMonster || touchedByEntity instanceof PlayerEntity) && touchedByEntity.health > 0) {
+      this.damage(touchedByEntity, ctor._damage, this.owner, this.origin);
     }
 
-    this.engine.DispatchTempEntityEvent(this.constructor._tentType, this.origin);
+    this.engine.DispatchTempEntityEvent(ctor._tentType, this.origin);
 
     // delay the remove, the projectile might still be needed for some touch evaluations
     this.lazyRemove();
@@ -738,7 +749,7 @@ export class BaseSpike extends BaseProjectile {
 
     this.velocity.multiply(this.speed || 1000.0); // fast projectile
 
-    this.setModel(this.constructor._model);
+    this.setModel(/** @type {typeof BaseSpike} */(this.constructor)._model);
     this.setSize(Vector.origin, Vector.origin);
   }
 };
@@ -790,8 +801,12 @@ export class Laser extends BaseSpike {
  * Ammo, however, is still managed over at PlayerEntity due to some clusterfun entaglement with engine code.
  */
 export class PlayerWeapons extends EntityWrapper {
+  get _entity() {
+    return /** @type {PlayerEntity} */(super._entity);
+  }
+
   /**
-   * @param {import('./Player.mjs').PlayerEntity} playerEntity player
+   * @param {PlayerEntity} playerEntity player
    */
   constructor(playerEntity) {
     super(playerEntity);
@@ -810,7 +825,7 @@ export class PlayerWeapons extends EntityWrapper {
 
   /**
    * @private
-   * @returns {import('./Player.mjs').PlayerEntity} player
+   * @returns {PlayerEntity} player
    */
   get _player() {
     return this._entity;
@@ -834,7 +849,7 @@ export class PlayerWeapons extends EntityWrapper {
       return true;
     }
 
-    const key = weaponConfig.get(this._player.weapon).ammoSlot;
+    const key = weaponConfig.get(/** @type {WeaponConfigKey} */(this._player.weapon)).ammoSlot;
 
     if (key && this._player[key] > 0) {
       return true;

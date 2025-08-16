@@ -1,7 +1,6 @@
 import Q from '../../../shared/Q.mjs';
 import Vector from '../../../shared/Vector.mjs';
-import { clientEventName, contentShift, items } from '../Defs.mjs';
-import { clientEvent } from '../entity/Player.mjs';
+import { clientEvent, clientEventName, contentShift, items } from '../Defs.mjs';
 import { weaponConfig } from '../entity/Weapons.mjs';
 import { ClientGameAPI } from './ClientAPI.mjs';
 
@@ -593,7 +592,7 @@ export default class HUD {
       return;
     }
 
-    this.engine.ContentShift(contentShift.powerup, color, isFlickering ? 0.01 + Math.random() * 0.1 : this.engine.CL.frametime * 10.0);
+    this.engine.ContentShift(contentShift.powerup, color, isFlickering ? 0.25 + Math.random() * 0.1 : 0.3);
   }
 
   startFrame() {

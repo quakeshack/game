@@ -46,7 +46,7 @@ export class ButtonEntity extends BasePropEntity {
   }
 
   _precache() {
-    this.engine.PrecacheSound(this.constructor._sounds[this.sounds]);
+    this.engine.PrecacheSound(/** @type {typeof ButtonEntity} */(this.constructor)._sounds[this.sounds]);
   }
 
   _buttonDone() {
@@ -126,7 +126,7 @@ export class ButtonEntity extends BasePropEntity {
   }
 
   spawn() {
-    this.noise = this.constructor._sounds[this.sounds];
+    this.noise = /** @type {typeof ButtonEntity} */(this.constructor)._sounds[this.sounds];
 
     this._sub.setMovedir();
 

@@ -4,9 +4,9 @@
 
 import { BaseClientEdictHandler } from '../../../shared/ClientEdict.mjs';
 import Vector from '../../../shared/Vector.mjs';
-import { clientEventName, items } from '../Defs.mjs';
+import { clientEvent, clientEventName, items } from '../Defs.mjs';
 import { FireballEntity } from '../entity/Misc.mjs';
-import { clientEvent } from '../entity/Player.mjs';
+import { PlayerEntity } from '../entity/Player.mjs';
 import { weaponConfig } from '../entity/Weapons.mjs';
 import HUD from './HUD.mjs';
 
@@ -15,13 +15,18 @@ const clientEdictHandlers = {
     emit() {
       const dl = this.engine.AllocDlight(this.clientEdict.num);
 
-      dl.color = new Vector(1, 0.75, 0.25);
+      dl.color = this.engine.IndexToRGB(250);
       dl.origin = this.clientEdict.origin.copy();
       dl.radius = 285 + Math.random() * 15;
       dl.die = this.engine.CL.time + 0.1;
 
       this.engine.RocketTrail(this.clientEdict.originPrevious, this.clientEdict.origin, 1);
       this.engine.RocketTrail(this.clientEdict.originPrevious, this.clientEdict.origin, 6);
+    }
+  },
+  [PlayerEntity.classname]: class PlayerEdictHandler extends BaseClientEdictHandler {
+    emit() {
+      // TODO: implement things like powerup glow effects, etc.
     }
   },
 };

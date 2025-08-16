@@ -42,8 +42,8 @@ A few NPCs and features from the original game are still missing and yet to be i
 * [X] implement a more lean Sbar/HUD
   * [ ] implement intermission, finale etc. screens
 * [X] move more of the effect handling from the engine to the game code
-* [ ] implement damage effects (red flash)
-* [ ] implement powerup effects (quad, invis etc.)
+* [X] implement damage effects (red flash)
+* [X] implement powerup effects (quad, invis etc.)
 * [ ] handle things like gibbing, bubbles etc. on the client-side only
   * [ ] air_bubbles
   * [ ] GibEntity

@@ -366,8 +366,7 @@ export class TeleportTriggerEntity extends BaseTriggerEntity {
     // put a tfog where the player was
     this.engine.SpawnEntity(TeleportEffectEntity.classname, { origin: touchedByEntity.origin });
 
-    /** @type {InfoTeleportDestination} */
-    const target = this.findFirstEntityByFieldAndValue('targetname', this.target);
+    const target = /** @type {InfoTeleportDestination} */(this.findFirstEntityByFieldAndValue('targetname', this.target));
     console.assert(target instanceof InfoTeleportDestination, 'Target must be an InfoTeleportDestination');
 
     const { forward } = target.angles.angleVectors();
@@ -392,7 +391,7 @@ export class TeleportTriggerEntity extends BaseTriggerEntity {
     touchedByEntity.angles.set(target.angles);
 
     if (touchedByEntity instanceof PlayerEntity) {
-      touchedByEntity.fixangle = 1;
+      touchedByEntity.fixangle = true;
       touchedByEntity.teleport_time = this.game.time + 0.7;
       if (touchedByEntity.flags & flags.FL_ONGROUND) {
         touchedByEntity.flags &= ~flags.FL_ONGROUND;
@@ -526,7 +525,7 @@ export class ChangeLevelTriggerEntity extends BaseTriggerEntity {
       return;
     }
 
-    if (this.engine.noexit > 0 && this.game.mapname !== 'start') {
+    if (this.game.noexit > 0 && this.game.mapname !== 'start') {
       this.damage(otherEntity, 50000);
       return;
     }

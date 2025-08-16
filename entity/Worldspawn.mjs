@@ -1,4 +1,5 @@
 import BaseEntity from './BaseEntity.mjs';
+import { PlayerEntity } from './Player.mjs';
 
 import { Precache as WeaponsPrecache } from './Weapons.mjs';
 
@@ -19,12 +20,12 @@ export class BodyqueEntity extends BaseEntity {
  * @param {import("../GameAPI.mjs").ServerGameAPI} game gameAPI
  */
 function InitBodyQue(game) {
-  game.bodyque_head = game.engine.SpawnEntity(BodyqueEntity.classname);
+  game.bodyque_head = /** @type {BodyqueEntity} */(game.engine.SpawnEntity(BodyqueEntity.classname));
 
   let current = game.bodyque_head;
 
-  for (let i = 0; i < 5; i++, current = current.owner) {
-    current.owner = game.engine.SpawnEntity(BodyqueEntity.classname);
+  for (let i = 0; i < 5; i++, current = /** @type {BodyqueEntity} */(current.owner)) {
+    current.owner = /** @type {BodyqueEntity} */(game.engine.SpawnEntity(BodyqueEntity.classname));
   }
 
   current.owner = game.bodyque_head;
@@ -33,7 +34,7 @@ function InitBodyQue(game) {
 /**
  * copies entity to the body que
  * @param {import("../GameAPI.mjs").ServerGameAPI} game gameAPI
- * @param {BaseEntity} entity entity to be copied
+ * @param {PlayerEntity} entity entity to be copied
  */
 export function CopyToBodyQue(game, entity) {
   game.bodyque_head.angles = entity.angles;
@@ -45,7 +46,7 @@ export function CopyToBodyQue(game, entity) {
   game.bodyque_head.flags = 0;
   game.bodyque_head.setOrigin(entity.origin);
   game.bodyque_head.setSize(entity.mins, entity.maxs);
-  game.bodyque_head = game.bodyque_head.owner;
+  game.bodyque_head = /** @type {BodyqueEntity} */(game.bodyque_head.owner);
 };
 
 export class WorldspawnEntity extends BaseEntity {
@@ -60,8 +61,6 @@ export class WorldspawnEntity extends BaseEntity {
     this.message = null;
     /** @type {number} 0 = medival, 1 = runes, 2 = techbase */
     this.worldtype = 0;
-    /** @type {number} sets gravity */
-    this.qs_gravity = 0;
     /** @type {number} cdtrack */
     this.sounds = 0;
 
@@ -187,12 +186,7 @@ export class WorldspawnEntity extends BaseEntity {
     InitBodyQue(this.game);
 
     // custom map attributes
-    this.engine.SetCvar('sv_gravity', this.model === 'maps/e1m8.bsp' ? 100 : 800);
-
-    // QuakeShack: allow maps to set gravity per map
-    if (this.qs_gravity) {
-      this.engine.SetCvar('sv_gravity', this.qs_gravity);
-    }
+    this.engine.SetCvar('sv_gravity', this.model === 'maps/e1m8.bsp' ? '100' : '800');
 
     //
     // Setup light animation tables. 'a' is total darkness, 'z' is maxbright.

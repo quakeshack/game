@@ -56,8 +56,8 @@ export default class BaseMonster extends BaseEntity {
 
   _precache() {
     // precache monster model
-    this.engine.PrecacheModel(this.constructor._modelDefault);
-    this.engine.PrecacheModel(this.constructor._modelHead);
+    this.engine.PrecacheModel(/** @type {typeof BaseMonster} */(this.constructor)._modelDefault);
+    this.engine.PrecacheModel(/** @type {typeof BaseMonster} */(this.constructor)._modelHead);
 
     // gib assets
     this.engine.PrecacheModel('progs/gib1.mdl');
@@ -81,7 +81,7 @@ export default class BaseMonster extends BaseEntity {
    * @param {boolean} playSound play sound upon gib
    */
   _gib(playSound) {
-    GibEntity.gibEntity(this, this.constructor._modelHead, playSound);
+    GibEntity.gibEntity(this, /** @type {typeof BaseMonster} */(this.constructor)._modelHead, playSound);
   }
 
   isActor() {
@@ -231,18 +231,20 @@ export default class BaseMonster extends BaseEntity {
       return;
     }
 
-    const [mins, maxs] = this.constructor._size;
+    const ctor = /** @type {typeof BaseMonster} */(this.constructor);
 
-    console.assert(this.constructor._modelDefault, 'Monster model not set');
-    console.assert(this.constructor._health > 0, 'Invalid health set');
+    const [mins, maxs] = ctor._size;
+
+    console.assert(ctor._modelDefault, 'Monster model not set');
+    console.assert(ctor._health > 0, 'Invalid health set');
     console.assert(mins instanceof Vector && maxs instanceof Vector, 'Invalid size set');
 
-    this.health = this.constructor._health;
+    this.health = ctor._health;
     this.takedamage = damage.DAMAGE_AIM;
     this.solid = solid.SOLID_SLIDEBOX;
     this.movetype = moveType.MOVETYPE_STEP;
 
-    this.setModel(this.constructor._modelDefault);
+    this.setModel(ctor._modelDefault);
     this.setSize(mins, maxs);
 
     this._postSpawn();
@@ -323,12 +325,12 @@ export default class BaseMonster extends BaseEntity {
   }
 
   _dropBackpack(backpackParameters) {
-    const backpack = this.engine.SpawnEntity(BackpackEntity.classname, {
+    const backpack = /** @type {BackpackEntity} */(this.engine.SpawnEntity(BackpackEntity.classname, {
       origin: this.origin.copy(),
       regeneration_time: 0, // do not regenerate
       remove_after: 120, // remove after 2 minutes
       ...backpackParameters,
-    });
+    }));
 
     // toss it around
     backpack.toss();

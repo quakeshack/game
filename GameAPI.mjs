@@ -1,7 +1,7 @@
 
-import { clientEvent, GibEntity, InfoPlayerStart, InfoPlayerStartCoop, InfoPlayerStartDeathmatch, PlayerEntity, qc as playerModelQC, TelefragTriggerEntity } from './entity/Player.mjs';
+import { GibEntity, InfoPlayerStart, InfoPlayerStartCoop, InfoPlayerStartDeathmatch, PlayerEntity, qc as playerModelQC, TelefragTriggerEntity } from './entity/Player.mjs';
 import { BodyqueEntity, WorldspawnEntity } from './entity/Worldspawn.mjs';
-import { spawnflags } from './Defs.mjs';
+import { clientEvent, spawnflags } from './Defs.mjs';
 import * as misc from './entity/Misc.mjs';
 import * as door from './entity/props/Doors.mjs';
 import * as platform from './entity/props/Platforms.mjs';
@@ -279,7 +279,7 @@ export class ServerGameAPI {
 
     this.gameAI = new GameAI(this);
 
-    /** @type {?BaseEntity} holds the dead player body chain */
+    /** @type {?BodyqueEntity} holds the dead player body chain */
     this.bodyque_head = null;
 
     this._modelData = { // FIXME: I’m not happy about this, this needs to be next to models

@@ -89,10 +89,12 @@ export class EntityAI extends EntityWrapper {
 
   /**
    * Finds a target entity for the AI to interact with.
+   * @returns {boolean} true if a target was found, false otherwise
    */
   findTarget() {
     // implement this
     console.assert(false, 'implement this');
+    return false;
   }
 
   /**
@@ -165,7 +167,9 @@ export class QuakeEntityAI extends EntityAI {
     this._enemyMetadata = {
       isVisible: false, // QuakeC: enemy_vis
       infront: false, // QuakeC: enemy_infront
+      /** @type {range} */
       range: range.RANGE_FAR, // QuakeC: enemy_range
+      /** @type {number} yaw */
       yaw: null, // QuakeC: enemy_yaw
     };
 
@@ -336,7 +340,7 @@ export class QuakeEntityAI extends EntityAI {
     }
 
     // client got invisibility or has notarget set
-    if ((client.flags & flags.FL_NOTARGET) || client.items & items.IT_INVISIBILITY) {
+    if ((client.flags & flags.FL_NOTARGET) || client.items & items.IT_INVISIBILITY) { // FIXME: invisibility flag
       return false;
     }
 
@@ -363,6 +367,7 @@ export class QuakeEntityAI extends EntityAI {
     // got one, trying to resolve the enemy chain first
     self.enemy = client;
     if (!(self.enemy instanceof PlayerEntity)) {
+      // @ts-ignore: enemy can have an enemy property
       self.enemy = self.enemy.enemy;
       if (!(self.enemy instanceof PlayerEntity)) {
         self.enemy = this._game.worldspawn;
@@ -518,8 +523,8 @@ export class QuakeEntityAI extends EntityAI {
     if (this._entity.enemy?.health <= 0) {
       this._entity.enemy = null;
       // FIXME: look all around for other targets (original FIXME from QuakeC)
-      if (this._oldenemy?.health > 0) {
-        this._entity.enemy = this._oldenemy;
+      if (this._oldEnemy?.health > 0) {
+        this._entity.enemy = this._oldEnemy;
         this._huntTarget();
       } else {
         if (this._entity.movetarget) {

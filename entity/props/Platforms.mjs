@@ -30,7 +30,7 @@ export class PlatformEntity extends BasePropEntity {
   ];
 
   _precache() {
-    const sounds = this.constructor._sounds[this.sounds || 2];
+    const sounds = /** @type {typeof PlatformEntity} */(this.constructor)._sounds[this.sounds || 2];
 
     for (const sound of sounds) {
       if (sound) {
@@ -130,7 +130,7 @@ export class PlatformEntity extends BasePropEntity {
       this.sounds = 2;
     }
 
-    [this.noise, this.noise1] = this.constructor._sounds[this.sounds];
+    [this.noise, this.noise1] = /** @type {typeof PlatformEntity} */(this.constructor)._sounds[this.sounds];
 
     this.mangle.set(this.angles);
     this.angles.clear();
@@ -163,28 +163,29 @@ export class PlatformTriggerEntity extends BaseEntity {
   static classname = 'func_plat_trigger';
 
   spawn() {
-    console.assert(this.owner instanceof PlatformEntity, 'owner must be a PlatformEntity');
+    const owner = /** @type {PlatformEntity} */(this.owner);
+    console.assert(owner instanceof PlatformEntity, 'owner must be a PlatformEntity');
 
     this.movetype = moveType.MOVETYPE_NONE;
     this.solid = solid.SOLID_TRIGGER;
 
     const tmin = new Vector(), tmax = new Vector();
 
-    tmin.set(this.owner.mins).add(new Vector(25.0, 25.0, 0.0));
-    tmax.set(this.owner.maxs).subtract(new Vector(25.0, 25.0, -8.0));
-    tmin[2] = tmax[2] - (this.owner.pos1[2] - this.owner.pos2[2] + 8.0);
+    tmin.set(owner.mins).add(new Vector(25.0, 25.0, 0.0));
+    tmax.set(owner.maxs).subtract(new Vector(25.0, 25.0, -8.0));
+    tmin[2] = tmax[2] - (owner.pos1[2] - owner.pos2[2] + 8.0);
 
-    if (this.owner.spawnflags & PlatformEntity.PLAT_LOW_TRIGGER) {
+    if (owner.spawnflags & PlatformEntity.PLAT_LOW_TRIGGER) {
       tmax[2] = tmin[2] + 8.0;
     }
 
-    if (this.owner.size[0] <= 50.0) {
-      tmin[0] = (this.owner.mins[0] + this.owner.maxs[0]) / 2;
+    if (owner.size[0] <= 50.0) {
+      tmin[0] = (owner.mins[0] + owner.maxs[0]) / 2;
       tmax[0] = tmin[0] + 1.0;
     }
 
-    if (this.owner.size[1] <= 50.0) {
-      tmin[1] = (this.owner.mins[1] + this.owner.maxs[1]) / 2;
+    if (owner.size[1] <= 50.0) {
+      tmin[1] = (owner.mins[1] + owner.maxs[1]) / 2;
       tmax[1] = tmin[1] + 1.0;
     }
 
@@ -200,8 +201,7 @@ export class PlatformTriggerEntity extends BaseEntity {
       return;
     }
 
-    /** @type {PlatformEntity} */
-    const platform = this.owner;
+    const platform = /** @type {PlatformEntity} */(this.owner);
 
     switch (platform.state) {
       case state.STATE_BOTTOM:
@@ -301,7 +301,7 @@ export class TrainEntity extends BasePropEntity { // CR: this beauty is written 
     const targetEntity = this.findFirstEntityByFieldAndValue('targetname', this.target);
     console.assert(targetEntity.target, 'func_train: no next target');
     this.target = targetEntity.target; // update to point to the next target
-    this.wait = targetEntity.wait ? targetEntity.wait : 0;
+    this.wait = targetEntity.wait ? targetEntity.wait : 0; // FIXME: is targetEntity always a train entity? if so, we can do an instanceof check instead
     this.startSound(channel.CHAN_VOICE, this.noise1);
     // move to the next target position (adjusted by our mins)
     this._sub.calcMove(targetEntity.origin.copy().subtract(this.mins), this.speed, () => this._trainWait());

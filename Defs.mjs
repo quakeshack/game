@@ -149,6 +149,43 @@ export const spawnflags = Object.freeze({
 });
 
 /**
+ * used to emit effects etc. to the client
+ * @enum {number}
+ * @readonly
+ */
+export const clientEvent = {
+  /** @deprecated */
+  BONUS_FLASH: 1,
+
+  /** @deprecated */
+  DAMAGE_FLASH: 2,
+
+  /** single stats slot updated, args: slot name (string), value (number) */
+  STATS_UPDATED: 3,
+
+  /** single stats slot initialized, args: slot name (string), value (number) */
+  STATS_INIT: 4,
+
+  /** an item has been picked up, args: itemEntity (ent), items (string[]), netname (string?), itemflags (number) */
+  ITEM_PICKED: 5,
+
+  /** weapon has been selected, args: weapon id (number) */
+  WEAPON_SELECTED: 6,
+
+  /** someone got killed, args: killing object (ent), killer (ent), victim (ent), weapon (number), items (number) */
+  OBITUARY: 7,
+
+  /** enters intermission, args: message (optional) */
+  INTERMISSION_START: 8,
+
+  /** TODO: damage received, args: damage (number), origin (vector) */
+  DAMAGE_RECEIVED: 99,
+
+  /** test event, args: some gargabe */
+  TEST_EVENT: 254,
+};
+
+/**
  * @param {number} eventId event id from clientEvent
  * @returns {string} event name for the client event bus
  */

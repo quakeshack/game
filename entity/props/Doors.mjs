@@ -345,8 +345,10 @@ export class DoorEntity extends BaseDoorEntity {
   _precache() {
     const sounds = [];
 
-    sounds.push(...this.constructor._lockSounds[this.game.worldspawn.worldtype]);
-    sounds.push(...this.constructor._sounds[this.sounds]);
+    const ctor = /** @type {typeof DoorEntity} */(this.constructor);
+
+    sounds.push(...ctor._lockSounds[this.game.worldspawn.worldtype]);
+    sounds.push(...ctor._sounds[this.sounds]);
 
     for (const sfx of new Set(sounds)) {
       if (!sfx) {
@@ -358,13 +360,15 @@ export class DoorEntity extends BaseDoorEntity {
   }
 
   spawn() {
-    const lockSounds = this.constructor._lockSounds[this.game.worldspawn.worldtype];
+    const ctor = /** @type {typeof DoorEntity} */(this.constructor);
+
+    const lockSounds = ctor._lockSounds[this.game.worldspawn.worldtype];
 
     console.assert(lockSounds instanceof Array && lockSounds.length === 2, 'exactly two lock sounds for given world type required');
 
     [this.noise3, this.noise4] = lockSounds;
 
-    const sounds = this.constructor._sounds[this.sounds];
+    const sounds = ctor._sounds[this.sounds];
 
     console.assert(sounds instanceof Array && sounds.length === 2, 'exactly two lock sounds for given world type required');
 
@@ -470,7 +474,7 @@ export class DoorEntity extends BaseDoorEntity {
     // FIXME: blink key on player's status bar (CR: push an event)
     if ((this.items & usedByEntity.items) !== this.items) {
       const requiredKeys = Object.entries(itemNames)
-        .filter(([item]) => (this.items & item) !== 0)
+        .filter(([item]) => (this.items & +item) !== 0)
         .map(([, name]) => name);
 
       usedByEntity.centerPrint(`You need the ${requiredKeys.join(', ')}`);
@@ -550,7 +554,7 @@ export class SecretDoorEntity extends BaseDoorEntity {
   }
 
   _precache() {
-    const sfxlist = this.constructor._sounds[this.sounds];
+    const sfxlist = /** @type {typeof SecretDoorEntity} */(this.constructor)._sounds[this.sounds];
 
     for (const sfx of sfxlist) {
       if (!sfx) {
@@ -562,13 +566,15 @@ export class SecretDoorEntity extends BaseDoorEntity {
   }
 
   spawn() {
-    if (this.sounds <= 0 || this.sounds >= this.constructor._sounds.length) {
+    const ctor = /** @type {typeof SecretDoorEntity} */(this.constructor);
+
+    if (this.sounds <= 0 || this.sounds >= ctor._sounds.length) {
       this.sounds = 3;
     }
 
-    console.assert(this.constructor._sounds[this.sounds] !== undefined, 'sounds must be defined in the sounds list');
+    console.assert(ctor._sounds[this.sounds] !== undefined, 'sounds must be defined in the sounds list');
 
-    [this.noise1, this.noise2, this.noise3] = this.constructor._sounds[this.sounds];
+    [this.noise1, this.noise2, this.noise3] = ctor._sounds[this.sounds];
 
     console.assert(typeof(this.noise1) === 'string', 'noise1 must be a string');
     console.assert(typeof(this.noise2) === 'string', 'noise2 must be a string');

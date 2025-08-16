@@ -105,7 +105,7 @@ export class EntityWrapper {
   }
 
   /**
-   * @returns {ServerEngineAPI} engine API
+   * @returns {typeof ServerEngineAPI} engine API
    * @protected
    */
   get _engine() {

@@ -1,8 +1,8 @@
 import Vector from '../../../shared/Vector.mjs';
 
-import { channel, flags, items, moveType, solid, tentType, worldType } from '../Defs.mjs';
+import { channel, clientEvent, flags, items, moveType, solid, tentType, worldType } from '../Defs.mjs';
 import BaseEntity from './BaseEntity.mjs';
-import { PlayerEntity, clientEvent } from './Player.mjs';
+import { PlayerEntity } from './Player.mjs';
 import { Sub } from './Subs.mjs';
 
 // respawn times

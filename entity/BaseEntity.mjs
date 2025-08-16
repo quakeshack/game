@@ -8,8 +8,14 @@ import { Serializer } from '../helper/MiscHelpers.mjs';
 /** @typedef {import('../../../engine/server/Edict.mjs').ServerEdict} ServerEdict */
 
 class ScheduledThink {
+  /**
+   * @param {number} nextThink time when to call back in seconds starting from game.time
+   * @param {Function} callback callback function
+   * @param {?string} identifier optional identifier for this think, can be used to overwrite existing scheduled thinks
+   * @param {boolean} isRequired whether this think is required to be executed, even if it’s overdue
+   */
   constructor(nextThink, callback, identifier, isRequired) {
-    this._serializer = new Serializer(this);
+    this._serializer = new Serializer(this, null);
     this._serializer.startFields();
     this.nextThink = nextThink;
     this.callback = callback;
@@ -54,7 +60,7 @@ export default class BaseEntity {
 
     // base settings per Entity
     /**
-     * @type {number} This is mostly useful for entities that need precise, smooth movement over time, like doors and platforms. It’s only set on entities with MOVETYPE_PUSHER, also the engine is using this only on SV.PushMove. This value is not the same as `game.time`. @see {@link this.game.time}
+     * @type {number} This is mostly useful for entities that need precise, smooth movement over time, like doors and platforms. It’s only set on entities with MOVETYPE_PUSHER, also the engine is using this only on SV.PushMove. This value is not the same as `game.time`. @see {@link ServerGameAPI.time}
      */
     this.ltime = 0.0; // local time for entity (NOT time)
     this.origin = new Vector();
@@ -771,8 +777,8 @@ export default class BaseEntity {
    * @returns {*} trace information
    */
   tracelineToEntity(target, ignoreMonsters) {
-    const start = this.origin.copy().add(this.view_ofs ? this.view_ofs : Vector.origin);
-    const end = target.origin.copy().add(target.view_ofs ? target.view_ofs : Vector.origin);
+    const start = this.origin.copy().add('view_ofs' in this && this.view_ofs instanceof Vector ? this.view_ofs : Vector.origin);
+    const end = target.origin.copy().add('view_ofs' in target && target.view_ofs instanceof Vector ? target.view_ofs : Vector.origin);
 
     return this.engine.Traceline(start, end, ignoreMonsters, this.edict);
   }
@@ -783,7 +789,7 @@ export default class BaseEntity {
    * @returns {*} trace information
    */
   tracelineToVector(target, ignoreMonsters) {
-    const start = this.origin.copy().add(this.view_ofs ? this.view_ofs : Vector.origin);
+    const start = this.origin.copy().add('view_ofs' in this && this.view_ofs instanceof Vector ? this.view_ofs : Vector.origin);
 
     return this.engine.Traceline(start, target, ignoreMonsters, this.edict);
   }
