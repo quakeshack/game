@@ -2,33 +2,10 @@
 /** @typedef {import('../../../shared/GameInterfaces').ClientGameInterface} ClientGameInterface  */
 /** @typedef {import('../../../shared/GameInterfaces').SerializableType} SerializableType */
 
-import { BaseClientEdictHandler } from '../../../shared/ClientEdict.mjs';
-import { clientEvent, clientEventName, colors, items } from '../Defs.mjs';
-import { FireballEntity } from '../entity/Misc.mjs';
-import { PlayerEntity } from '../entity/Player.mjs';
+import { clientEvent, clientEventName, items } from '../Defs.mjs';
 import { weaponConfig } from '../entity/Weapons.mjs';
+import { entityRegistry } from '../GameAPI.mjs';
 import HUD from './HUD.mjs';
-
-const clientEdictHandlers = {
-  [FireballEntity.classname]: class FireballEdictHandler extends BaseClientEdictHandler {
-    emit() {
-      const dl = this.engine.AllocDlight(this.clientEdict.num);
-
-      dl.color = this.engine.IndexToRGB(colors.FIRE);
-      dl.origin = this.clientEdict.origin.copy();
-      dl.radius = 285 + Math.random() * 15;
-      dl.die = this.engine.CL.time + 0.1;
-
-      this.engine.RocketTrail(this.clientEdict.originPrevious, this.clientEdict.origin, 1);
-      this.engine.RocketTrail(this.clientEdict.originPrevious, this.clientEdict.origin, 6);
-    }
-  },
-  [PlayerEntity.classname]: class PlayerEdictHandler extends BaseClientEdictHandler {
-    emit() {
-      // TODO: implement things like powerup glow effects, etc.
-    }
-  },
-};
 
 /** @augments ClientGameInterface */
 export class ClientGameAPI {
@@ -48,7 +25,7 @@ export class ClientGameAPI {
     weaponframe: 0,
   };
 
-  /** @type {Record<string,string>} server cvar values */
+  /** @type {Record<string, string>} server cvar values */
   serverInfo = {
     hostname: '',
     coop: '0',
@@ -154,7 +131,7 @@ export class ClientGameAPI {
   }
 
   static GetClientEdictHandler(classname) {
-    return clientEdictHandlers[classname] || null;
+    return entityRegistry.has(classname) ? entityRegistry.get(classname).clientEdictHandler : null;
   }
 
   /**

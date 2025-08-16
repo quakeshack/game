@@ -31,8 +31,8 @@ const featureFlags = [
   'correct-ballistic-grenades', // enables zombie gib and ogre grenade trajectory fix
 ];
 
-// put all entity classes here:
-const entityRegistry = [
+/** entity class registry */
+export const entityRegistry = new Map([
   WorldspawnEntity,
   BodyqueEntity,
   PlayerEntity,
@@ -169,11 +169,14 @@ const entityRegistry = [
   item.WeaponSuperNailgun,
   item.WeaponRocketLauncher,
   item.WeaponThunderbolt,
-];
+].map((entityClass) => [
+  /** @type {string} */(entityClass.classname),
+  /** @type {typeof BaseEntity} */(entityClass),
+]));
 
 /**
  * Cvar cache
- * @type {{[key: string]: Cvar}}
+ * @type {Record<string, Cvar|null>}
  */
 const cvars = {
   nomonster: null,
@@ -195,8 +198,6 @@ export class ServerGameAPI {
    */
   constructor(engineAPI) {
     this._serializer = new Serializer(this, engineAPI);
-
-    this._loadEntityRegistry();
 
     /** @type {ServerEngineAPI} */
     this.engine = engineAPI;
@@ -463,21 +464,8 @@ export class ServerGameAPI {
     }
   }
 
-  /**
-   * simply optimizes the entityRegister into a map for more efficient access
-   * @private
-   */
-  _loadEntityRegistry() { // TODO: make static
-    /** @private */
-    this._entityRegistry = new Map();
-
-    for (const entityClass of entityRegistry) {
-      this._entityRegistry.set(entityClass.classname, entityClass);
-    }
-  }
-
   prepareEntity(edict, classname, initialData = {}) {
-    if (!this._entityRegistry.has(classname)) {
+    if (!entityRegistry.has(classname)) {
       this.engine.ConsoleWarning(`ServerGameAPI.prepareEntity: no entity factory for ${classname}!\n`);
 
       this._missingEntityClassStats[classname] = (this._missingEntityClassStats[classname] || 0) + 1;
@@ -505,7 +493,7 @@ export class ServerGameAPI {
       }
     }
 
-    const entityClass = this._entityRegistry.get(classname);
+    const entityClass = entityRegistry.get(classname);
     const entity = edict.entity?.classname === classname ? edict.entity : new entityClass(edict, this);
 
     entity.assignInitialData(initialData);
@@ -555,7 +543,7 @@ export class ServerGameAPI {
     cvars.coop = ServerEngineAPI.RegisterCvar('coop', '0');
 
     // initialize all entity classes
-    for (const entityClass of entityRegistry) {
+    for (const entityClass of entityRegistry.values()) {
       entityClass._initStates();
     }
   }

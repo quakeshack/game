@@ -1,3 +1,4 @@
+import { BaseClientEdictHandler } from '../../../shared/ClientEdict.mjs';
 import Q from '../../../shared/Q.mjs';
 import Vector from '../../../shared/Vector.mjs';
 
@@ -32,6 +33,9 @@ class ScheduledThink {
  */
 export default class BaseEntity {
   static classname = null;
+
+  /** @type {?BaseClientEdictHandler} optional client side handler of this entity */
+  static clientEdictHandler = null;
 
   /** @returns {string} entity classname */
   get classname() {

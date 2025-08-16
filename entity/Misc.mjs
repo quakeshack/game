@@ -1,3 +1,4 @@
+import { BaseClientEdictHandler } from '../../../shared/ClientEdict.mjs';
 import Vector from '../../../shared/Vector.mjs';
 
 import { attn, channel, colors, content, damage, effect, moveType, solid, tentType } from '../Defs.mjs';
@@ -272,6 +273,20 @@ export class WhiteSmallFlameLightEntity extends TorchLightEntity {
 
 export class FireballEntity extends BaseEntity {
   static classname = 'misc_fireball_fireball';
+
+  static clientEdictHandler = class FireballEdictHandler extends BaseClientEdictHandler {
+    emit() {
+      const dl = this.engine.AllocDlight(this.clientEdict.num);
+
+      dl.color = this.engine.IndexToRGB(colors.FIRE);
+      dl.origin = this.clientEdict.origin.copy();
+      dl.radius = 285 + Math.random() * 15;
+      dl.die = this.engine.CL.time + 0.1;
+
+      this.engine.RocketTrail(this.clientEdict.originPrevious, this.clientEdict.origin, 1);
+      this.engine.RocketTrail(this.clientEdict.originPrevious, this.clientEdict.origin, 6);
+    }
+  };
 
   _declareFields() {
     this._serializer.startFields();
