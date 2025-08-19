@@ -215,7 +215,7 @@ export class ArmySoldierMonster extends WalkMonster {
     this._defineState('army_die7','death7','army_die8',function () {});
     this._defineState('army_die8','death8','army_die9',function () {});
     this._defineState('army_die9','death9','army_die10',function () {});
-    this._defineState('army_die10','death10','army_die10',function () {});
+    this._defineState('army_die10','death10',null,function () {});
 
     this._defineState('army_cdie1','deathc1','army_cdie2',function () {});
     this._defineState('army_cdie2','deathc2','army_cdie3',function () { this._ai.back(5); });
@@ -227,7 +227,7 @@ export class ArmySoldierMonster extends WalkMonster {
     this._defineState('army_cdie8','deathc8','army_cdie9',function () {});
     this._defineState('army_cdie9','deathc9','army_cdie10',function () {});
     this._defineState('army_cdie10','deathc10','army_cdie11',function () {});
-    this._defineState('army_cdie11','deathc11','army_cdie11',function () {});
+    this._defineState('army_cdie11','deathc11',null,function () {});
   }
 
   thinkStand() {

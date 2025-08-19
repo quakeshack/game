@@ -153,7 +153,7 @@ export default class DemonMonster extends WalkMonster {
     this._defineState('demon1_die6', 'death6', 'demon1_die7', function() { this.solid = solid.SOLID_NOT; });
     this._defineState('demon1_die7', 'death7', 'demon1_die8', function() {});
     this._defineState('demon1_die8', 'death8', 'demon1_die9', function() {});
-    this._defineState('demon1_die9', 'death9', 'demon1_die9', function() {});
+    this._defineState('demon1_die9', 'death9', null, function() {});
   }
 
   thinkStand() { this._runState('demon1_stand1'); }

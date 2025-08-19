@@ -213,7 +213,8 @@ export default class OgreMonsterEntity extends WalkMonster {
     this._defineState('ogre_die11', 'death11', 'ogre_die12', function() {});
     this._defineState('ogre_die12', 'death12', 'ogre_die13', function() {});
     this._defineState('ogre_die13', 'death13', 'ogre_die14', function() {});
-    this._defineState('ogre_die14', 'death14', 'ogre_die14', function() {});
+    this._defineState('ogre_die14', 'death14', null, function() {});
+
     this._defineState('ogre_bdie1', 'bdeath1', 'ogre_bdie2', function() {});
     this._defineState('ogre_bdie2', 'bdeath2', 'ogre_bdie3', function() { this._ai.forward(5); });
     this._defineState('ogre_bdie3', 'bdeath3', 'ogre_bdie4', function() { this.solid = solid.SOLID_NOT; this._dropBackpack(); });
@@ -223,7 +224,7 @@ export default class OgreMonsterEntity extends WalkMonster {
     this._defineState('ogre_bdie7', 'bdeath7', 'ogre_bdie8', function() { this._ai.forward(25); });
     this._defineState('ogre_bdie8', 'bdeath8', 'ogre_bdie9', function() {});
     this._defineState('ogre_bdie9', 'bdeath9', 'ogre_bdie10', function() {});
-    this._defineState('ogre_bdie10', 'bdeath10', 'ogre_bdie10', function() {});
+    this._defineState('ogre_bdie10', 'bdeath10', null, function() {});
   }
 
   _precache() {

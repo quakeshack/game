@@ -331,7 +331,7 @@ export class QuakeEntityAI extends EntityAI {
     if (this._gameAI._sightEntityTime >= this._game.time - 0.1 && !(self.spawnflags & 3)) {
       client = this._gameAI._sightEntity;
 
-      if (client.enemy.equals(self)) {
+      if (client instanceof BaseMonster && client.enemy.equals(self)) {
         return false; // CR: QuakeC introduces undefined behavior here by invoking an empty return, I hope false is okay for now
       }
     } else {

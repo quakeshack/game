@@ -156,7 +156,7 @@ export default class DogMonsterEntity extends WalkMonster {
     this._defineState('dog_die6', 'death6', 'dog_die7', function () { });
     this._defineState('dog_die7', 'death7', 'dog_die8', function () { });
     this._defineState('dog_die8', 'death8', 'dog_die9', function () { });
-    this._defineState('dog_die9', 'death9', 'dog_die9', function () { });
+    this._defineState('dog_die9', 'death9', null, function () { });
 
     this._defineState('dog_dieb1', 'deathb1', 'dog_dieb2', function () { });
     this._defineState('dog_dieb2', 'deathb2', 'dog_dieb3', function () { });
@@ -166,7 +166,7 @@ export default class DogMonsterEntity extends WalkMonster {
     this._defineState('dog_dieb6', 'deathb6', 'dog_dieb7', function () { });
     this._defineState('dog_dieb7', 'deathb7', 'dog_dieb8', function () { });
     this._defineState('dog_dieb8', 'deathb8', 'dog_dieb9', function () { });
-    this._defineState('dog_dieb9', 'deathb9', 'dog_dieb9', function () { });
+    this._defineState('dog_dieb9', 'deathb9', null, function () { });
   }
 
   touch(otherEntity) {

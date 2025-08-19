@@ -104,7 +104,7 @@ export default class ShalrathMonsterEntity extends WalkMonster {
     this._defineState('shal_death4', 'death4', 'shal_death5', function () {});
     this._defineState('shal_death5', 'death5', 'shal_death6', function () {});
     this._defineState('shal_death6', 'death6', 'shal_death7', function () {});
-    this._defineState('shal_death7', 'death7', 'shal_death7', function () {});
+    this._defineState('shal_death7', 'death7', null, function () {});
   }
 
   _precache() {

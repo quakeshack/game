@@ -437,7 +437,7 @@ export class HellKnightMonster extends KnightMonster {
     this._defineState('hknight_die9', 'death9', 'hknight_die10', function () { this._ai.forward(11); });
     this._defineState('hknight_die10', 'death10', 'hknight_die11', function () { });
     this._defineState('hknight_die11', 'death11', 'hknight_die12', function () { });
-    this._defineState('hknight_die12', 'death12', 'hknight_die12', function () { });
+    this._defineState('hknight_die12', 'death12', null, function () { });
 
     this._defineState('hknight_dieb1', 'deathb1', 'hknight_dieb2', function () { });
     this._defineState('hknight_dieb2', 'deathb2', 'hknight_dieb3', function () { });
@@ -447,7 +447,7 @@ export class HellKnightMonster extends KnightMonster {
     this._defineState('hknight_dieb6', 'deathb6', 'hknight_dieb7', function () { });
     this._defineState('hknight_dieb7', 'deathb7', 'hknight_dieb8', function () { });
     this._defineState('hknight_dieb8', 'deathb8', 'hknight_dieb9', function () { });
-    this._defineState('hknight_dieb9', 'deathb9', 'hknight_dieb9', function () { });
+    this._defineState('hknight_dieb9', 'deathb9', null, function () { });
 
     // Magic attack A states
     this._defineState('hknight_magica1', 'magica1', 'hknight_magica2', function () { this._ai.face(); });
