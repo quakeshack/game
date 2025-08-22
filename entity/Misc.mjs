@@ -370,9 +370,12 @@ export class DebugMarkerEntity extends BaseEntity {
 
     if (this.owner instanceof PlayerEntity) {
       this.owner.centerPrint('marker set at ' + this.origin);
+
+      this._scheduleThink(this.game.time + 5.0, () => this.remove());
+      return;
     }
 
-    this._scheduleThink(this.game.time + 5.0, () => this.remove());
+    this.makeStatic();
   }
 
   /**

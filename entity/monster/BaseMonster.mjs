@@ -145,6 +145,15 @@ export default class BaseMonster extends BaseEntity {
   }
 
   /**
+   * signalizes a specific entity to hunt.
+   * @param {BaseEntity} entity entity to hunt
+   */
+  hunt(entity) {
+    this.pausetime = 0; // reset pause time
+    this._ai.foundTarget(entity);
+  }
+
+  /**
    * Called by the AI code.
    * @returns {*} desired attack state
    */

@@ -49,6 +49,17 @@ export function CopyToBodyQue(game, entity) {
   game.bodyque_head = /** @type {BodyqueEntity} */(game.bodyque_head.owner);
 };
 
+/**
+ * QUAKED worldspawn (0 0 0) ?
+ * Only used for the world entity.
+ * Set message to the level name.
+ * Set sounds to the cd track to play.
+ *
+ * World Types:
+ * 0: medieval
+ * 1: metal
+ * 2: base
+ */
 export class WorldspawnEntity extends BaseEntity {
   static classname = 'worldspawn';
 

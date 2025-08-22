@@ -5,7 +5,7 @@ import { PlayerEntity, TelefragTriggerEntity } from './Player.mjs';
 import { Sub } from './Subs.mjs';
 import { DamageHandler } from './Weapons.mjs';
 
-class BaseTriggerEntity extends BaseEntity {
+export class BaseTriggerEntity extends BaseEntity {
   /** @protected */
   static _sounds = [
     null,
