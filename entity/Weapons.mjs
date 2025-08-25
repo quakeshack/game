@@ -343,6 +343,7 @@ export class DamageHandler extends EntityWrapper {
     // doors, triggers, etc.
     if (this._entity.movetype === moveType.MOVETYPE_PUSH || this._entity.movetype === moveType.MOVETYPE_NONE) {
       this._entity.takedamage = damage.DAMAGE_NO; // CR: not Quake vanilla behavior here
+      this._entity.resetThinking();
       this._entity.thinkDie(attackerEntity);
       return;
     }
@@ -361,6 +362,7 @@ export class DamageHandler extends EntityWrapper {
     this._entity.takedamage = damage.DAMAGE_NO;
     // FIXME: this._entity.touch = SUB_Null; -- we need to solve this differently?
 
+    this._entity.resetThinking();
     this._entity.thinkDie(attackerEntity);
   }
 

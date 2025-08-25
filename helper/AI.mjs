@@ -160,7 +160,7 @@ export class QuakeEntityAI extends EntityAI {
   constructor(entity) {
     super(entity);
 
-    this._serializer = new Serializer(this);
+    this._serializer = new Serializer(this, entity.engine);
 
     this._serializer.startFields();
 
@@ -221,6 +221,17 @@ export class QuakeEntityAI extends EntityAI {
    */
   get enemyIsVisible() {
     return this._enemyMetadata.isVisible;
+  }
+
+  _stillAlive() {
+    if (this._entity.health > 0) {
+      return true;
+    }
+
+    console.warn(`${this._entity} is dead yet asked to do some alive activity, force-stopping activity`, this._entity);
+    this._entity.resetThinking();
+
+    return false;
   }
 
   think() {
@@ -318,6 +329,10 @@ export class QuakeEntityAI extends EntityAI {
   }
 
   findTarget() { // QuakeC: ai.qc/FindTarget
+    if (!this._stillAlive()) {
+      return false;
+    }
+
     // if the first spawnflag bit is set, the monster will only wake up on
     // really seeing the player, not another monster getting angry
 
@@ -395,6 +410,14 @@ export class QuakeEntityAI extends EntityAI {
    * @param {BaseEntity} targetEntity enemy
    */
   foundTarget(targetEntity) { // QuakeC: ai.qc/FoundTarget
+    if (!this._stillAlive()) {
+      return;
+    }
+
+    if (this._entity.enemy) {
+      this._oldEnemy = this._entity.enemy;
+    }
+
     this._entity.enemy = targetEntity;
 
     // console.log('NPC found target', this._entity, targetEntity);
@@ -412,7 +435,7 @@ export class QuakeEntityAI extends EntityAI {
   }
 
   _huntTarget() { // QuakeC: ai.qc/HuntTarget
-    if (this._entity.health <= 0) {
+    if (!this._stillAlive()) {
       return;
     }
 
@@ -471,6 +494,10 @@ export class QuakeEntityAI extends EntityAI {
    * The monster is staying in one place for a while, with slight angle turns
    */
   stand() { // QuakeC: ai.qc/ai_stand
+    if (!this._stillAlive()) {
+      return;
+    }
+
     if (this.findTarget()) {
       return;
     }
@@ -493,6 +520,10 @@ export class QuakeEntityAI extends EntityAI {
   }
 
   runMelee(){ // QuakeC: ai.qc/ai_run_melee
+    if (!this._stillAlive()) {
+      return;
+    }
+
     this._changeYaw();
 
     if (this._isFacingIdeal()) {
@@ -502,6 +533,10 @@ export class QuakeEntityAI extends EntityAI {
   }
 
   runMissile() { // QuakeC: ai.qc/ai_run_missile
+    if (!this._stillAlive()) {
+      return;
+    }
+
     this._changeYaw();
 
     if (this._isFacingIdeal()) {
@@ -523,6 +558,10 @@ export class QuakeEntityAI extends EntityAI {
   }
 
   run(dist) { // QuakeC: ai.qc/ai_run
+    if (!this._stillAlive()) {
+      return;
+    }
+
     // console.log('AI run', this._entity.toString(), dist);
 
     this._moveDistance = dist;
@@ -532,8 +571,7 @@ export class QuakeEntityAI extends EntityAI {
       this._entity.enemy = null;
       // FIXME: look all around for other targets (original FIXME from QuakeC)
       if (this._oldEnemy?.health > 0) {
-        this._entity.enemy = this._oldEnemy;
-        this._huntTarget();
+        this.foundTarget(this._oldEnemy);
       } else {
         if (this._entity.movetarget) {
           this._entity.thinkWalk();
@@ -598,6 +636,10 @@ export class QuakeEntityAI extends EntityAI {
   }
 
   _checkAnyAttack(isEnemyVisible) { // QuakeC: ai.qc/CheckAnyAttack
+    if (!this._stillAlive()) {
+      return null;
+    }
+
     if (!isEnemyVisible) {
       return null;
     }
@@ -633,6 +675,10 @@ export class QuakeEntityAI extends EntityAI {
   }
 
   melee() { // QuakeC: fight.qc/ai_melee
+    if (!this._stillAlive()) {
+      return;
+    }
+
     if (!this._entity.enemy) {
       return; // removed before stroke
     }
@@ -648,6 +694,10 @@ export class QuakeEntityAI extends EntityAI {
   }
 
   meleeSide() { // QuakeC: fight.qc/ai_melee_side
+    if (!this._stillAlive()) {
+      return;
+    }
+
     if (!this._entity.enemy) {
       return; // removed before stroke
     }

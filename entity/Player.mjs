@@ -2070,6 +2070,8 @@ export class PlayerEntity extends BaseEntity {
       // IDEA: we could also check for monsters here and set the weapon accordingly
       this.engine.BroadcastClientEvent(true, clientEvent.OBITUARY, this.edictId, actualAttacker.edictId, 0, 0);
     }
+
+    this.engine.eventBus.publish('game.player.died', actualAttacker);
   }
 
   /**
