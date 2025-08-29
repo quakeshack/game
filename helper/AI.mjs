@@ -171,6 +171,9 @@ export class QuakeEntityAI extends EntityAI {
     /** @private */
     this._attackState = ATTACK_STATE.AS_NONE;
 
+    /** @type {?Vector[]} waypoints to navigate along to the enemy @private */
+    this._path = null;
+
     /** @private */
     this._enemyMetadata = {
       isVisible: false, // QuakeC: enemy_vis
@@ -179,6 +182,9 @@ export class QuakeEntityAI extends EntityAI {
       range: range.RANGE_FAR, // QuakeC: enemy_range
       /** @type {number} yaw */
       yaw: null, // QuakeC: enemy_yaw
+      nextPathUpdateTime: 0.0,
+      nextKnownOriginTime: 0.0,
+      lastKnownOrigin: new Vector(),
     };
 
     Serializer.makeSerializable(this._enemyMetadata, this._engine);
@@ -207,6 +213,10 @@ export class QuakeEntityAI extends EntityAI {
     this._enemyMetadata.infront = false;
     this._enemyMetadata.range = range.RANGE_FAR;
     this._enemyMetadata.yaw = null;
+    this._enemyMetadata.nextKnownOriginTime = 0.0;
+    this._enemyMetadata.nextPathUpdateTime = 0.0;
+    this._enemyMetadata.lastKnownOrigin.clear();
+    this._path.length = 0;
   }
 
   /**
@@ -234,10 +244,50 @@ export class QuakeEntityAI extends EntityAI {
     return false;
   }
 
+  thinkNavigation() {
+    if (!this._entity.enemy) {
+      return;
+    }
+
+    if (this._game.time > this._enemyMetadata.nextKnownOriginTime && this._enemyMetadata.isVisible) {
+      this._enemyMetadata.nextKnownOriginTime = this._game.time + 10.0;
+      this._enemyMetadata.nextPathUpdateTime = 0.0; // force path update
+      this._enemyMetadata.lastKnownOrigin.set(this._entity.enemy.origin);
+      console.info(`${this._entity} updated sight of enemy ${this._entity.enemy}, will search again in 10 seconds`);
+    }
+
+    if (this._game.time > this._enemyMetadata.nextPathUpdateTime && !this._enemyMetadata.lastKnownOrigin.isOrigin()) {
+      const newPath = this._engine.Navigate(this._entity.origin, this._enemyMetadata.lastKnownOrigin);
+
+      if (newPath !== null) {
+        this._path = newPath;
+        console.info(`${this._entity} updated path to enemy ${this._entity.enemy} with ${this._path.length} waypoints`);
+      } else {
+        console.warn(`${this._entity} could not find path to enemy ${this._entity.enemy}`);
+      }
+
+      this._enemyMetadata.nextPathUpdateTime = this._game.time + 10.0;
+    }
+
+    if (this._path?.length > 0) {
+      if (this._entity.origin.distanceTo(this._path[0]) < 32.0) {
+        const waypoint = this._path.shift(); // reached the waypoint
+
+        console.debug(`${this._entity} reached waypoint ${waypoint}, ${this._path.length} waypoints left`);
+      }
+
+      // if (this._path.length > 0) {
+      //   this._enemyMetadata.yaw = this._entity.ideal_yaw = this._path[0].copy().subtract(this._entity.origin).toYaw();
+      // }
+    }
+  }
+
   think() {
     if (!this._initialized) {
       this._initialize();
     }
+
+    this.thinkNavigation();
   }
 
   _initialize() {
@@ -346,7 +396,7 @@ export class QuakeEntityAI extends EntityAI {
     if (this._gameAI._sightEntityTime >= this._game.time - 0.1 && !(self.spawnflags & 3)) {
       client = this._gameAI._sightEntity;
 
-      if (client instanceof BaseMonster && client.enemy.equals(self)) {
+      if (client instanceof BaseMonster && self.equals(client.enemy)) {
         return false; // CR: QuakeC introduces undefined behavior here by invoking an empty return, I hope false is okay for now
       }
     } else {
@@ -420,7 +470,16 @@ export class QuakeEntityAI extends EntityAI {
 
     this._entity.enemy = targetEntity;
 
-    // console.log('NPC found target', this._entity, targetEntity);
+    // a new enemy? compute a new path
+    if (!this._entity.enemy.equals(this._oldEnemy)) {
+      console.info(`${this._entity} acquired new enemy ${this._entity.enemy}, force computing a new path`);
+      this._enemyMetadata.nextPathUpdateTime = 0.0; // force path update
+    }
+
+    this._enemyMetadata.lastKnownOrigin.set(this._entity.enemy.origin);
+    this._enemyMetadata.nextKnownOriginTime = this._game.time + 10.0;
+
+    console.info(`${this._entity} updated last seen and origin of ${this._entity.enemy}`);
 
     if (this._entity.enemy instanceof PlayerEntity) {
       // let other monsters see this monster for a while
@@ -442,7 +501,7 @@ export class QuakeEntityAI extends EntityAI {
     console.assert(this._entity.enemy, 'Missing enemy');
 
     this._entity.goalentity = this._entity.enemy;
-    this._entity.ideal_yaw = this._entity.enemy.origin.copy().subtract(this._entity.origin).toYaw();
+    // this._entity.ideal_yaw = this._entity.enemy.origin.copy().subtract(this._entity.origin).toYaw();
 
     // NOTE: keep it at 50 ms otherwise there will be a racy condition with the animation thinker causing dead monsters attacking the player
     this._entity._scheduleThink(this._game.time + 0.05, this._entity.thinkRun);
@@ -526,7 +585,7 @@ export class QuakeEntityAI extends EntityAI {
 
     this._changeYaw();
 
-    if (this._isFacingIdeal()) {
+    if (this._isFacingIdeal()) { // TODO: consider distance
       this._entity.thinkMelee();
       this._attackState = ATTACK_STATE.AS_STRAIGHT;
     }
@@ -602,7 +661,11 @@ export class QuakeEntityAI extends EntityAI {
       this._enemyMetadata.isVisible = isEnemyVisible;
       this._enemyMetadata.infront = this._isInFront(this._entity.enemy);
       this._enemyMetadata.range = this._determineRange(this._entity.enemy);
-      this._enemyMetadata.yaw = this._entity.enemy.origin.copy().subtract(this._entity.origin).toYaw();
+      if (isEnemyVisible) {
+        this._enemyMetadata.yaw = this._entity.enemy.origin.copy().subtract(this._entity.origin).toYaw();
+      } else if (this._path?.length > 0) {
+        this._enemyMetadata.yaw = this._path[0].copy().subtract(this._entity.origin).toYaw();
+      }
     } else {
       this._enemyMetadata.isVisible = false;
     }
@@ -631,7 +694,7 @@ export class QuakeEntityAI extends EntityAI {
 
     // head straight in
     if (this._entity.goalentity) {
-      this._entity.moveToGoal(dist);
+      this._entity.moveToGoal(dist, this._path?.length > 0 ? this._path[0] : null);
     }
   }
 

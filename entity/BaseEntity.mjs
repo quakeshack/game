@@ -814,10 +814,11 @@ export default class BaseEntity {
   /**
    * Move this entity toward its goal. Used for monsters.
    * @param {number} distance move distance
+   * @param {?Vector} target optional target position, if null, use this.goalentity.origin
    * @returns {boolean} true, when successful
    */
-  moveToGoal(distance) {
-    return this.edict.moveToGoal(distance);
+  moveToGoal(distance, target = null) {
+    return this.edict.moveToGoal(distance, target);
   }
 
   serialize() {

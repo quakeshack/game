@@ -75,6 +75,11 @@ export default class BaseMonster extends BaseEntity {
     return new EntityAI(this);
   }
 
+  think() {
+    this._ai.think();
+    super.think();
+  }
+
   /**
    * Turns this monster into gibs.
    * @protected
