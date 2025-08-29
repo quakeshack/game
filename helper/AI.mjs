@@ -21,6 +21,7 @@ export class GameAI {
     /** @type {?BaseEntity} */
     this._sightEntity = null;
     this._sightEntityTime = 0.0;
+    this._sightEntityLastOrigin = new Vector();
   }
 };
 
@@ -215,7 +216,6 @@ export class QuakeEntityAI extends EntityAI {
     this._enemyMetadata.yaw = null;
     this._enemyMetadata.nextKnownOriginTime = 0.0;
     this._enemyMetadata.nextPathUpdateTime = 0.0;
-    this._enemyMetadata.lastKnownOrigin.clear();
     this._path.length = 0;
   }
 
@@ -252,12 +252,12 @@ export class QuakeEntityAI extends EntityAI {
     if (this._game.time > this._enemyMetadata.nextKnownOriginTime && this._enemyMetadata.isVisible) {
       this._enemyMetadata.nextKnownOriginTime = this._game.time + 10.0;
       this._enemyMetadata.nextPathUpdateTime = 0.0; // force path update
-      this._enemyMetadata.lastKnownOrigin.set(this._entity.enemy.origin);
+      this._gameAI._sightEntityLastOrigin.set(this._entity.enemy.origin);
       console.info(`${this._entity} updated sight of enemy ${this._entity.enemy}, will search again in 10 seconds`);
     }
 
-    if (this._game.time > this._enemyMetadata.nextPathUpdateTime && !this._enemyMetadata.lastKnownOrigin.isOrigin()) {
-      const newPath = this._engine.Navigate(this._entity.origin, this._enemyMetadata.lastKnownOrigin);
+    if (this._game.time > this._enemyMetadata.nextPathUpdateTime && !this._gameAI._sightEntityLastOrigin.isOrigin()) {
+      const newPath = this._engine.Navigate(this._entity.origin, this._gameAI._sightEntityLastOrigin);
 
       if (newPath !== null) {
         this._path = newPath;
@@ -476,7 +476,7 @@ export class QuakeEntityAI extends EntityAI {
       this._enemyMetadata.nextPathUpdateTime = 0.0; // force path update
     }
 
-    this._enemyMetadata.lastKnownOrigin.set(this._entity.enemy.origin);
+    this._gameAI._sightEntityLastOrigin.set(this._entity.enemy.origin);
     this._enemyMetadata.nextKnownOriginTime = this._game.time + 10.0;
 
     console.info(`${this._entity} updated last seen and origin of ${this._entity.enemy}`);
