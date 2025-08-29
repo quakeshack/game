@@ -570,19 +570,21 @@ export class HellKnightMonster extends KnightMonster {
   }
 
   attackShot(offsetY) { // QuakeC: hknight.qc/hknight_shot
-    const offang = this.enemy.origin.copy().subtract(this.origin).toAngles();
+    if (this.enemy) {
+      const offang = this.enemy.origin.copy().subtract(this.origin).toAngles();
 
-    offang[1] += offsetY * 6; // offsetY is in -3..3 range
+      offang[1] += offsetY * 6; // offsetY is in -3..3 range
 
-    const { forward } = offang.angleVectors();
+      const { forward } = offang.angleVectors();
 
-    // const org = this.origin.copy().add(this.mins).add(this.size.copy().multiply(0.5)).add(forward.multiply(20.0));
+      // const org = this.origin.copy().add(this.mins).add(this.size.copy().multiply(0.5)).add(forward.multiply(20.0));
 
-    forward.normalize();
+      forward.normalize();
 
-    forward[2] = -forward[2] + (Math.random() - 0.5) * 0.1;
+      forward[2] = -forward[2] + (Math.random() - 0.5) * 0.1;
 
-    this.movedir.set(forward);
+      this.movedir.set(forward);
+    }
 
     this.engine.SpawnEntity(KnightSpike.classname, {
       speed: 300,
@@ -619,6 +621,10 @@ export class HellKnightMonster extends KnightMonster {
     }
 
     if (this.game.time < this.attack_finished) {
+      return;
+    }
+
+    if (!this.enemy) {
       return;
     }
 

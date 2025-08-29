@@ -347,7 +347,7 @@ export class QuakeEntityAI extends EntityAI {
    */
   _determineRange(target) { // QuakeC: ai.qc/range
     const spot1 = this._entity.origin.copy().add(this._entity.view_ofs);
-    const spot2 = target.origin.copy().add(target.view_ofs);
+    const spot2 = target.origin.copy().add('view_ofs' in target ? /** @type {Vector} */(target.view_ofs) : new Vector());
 
     const r = spot1.distanceTo(spot2);
 

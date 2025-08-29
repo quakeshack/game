@@ -668,7 +668,7 @@ export default class BaseEntity {
    */
   free() {
     for (const prop in this) {
-      this[prop] = undefined;
+      this[prop] = null;
     }
   }
 
@@ -683,6 +683,14 @@ export default class BaseEntity {
    * When overriding, make sure to call super.think(), otherwise you will loose the scheduled thinking infrastructure.
    */
   think() {
+    // make sure that we are getting rid of any properties pointing to freed entities (see BaseEntity.free())
+    for (const key of Object.keys(this)) {
+      if (this[key] instanceof BaseEntity && !this[key].edict_wf) {
+        this[key] = null;
+      }
+    }
+
+    // now run any scheduled thinks
     this._runScheduledThinks();
   }
 
