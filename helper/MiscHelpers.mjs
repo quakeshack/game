@@ -78,9 +78,10 @@ export class Flag {
   }
 };
 
+/** @template {import('../entity/BaseEntity.mjs').default} T */
 export class EntityWrapper {
   /**
-   * @param {import('../entity/BaseEntity.mjs').default} entity wrapped entity
+   * @param {T} entity wrapped entity
    */
   constructor(entity) {
     /** @private */
@@ -89,7 +90,7 @@ export class EntityWrapper {
   }
 
   /**
-   * @returns {import('../entity/BaseEntity.mjs').default} entity
+   * @returns {T} entity
    * @protected
    */
   get _entity() {

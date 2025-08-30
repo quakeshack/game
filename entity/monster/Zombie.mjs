@@ -470,6 +470,14 @@ export default class ZombieMonster extends WalkMonster {
     if (Math.random() < 0.1) {return;}
     this.startSound(channel.CHAN_VOICE, 'zombie/z_idle.wav', 1.0, attn.ATTN_IDLE);
   }
+
+  think() {
+    // HACK: by-pass the thinker invoked by BaseMonster. otherwise AI will overwork
+    if ((this.spawnflags & ZombieMonster.SPAWN_CRUCIFIED) !== 0) {
+      BaseEntity.prototype.think.call(this);
+      return;
+    }
+  }
 };
 
 export class ZombieGibGrenade extends BaseEntity {

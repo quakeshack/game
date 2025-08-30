@@ -27,6 +27,8 @@ export class GameAI {
 
 /**
  * EntityAI interface.
+ * @template {BaseMonster} T
+ * @augments {EntityWrapper<T>}
  */
 export class EntityAI extends EntityWrapper {
   /** @returns {GameAI} global AI state @protected */
@@ -34,9 +36,9 @@ export class EntityAI extends EntityWrapper {
     return this._game.gameAI;
   }
 
-  /** @returns {BaseMonster} augmented monster @protected */
+  /** @returns {T} augmented monster @protected */
   get _entity() {
-    return /** @type {BaseMonster}*/(super._entity);
+    return /** @type {T}*/(super._entity);
   }
 
   get enemyRange() {
@@ -153,10 +155,12 @@ export const ATTACK_STATE = {
 
 /**
  * entity local AI state based on original Quake behavior
+ * @template {BaseMonster} T
+ * @augments {EntityAI<T>}
  */
 export class QuakeEntityAI extends EntityAI {
   /**
-   * @param {BaseMonster} entity NPC
+   * @param {T} entity NPC
    */
   constructor(entity) {
     super(entity);
@@ -187,6 +191,9 @@ export class QuakeEntityAI extends EntityAI {
       nextKnownOriginTime: 0.0,
       lastKnownOrigin: new Vector(),
     };
+
+    /** @type {?Vector} we store the last known origin, if we are going off track, this indicates a teleport */
+    this._oldKnownOrigin = null;
 
     Serializer.makeSerializable(this._enemyMetadata, this._engine);
 
@@ -247,6 +254,16 @@ export class QuakeEntityAI extends EntityAI {
   thinkNavigation() {
     if (!this._entity.enemy) {
       return;
+    }
+
+    if (this._oldKnownOrigin !== null) {
+      if (this._entity.origin.distanceTo(this._oldKnownOrigin) > 64.0) {
+        this._enemyMetadata.nextPathUpdateTime = 0.0; // force path update, we were teleported or got a huge push from somewhere
+      }
+
+      this._oldKnownOrigin.set(this._entity.origin);
+    } else {
+      this._oldKnownOrigin = this._entity.origin.copy();
     }
 
     if (this._game.time > this._enemyMetadata.nextKnownOriginTime && this._enemyMetadata.isVisible) {
