@@ -223,7 +223,7 @@ export class QuakeEntityAI extends EntityAI {
     this._enemyMetadata.yaw = null;
     this._enemyMetadata.nextKnownOriginTime = 0.0;
     this._enemyMetadata.nextPathUpdateTime = 0.0;
-    this._path.length = 0;
+    this._path = null;
   }
 
   /**
@@ -283,7 +283,7 @@ export class QuakeEntityAI extends EntityAI {
         console.warn(`${this._entity} could not find path to enemy ${this._entity.enemy}`);
       }
 
-      this._enemyMetadata.nextPathUpdateTime = this._game.time + 10.0;
+      this._enemyMetadata.nextPathUpdateTime = this._game.time + 10.0 + Math.random() * 5.0;
     }
 
     if (this._path?.length > 0) {
