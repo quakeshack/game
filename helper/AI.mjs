@@ -287,7 +287,10 @@ export class QuakeEntityAI extends EntityAI {
     }
 
     if (this._path?.length > 0) {
-      if (this._entity.origin.distanceTo(this._path[0]) < 32.0) {
+      // do a 2D check if we reached the waypoint
+      const a = this._entity.origin.copy(); a[2] = 0.0;
+      const b = this._path[0].copy(); b[2] = 0.0;
+      if (a.distanceTo(b) < 16.0) { // assume half a hull width
         const waypoint = this._path.shift(); // reached the waypoint
 
         console.debug(`${this._entity} reached waypoint ${waypoint}, ${this._path.length} waypoints left`);
