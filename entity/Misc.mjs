@@ -81,8 +81,7 @@ export class BaseLightEntity extends BaseEntity {
     if (this.spawnflags & BaseLightEntity.START_OFF) {
       this.engine.Lightstyle(this.style, 'm');
       this.spawnflags = this.spawnflags - BaseLightEntity.START_OFF;
-    }
-    else {
+    } else {
       this.engine.Lightstyle(this.style, 'a');
       this.spawnflags = this.spawnflags + BaseLightEntity.START_OFF;
     }
@@ -116,6 +115,14 @@ export class LightEntity extends BaseLightEntity {
     }
 
     this._defaultStyle();
+  }
+
+  on() {
+    this.engine.Lightstyle(this.style, 'm');
+  }
+
+  off() {
+    this.engine.Lightstyle(this.style, 'a');
   }
 }
 
