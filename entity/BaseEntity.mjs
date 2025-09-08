@@ -2,7 +2,7 @@ import { BaseClientEdictHandler } from '../../../shared/ClientEdict.mjs';
 import Q from '../../../shared/Q.mjs';
 import Vector from '../../../shared/Vector.mjs';
 
-import { damage, dead, flags, moveType, solid, content, attn, channel } from '../Defs.mjs';
+import { damage, dead, flags, moveType, solid, content, attn } from '../Defs.mjs';
 import { ServerGameAPI } from '../GameAPI.mjs';
 import { Serializer } from '../helper/MiscHelpers.mjs';
 

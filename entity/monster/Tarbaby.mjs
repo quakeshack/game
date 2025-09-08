@@ -1,6 +1,6 @@
 import Vector from '../../../../shared/Vector.mjs';
 
-import { channel, damage, moveType } from '../../Defs.mjs';
+import { channel, damage, flags, moveType } from '../../Defs.mjs';
 import { QuakeEntityAI } from '../../helper/AI.mjs';
 import { DamageInflictor } from '../Weapons.mjs';
 import { WalkMonster } from './BaseMonster.mjs';
@@ -46,8 +46,12 @@ export default class TarbabyMonsterEntity extends WalkMonster {
     super._declareFields();
 
     this._damageInflictor = new DamageInflictor(this);
+
+    this._serializer.startFields();
     this.cnt = 0; // Counter for fly states
+    /** @type {'normal' | 'jumping'} */
     this._touchState = 'normal'; // 'normal' or 'jumping'
+    this._serializer.endFields();
   }
 
   _newEntityAI() {
@@ -153,8 +157,8 @@ export default class TarbabyMonsterEntity extends WalkMonster {
     this.velocity[2] = 200 + Math.random() * 150;
 
     // Remove onground flag
-    if (this.flags & this.engine.FL_ONGROUND) {
-      this.flags = this.flags & ~this.engine.FL_ONGROUND;
+    if (this.flags & flags.FL_ONGROUND) {
+      this.flags = this.flags & ~flags.FL_ONGROUND;
     }
 
     this.cnt = 0;
@@ -172,8 +176,8 @@ export default class TarbabyMonsterEntity extends WalkMonster {
       this.startSound(channel.CHAN_WEAPON, 'blob/land1.wav');
     }
 
-    if (!this.checkbottom(this)) {
-      if (this.flags & this.engine.FL_ONGROUND) {
+    if (!this.isOnTheFloor()) {
+      if (this.flags & flags.FL_ONGROUND) {
         // Jump randomly to not get hung up
         this._touchState = 'normal';
         this.movetype = moveType.MOVETYPE_STEP;

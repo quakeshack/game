@@ -1,6 +1,6 @@
 import Vector from '../../../../shared/Vector.mjs';
 
-import { damage, moveType, solid, range, colors } from '../../Defs.mjs';
+import { damage, moveType, solid, range, colors, flags } from '../../Defs.mjs';
 import { EntityAI, ATTACK_STATE } from '../../helper/AI.mjs';
 import BaseEntity from '../BaseEntity.mjs';
 import { BackpackEntity } from '../Items.mjs';
@@ -9,11 +9,16 @@ import { Sub } from '../Subs.mjs';
 import { DamageHandler } from '../Weapons.mjs';
 
 export default class BaseMonster extends BaseEntity {
-
+  /** @type {number} health points */
   static _health = 0;
+
+  /** @type {Vector[]} corresponding hull sizes */
   static _size = [null, null];
 
+  /** @type {string} model */
   static _modelDefault = null;
+
+  /** @type {string} head model for gibbing */
   static _modelHead = 'progs/gib1.mdl';
 
   _declareFields() {
@@ -23,7 +28,7 @@ export default class BaseMonster extends BaseEntity {
 
     this.pausetime = 0;
     this.pain_finished = 0;
-    /** @type {?BaseEntity} */
+    /** @type {?BaseEntity} usually a path_corner entity */
     this.movetarget = null; // entity
     this.health = 0;
 
@@ -31,6 +36,7 @@ export default class BaseMonster extends BaseEntity {
     this.yaw_speed = 0.0;
     this.view_ofs = new Vector();
 
+    /** @type {colors} blood color to use when hit by a hit scanner */
     this.bloodcolor = colors.BLOOD;
 
     /** @type {?BaseEntity} acquired target */
@@ -419,6 +425,7 @@ export class FlyMonster extends BaseMonster {
 
   spawn() {
     super.spawn();
+    this.flags |= flags.FL_FLY;
   }
 };
 
@@ -429,6 +436,7 @@ export class SwimMonster extends BaseMonster {
 
   spawn() {
     super.spawn();
+    this.flags |= flags.FL_SWIM;
   }
 };
 
