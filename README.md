@@ -30,7 +30,7 @@ A couple of things I spotted or I’m unhappy with
 A few NPCs and features from the original game are still missing and yet to be implemented:
 
 * [ ] player: Finale screen
-* [ ] monster_fish
+* [X] monster_fish
 * [ ] monster_oldone
 * [ ] monster_tarbaby
 * [ ] monster_wizard
