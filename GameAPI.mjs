@@ -23,6 +23,7 @@ import OgreMonsterEntity, { qc as ogreModelQC } from './entity/monster/Ogre.mjs'
 import ShalrathMonsterEntity, { ShalrathMissileEntity, qc as shalrathModelQC } from './entity/monster/Shalrath.mjs';
 import ShamblerMonsterEntity, { qc as shamblerModelQC } from './entity/monster/Shambler.mjs';
 import TarbabyMonsterEntity, { qc as tbabyModelQC } from './entity/monster/Tarbaby.mjs';
+import FishMonsterEntity, { qc as fishQC } from './entity/monster/Fish.mjs';
 
 /** @typedef {typeof import("../../engine/common/GameAPIs.mjs").ServerEngineAPI} ServerEngineAPI */
 /** @typedef {import("../../engine/common/Cvar.mjs").default} Cvar */
@@ -128,6 +129,7 @@ export const entityRegistry = new Map([
   ArmyEnforcerMonster,
   ShamblerMonsterEntity,
   TarbabyMonsterEntity,
+  FishMonsterEntity,
 
   door.DoorEntity,
   door.SecretDoorEntity,
@@ -323,6 +325,7 @@ export class ServerGameAPI {
       'progs/shalrath.mdl': engineAPI.ParseQC(shalrathModelQC),
       'progs/shambler.mdl': engineAPI.ParseQC(shamblerModelQC),
       'progs/tarbaby.mdl': engineAPI.ParseQC(tbabyModelQC),
+      'progs/fish.mdl': engineAPI.ParseQC(fishQC),
     };
 
     /** @private */

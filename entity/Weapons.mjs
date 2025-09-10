@@ -364,11 +364,6 @@ export class DamageHandler extends EntityWrapper {
 
     // CR: the original QuakeC would call monster_death_use, but we have all thinkDie invoking useTargets anyway
 
-    if (this._entity instanceof BaseMonster) {
-      // fall to the ground
-      this._entity.flags &= ~(flags.FL_FLY | flags.FL_SWIM);
-    }
-
     this._entity.resetThinking();
     this._entity.thinkDie(attackerEntity);
   }

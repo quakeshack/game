@@ -427,6 +427,11 @@ export class FlyMonster extends BaseMonster {
     super.spawn();
     this.flags |= flags.FL_FLY;
   }
+
+  // eslint-disable-next-line no-unused-vars
+  thinkDie(attackerEntity) {
+    this.flags &= ~flags.FL_FLY;
+  }
 };
 
 export class SwimMonster extends BaseMonster {
@@ -437,6 +442,11 @@ export class SwimMonster extends BaseMonster {
   spawn() {
     super.spawn();
     this.flags |= flags.FL_SWIM;
+  }
+
+  // eslint-disable-next-line no-unused-vars
+  thinkDie(attackerEntity) {
+    this.flags &= ~flags.FL_SWIM;
   }
 };
 

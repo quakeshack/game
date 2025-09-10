@@ -125,7 +125,7 @@ export default class BaseEntity {
     this.movedir = new Vector(); // mostly for doors, but also used for waterjump
 
     // attacking and damage related (FIXME: should maybe put this to a different class)
-    /** @type {number} */
+    /** @type {number} player dying state */ // TODO: move to PlayerEntity
     this.deadflag = dead.DEAD_NO;
     /** @type {number} */
     this.takedamage = damage.DAMAGE_NO;
