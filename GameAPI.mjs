@@ -595,7 +595,7 @@ export class ServerGameAPI {
 
   static Shutdown() {
     // free all cvars
-    for (const [key, cvar] of Object.entries(cvars).filter(cvar => cvar !== null)) {
+    for (const [key, cvar] of Object.entries(cvars).filter((cvar) => cvar !== null)) {
       cvar.free();
       cvars[key] = null;
     }

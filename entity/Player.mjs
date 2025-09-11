@@ -772,8 +772,9 @@ export class PlayerEntity extends BaseEntity {
   /**
    * This is where fresh spawn parameters are set.
    * Essentially it sets the initial weapon, some ammo etc.
+   * @protected
    */
-  #freshSpawnParameters() {
+  _freshSpawnParameters() {
     this.items = items.IT_SHOTGUN | items.IT_AXE;
     this.health = 100;
     this.armorvalue = 0;
@@ -781,13 +782,13 @@ export class PlayerEntity extends BaseEntity {
     this.ammo_nails = 0;
     this.ammo_rockets = 0;
     this.ammo_cells = 0;
-    this.weapon = 1;
+    this.weapon = items.IT_SHOTGUN;
     this.armortype = 0;
   }
 
   saveSpawnParameters() {
     if (this.health <= 0) {
-      this.#freshSpawnParameters();
+      this._freshSpawnParameters();
     }
 
     this._spawnParameters = JSON.stringify([
@@ -813,18 +814,19 @@ export class PlayerEntity extends BaseEntity {
   /**
    * This sets the spawn parameters from the saved data or freshly initializes them.
    * Essentially it gives the initial weapon, some ammo etc.
+   * @protected
    */
-  #applySpawnParameters() {
+  _applySpawnParameters() {
     if (this.game.serverflags) { // player arrived via changelevel carrying serverflags
       // HACK: maps/start.bsp
       if (this.game.worldspawn.model === 'maps/start.bsp') { // start map will always reset the parms
-        this.#freshSpawnParameters();
+        this._freshSpawnParameters();
         return;
       }
     }
 
     if (!this._spawnParameters) {
-      this.#freshSpawnParameters();
+      this._freshSpawnParameters();
       return;
     }
 
@@ -1596,7 +1598,7 @@ export class PlayerEntity extends BaseEntity {
 
     this.setSize(hull[0][0], hull[0][1]);
 
-    this.#applySpawnParameters();
+    this._applySpawnParameters();
     this.setWeapon();
   }
 
@@ -2140,7 +2142,7 @@ export class PlayerEntity extends BaseEntity {
       CopyToBodyQue(this.game, this);
 
       // get the spawn parms as they were at level start
-      this.#applySpawnParameters();
+      this._applySpawnParameters();
 
       // respawn
       this.clear();
@@ -2153,7 +2155,7 @@ export class PlayerEntity extends BaseEntity {
       CopyToBodyQue(this.game, this);
 
       // set default spawn parms
-      this.#freshSpawnParameters();
+      this._freshSpawnParameters();
 
       // respawn
       this.clear();
