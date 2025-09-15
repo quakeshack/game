@@ -144,7 +144,7 @@ export class InfoPlayerStartCoop extends InfoNotNullEntity {
   static classname = 'info_player_coop';
 };
 
-/** @mixes {PlayerEntitySpawnParamsDynamic} */
+/** @mixes PlayerEntitySpawnParamsDynamic */
 export class PlayerEntity extends BaseEntity {
   static classname = 'player';
 
@@ -1221,7 +1221,7 @@ export class PlayerEntity extends BaseEntity {
 
   /**
    * handles impulse commands
-   * @private
+   * @protected
    */
   _handleImpulseCommands() {
     if (this.impulse <= 0) {

@@ -382,7 +382,7 @@ export default class ZombieMonster extends WalkMonster {
   // pain reaction
   thinkPain(attackerEntity, damage) {
     // always reset health to max
-    this.health = this.constructor._health;
+    this.health = /** @type {typeof ZombieMonster} */(this.constructor)._health;
 
     // ignore small hits
     if (damage < 9) {
@@ -477,6 +477,9 @@ export default class ZombieMonster extends WalkMonster {
       BaseEntity.prototype.think.call(this);
       return;
     }
+
+    // continue with the original logic
+    super.think();
   }
 };
 

@@ -32,7 +32,7 @@ A few NPCs and features from the original game are still missing and yet to be i
 * [ ] player: Finale screen
 * [X] monster_fish
 * [ ] monster_oldone
-* [ ] monster_tarbaby
+* [X] monster_tarbaby
 * [ ] monster_wizard
 * [ ] monster_boss
 * [ ] monster_boss: event_lightning
@@ -71,6 +71,7 @@ RFC 2119 applies.
 * Entities must declare states in the `_initStates()` method only.
 * Assets required during run-time must be precached by the `WorldspawnEntity`.
 * Numbers related to map units should be formated like this: `1234.5`.
+* Do not use private methods. Allow mods to extend and reuse entities by extending the classes.
 
 #### Related Quake Game Porting
 

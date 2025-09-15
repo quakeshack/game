@@ -351,7 +351,7 @@ export class QuakeEntityAI extends EntityAI {
     }
 
     // spread think times so they don't all happen at same time
-    self.nextthink = self.nextthink + Math.random() * 0.5;
+    self.nextthink += Math.random() * 0.5;
 
     this._initialized = true;
   }

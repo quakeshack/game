@@ -379,7 +379,7 @@ export default class BaseMonster extends BaseEntity {
     }
 
     const gravity = this.game.gravity;
-    const target = targetEntity.view_ofs ? targetEntity.origin.copy().add(targetEntity.view_ofs) : targetEntity.centerPoint;
+    const target = 'view_ofs' in targetEntity && targetEntity.view_ofs instanceof Vector ? targetEntity.origin.copy().add(targetEntity.view_ofs) : targetEntity.centerPoint;
     const displacement = target.copy().subtract(origin);
     const velocity = displacement.copy();
     velocity.multiply(1 / travelTime);
