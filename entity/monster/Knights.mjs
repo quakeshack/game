@@ -592,8 +592,6 @@ export class HellKnightMonster extends KnightMonster {
       // CR: the original code uses a precalcuated origin offset (see: org)
     });
 
-    // this.engine.SpawnEntity(Spike.classname, { owner: this });
-
     this.startSound(channel.CHAN_WEAPON, 'hknight/attack1.wav');
   }
 

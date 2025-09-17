@@ -33,7 +33,7 @@ A few NPCs and features from the original game are still missing and yet to be i
 * [X] monster_fish
 * [ ] monster_oldone
 * [X] monster_tarbaby
-* [ ] monster_wizard
+* [X] monster_wizard
 * [ ] monster_boss
 * [ ] monster_boss: event_lightning
 

@@ -28,7 +28,7 @@ export class GameAI {
 /**
  * EntityAI interface.
  * @template {BaseMonster} T
- * @augments {EntityWrapper<T>}
+ * @augments EntityWrapper<T>
  */
 export class EntityAI extends EntityWrapper {
   /** @returns {GameAI} global AI state @protected */
@@ -156,7 +156,7 @@ export const ATTACK_STATE = {
 /**
  * entity local AI state based on original Quake behavior
  * @template {BaseMonster} T
- * @augments {EntityAI<T>}
+ * @augments EntityAI<T>
  */
 export class QuakeEntityAI extends EntityAI {
   /**
@@ -313,8 +313,11 @@ export class QuakeEntityAI extends EntityAI {
   _initialize() {
     const self = this._entity;
 
-    self.origin[2] += 1.0; // raise off floor a bit
-    self.dropToFloor();
+    // make sure enemies are on the floor (unless they can swim or levitate)
+    if ((self.flags & (flags.FL_FLY | flags.FL_SWIM)) === 0) {
+      self.origin[2] += 1.0; // raise off floor a bit
+      self.dropToFloor();
+    }
 
     // check for stuck enemies
     if (!self.walkMove(0, 0)) {
@@ -839,6 +842,11 @@ export class QuakeEntityAI extends EntityAI {
     if (!(userEntity instanceof PlayerEntity)) {
       return;
     }
+
+    // hive mind the position update
+    this._enemyMetadata.lastKnownOrigin.set(userEntity.origin);
+    this._enemyMetadata.nextKnownOriginTime = this._game.time + 10.0;
+    this._gameAI._sightEntityLastOrigin.set(userEntity.origin);
 
     this._entity.enemy = userEntity; // we need this in the next think and we cannot pass it along via the scope due to possible serialization
     this._entity._scheduleThink(this._game.time + 0.1, function () { this._ai.foundTarget(this.enemy); });
