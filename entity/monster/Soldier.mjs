@@ -252,7 +252,7 @@ export class ArmySoldierMonster extends WalkMonster {
       return;
     }
 
-    this._ai.foundTarget(attackerEntity);
+    this._ai.foundTarget(attackerEntity, true);
 
     const r = Math.random();
     if (r < 0.2) {
@@ -518,7 +518,7 @@ export class ArmyEnforcerMonster extends WalkMonster {
       return;
     }
 
-    this._ai.foundTarget(attackerEntity);
+    this._ai.foundTarget(attackerEntity, true);
 
     const r = Math.random();
 

@@ -394,7 +394,7 @@ export default class ZombieMonster extends WalkMonster {
       return;
     }
 
-    this._ai.foundTarget(attackerEntity);
+    this._ai.foundTarget(attackerEntity, true);
 
     // big hit knocks to ground
     if (damage >= 25) {

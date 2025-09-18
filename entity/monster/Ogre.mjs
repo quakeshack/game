@@ -289,7 +289,7 @@ export default class OgreMonsterEntity extends WalkMonster {
       return;
     }
 
-    this._ai.foundTarget(attackerEntity);
+    this._ai.foundTarget(attackerEntity, true);
 
     this.painSound();
 

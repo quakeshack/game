@@ -197,7 +197,7 @@ export default class FishMonsterEntity extends SwimMonster {
   // fish always play pain frames
   // eslint-disable-next-line no-unused-vars
   thinkPain(attackerEntity, damage) {
-    this._ai.foundTarget(attackerEntity);
+    this._ai.foundTarget(attackerEntity, true);
     // play pain sequence
     this.painSound();
     this._runState('f_pain1');

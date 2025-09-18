@@ -137,7 +137,7 @@ export default class ShalrathMonsterEntity extends WalkMonster {
       return;
     }
 
-    this._ai.foundTarget(attackerEntity);
+    this._ai.foundTarget(attackerEntity, true);
 
     this.painSound();
     this._runState('shal_pain1');

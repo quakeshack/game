@@ -291,6 +291,8 @@ export default class ShamblerMonsterEntity extends WalkMonster {
       return;
     }
 
+    this._ai.foundTarget(attackerEntity, true);
+
     if (Math.random() * 400 > damage) {
       return;
     }
@@ -298,8 +300,6 @@ export default class ShamblerMonsterEntity extends WalkMonster {
     if (this.pain_finished > this.game.time) {
       return;
     }
-
-    this._ai.foundTarget(attackerEntity);
 
     this.pain_finished = this.game.time + 2.0;
 

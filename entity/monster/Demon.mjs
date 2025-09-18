@@ -167,11 +167,11 @@ export default class DemonMonster extends WalkMonster {
       return;
     }
 
+    this._ai.foundTarget(attackerEntity, true);
+
     if (this.pain_finished > this.game.time) {
       return;
     }
-
-    this._ai.foundTarget(attackerEntity);
 
     this.pain_finished = this.game.time + 1;
     this.painSound();

@@ -299,7 +299,7 @@ export class KnightMonster extends WalkMonster {
       return;
     }
 
-    this._ai.foundTarget(attackerEntity);
+    this._ai.foundTarget(attackerEntity, true);
 
     if (Math.random() < 0.85) {
       this._runState('knight_pain1');
@@ -660,7 +660,7 @@ export class HellKnightMonster extends KnightMonster {
       return;
     }
 
-    this._ai.foundTarget(attackerEntity);
+    this._ai.foundTarget(attackerEntity, true);
 
     this.painSound();
 

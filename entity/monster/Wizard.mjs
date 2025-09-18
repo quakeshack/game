@@ -211,7 +211,7 @@ export default class WizardMonsterEntity extends FlyMonster {
   // eslint-disable-next-line no-unused-vars
   thinkPain(attackerEntity, damage) {
     this.startSound(channel.CHAN_VOICE, 'wizard/wpain.wav');
-    this._ai.foundTarget(attackerEntity);
+    this._ai.foundTarget(attackerEntity, true);
     this._runState('wiz_pain1');
   }
 

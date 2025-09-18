@@ -152,7 +152,7 @@ export default class BaseMonster extends BaseEntity {
    */
   // eslint-disable-next-line no-unused-vars
   thinkPain(attackerEntity, damage) {
-    this._ai.foundTarget(attackerEntity);
+    this._ai.foundTarget(attackerEntity, true);
   }
 
   /**
@@ -161,7 +161,7 @@ export default class BaseMonster extends BaseEntity {
    */
   hunt(entity) {
     this.pausetime = 0; // reset pause time
-    this._ai.foundTarget(entity);
+    this._ai.foundTarget(entity, false);
   }
 
   /**
