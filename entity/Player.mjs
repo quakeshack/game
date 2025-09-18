@@ -260,7 +260,7 @@ export class PlayerEntity extends BaseEntity {
     this.frags = 0;
 
     /** @type {string[]} client data fields, will be pushed to the client each frame when updated, use the name of the entity field, do NOT change the content during runtime, also consider this client data private, it won’t be sent to other clients */
-    this.clientdataFields = PlayerEntity.clientdataFields;
+    this.clientdataFields = /** @type {typeof PlayerEntity} */(this.constructor).clientdataFields;
 
     // relevant for damage etc.
     this.bloodcolor = colors.BLOOD;
