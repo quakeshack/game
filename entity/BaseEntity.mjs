@@ -164,10 +164,8 @@ export default class BaseEntity {
 
     Object.seal(this);
 
-    // this is used to prepopulate fields from ED.LoadFromFile and SV.SpawnServer
-    if (this.engine.IsLoading()) {
-      this._precache();
-    }
+    // tell the engine to precache models, sounds etc.
+    this._precache();
   }
 
   static _states = null;
@@ -193,7 +191,8 @@ export default class BaseEntity {
   }
 
   /**
-   * All Precache* calls are placed here, it’s invoked by the engine indirectly upon loading
+   * All Precache* calls are placed here, it’s invoked by the engine indirectly upon loading.
+   * You can use resources without precaching, but it will lead to artifacts and missing sounds during gameplay.
    * @protected
    */
   _precache() {
