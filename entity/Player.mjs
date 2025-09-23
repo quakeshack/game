@@ -287,8 +287,57 @@ export class PlayerEntity extends BaseEntity {
     this._damageHandler = new DamageHandler(this);
   }
 
-  _precache() {
-    // CR: Worldspawn is taking care of all the precaches for the player entity.
+  static _precache(engineAPI) {
+    // player gib sounds
+    engineAPI.PrecacheSound('player/gib.wav');			// player gib sound
+    engineAPI.PrecacheSound('player/udeath.wav');		// player gib sound
+    engineAPI.PrecacheSound('player/tornoff2.wav');		// gib sound
+
+    // player pain sounds
+    engineAPI.PrecacheSound('player/pain1.wav');
+    engineAPI.PrecacheSound('player/pain2.wav');
+    engineAPI.PrecacheSound('player/pain3.wav');
+    engineAPI.PrecacheSound('player/pain4.wav');
+    engineAPI.PrecacheSound('player/pain5.wav');
+    engineAPI.PrecacheSound('player/pain6.wav');
+
+    // player death sounds
+    engineAPI.PrecacheSound('player/death1.wav');
+    engineAPI.PrecacheSound('player/death2.wav');
+    engineAPI.PrecacheSound('player/death3.wav');
+    engineAPI.PrecacheSound('player/death4.wav');
+    engineAPI.PrecacheSound('player/death5.wav');
+
+    // ax sounds
+    engineAPI.PrecacheSound('weapons/ax1.wav');			// ax swoosh
+    engineAPI.PrecacheSound('player/axhit1.wav');		// ax hit meat
+    engineAPI.PrecacheSound('player/axhit2.wav');		// ax hit world
+
+    engineAPI.PrecacheSound('player/h2ojump.wav');		// player jumping into water
+    engineAPI.PrecacheSound('player/slimbrn2.wav');		// player enter slime
+    engineAPI.PrecacheSound('player/inh2o.wav');		// player enter water
+    engineAPI.PrecacheSound('player/inlava.wav');		// player enter lava
+    engineAPI.PrecacheSound('misc/outwater.wav');		// leaving water sound
+    engineAPI.PrecacheSound('misc/water1.wav');			// swimming
+    engineAPI.PrecacheSound('misc/water2.wav');			// swimming
+
+    engineAPI.PrecacheModel('progs/player.mdl');
+    engineAPI.PrecacheModel('progs/eyes.mdl');
+    engineAPI.PrecacheModel('progs/h_player.mdl');
+
+    engineAPI.PrecacheSound('items/damage3.wav');
+
+    engineAPI.PrecacheSound('player/plyrjmp8.wav');		// player jump
+    engineAPI.PrecacheSound('player/land.wav');			// player landing
+    engineAPI.PrecacheSound('player/land2.wav');		// player hurt landing
+    engineAPI.PrecacheSound('player/drown1.wav');		// drowning pain
+    engineAPI.PrecacheSound('player/drown2.wav');		// drowning pain
+    engineAPI.PrecacheSound('player/gasp1.wav');		// gasping for air
+    engineAPI.PrecacheSound('player/gasp2.wav');		// taking breath
+    engineAPI.PrecacheSound('player/h2odeath.wav');		// drowning death
+    engineAPI.PrecacheSound('player/lburn1.wav');		// lava burn
+    engineAPI.PrecacheSound('player/lburn2.wav');		// lava burn
+    engineAPI.PrecacheSound('player/teledth1.wav');		// telefrag
   }
 
   /** @protected */
@@ -2213,6 +2262,16 @@ export class TelefragTriggerEntity extends BaseEntity {
 
 export class GibEntity extends BaseEntity {
   static classname = 'misc_gib';
+
+  static _precache(engineAPI) {
+    engineAPI.PrecacheModel('progs/zom_gib.mdl');
+    engineAPI.PrecacheModel('progs/gib1.mdl');
+    engineAPI.PrecacheModel('progs/gib2.mdl');
+    engineAPI.PrecacheModel('progs/gib3.mdl');
+
+    engineAPI.PrecacheSound('player/gib.wav');
+    engineAPI.PrecacheSound('player/udeath.wav');
+  }
 
   spawn() {
     this.setModel(this.model);

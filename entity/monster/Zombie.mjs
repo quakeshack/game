@@ -79,7 +79,6 @@ export default class ZombieMonster extends WalkMonster {
 
   _precache() {
     super._precache();
-    this.engine.PrecacheModel('progs/zom_gib.mdl');
     this.engine.PrecacheSound('zombie/z_idle.wav');
     this.engine.PrecacheSound('zombie/z_idle1.wav');
     this.engine.PrecacheSound('zombie/z_shot1.wav');
@@ -485,6 +484,10 @@ export default class ZombieMonster extends WalkMonster {
 
 export class ZombieGibGrenade extends BaseEntity {
   static classname = 'monster_zombie_giblet';
+
+  static _precache(engineAPI) {
+    engineAPI.PrecacheModel('progs/zom_gib.mdl');
+  }
 
   _declareFields() {
     this._damageInflictor = new DamageInflictor(this);

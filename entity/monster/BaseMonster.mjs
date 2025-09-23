@@ -453,6 +453,10 @@ export class SwimMonster extends BaseMonster {
 export class MeatSprayEntity extends BaseEntity {
   static classname = 'misc_gib_meatspray';
 
+  static _precache(engineAPI) {
+    engineAPI.PrecacheModel('progs/zom_gib.mdl');
+  }
+
   spawn() {
     this.movetype = moveType.MOVETYPE_BOUNCE;
     this.solid = solid.SOLID_NOT;

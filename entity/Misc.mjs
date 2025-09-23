@@ -308,6 +308,8 @@ export class FireballEntity extends BaseEntity {
   }
 
   spawn() {
+    console.assert(this.owner instanceof FireballSpawnerEntity, 'misc_fireball_fireball must have a misc_fireball as owner');
+
     this.solid = solid.SOLID_TRIGGER;
     this.movetype = moveType.MOVETYPE_TOSS;
     this.effects |= effect.EF_FULLBRIGHT; // always lit
@@ -356,6 +358,7 @@ export class FireballSpawnerEntity extends BaseEntity {
     this.engine.SpawnEntity(FireballEntity.classname, {
       origin: this.origin,
       speed: this.speed,
+      owner: this,
     });
 
     this._scheduleThink(this.game.time + Math.random() * 5.0, () => this._fire());
@@ -568,6 +571,14 @@ export class BossgateWallEntity extends BaseWallEntity {
  */
 export class TeleportEffectEntity extends BaseEntity {
   static classname = 'misc_tfog';
+
+  static _precache(engineAPI) {
+    engineAPI.PrecacheSound('misc/r_tele1.wav');		// teleport sounds
+    engineAPI.PrecacheSound('misc/r_tele2.wav');
+    engineAPI.PrecacheSound('misc/r_tele3.wav');
+    engineAPI.PrecacheSound('misc/r_tele4.wav');
+    engineAPI.PrecacheSound('misc/r_tele5.wav');
+  }
 
   /** @protected */
   _playTeleport() {
@@ -789,10 +800,6 @@ export class BubbleSpawnerEntity extends BaseEntity {
     this._serializer.endFields();
   }
 
-  _precache() {
-    this.engine.PrecacheModel('progs/s_bubble.spr');
-  }
-
   _spawnBubble() {
     this.engine.SpawnEntity(BubbleEntity.classname, { owner: this });
   }
@@ -844,8 +851,8 @@ export class StaticBubbleSpawnerEntity extends BubbleSpawnerEntity {
 export class BubbleEntity extends BaseEntity {
   static classname = 'misc_bubble';
 
-  _precache() {
-    this.engine.PrecacheModel('progs/s_bubble.spr');
+  static precache(engineAPI) {
+    engineAPI.PrecacheModel('progs/s_bubble.spr');
   }
 
   touch(otherEntity) {

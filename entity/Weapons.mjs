@@ -7,26 +7,6 @@ import BaseMonster from './monster/BaseMonster.mjs';
 import { PlayerEntity } from './Player.mjs';
 
 /**
- * called by worldspawn
- * @param {*} engine engine API
- */
-export function Precache(engine) {
-  // FIXME: move “use in c code” precache commands back to the engine
-  engine.PrecacheSound('weapons/r_exp3.wav');	// new rocket explosion
-  engine.PrecacheSound('weapons/rocket1i.wav');	// spike gun
-  engine.PrecacheSound('weapons/sgun1.wav');
-  engine.PrecacheSound('weapons/guncock.wav');	// player shotgun
-  engine.PrecacheSound('weapons/ric1.wav');	// ricochet (used in c code)
-  engine.PrecacheSound('weapons/ric2.wav');	// ricochet (used in c code)
-  engine.PrecacheSound('weapons/ric3.wav');	// ricochet (used in c code)
-  engine.PrecacheSound('weapons/spike2.wav');	// super spikes
-  engine.PrecacheSound('weapons/tink1.wav');	// spikes tink (used in c code)
-  engine.PrecacheSound('weapons/grenade.wav');	// grenade launcher
-  engine.PrecacheSound('weapons/bounce.wav');		// grenade bounce
-  engine.PrecacheSound('weapons/shotgn2.wav');	// super shotgun
-};
-
-/**
  * handy map to manage weapon slots
  * TODO: move this to a separate file, it’s shared with client
  */
@@ -40,6 +20,35 @@ export const weaponConfig = new Map([
   [items.IT_ROCKET_LAUNCHER, { ammoSlot: 'ammo_rockets', viewModel: 'progs/v_rock2.mdl', items: 'IT_ROCKETS', priority: 6 }],
   [items.IT_LIGHTNING, { ammoSlot: 'ammo_cells', viewModel: 'progs/v_light.mdl', items: 'IT_CELLS', priority: 7 }],
 ]);
+
+/**
+ * called by worldspawn
+ * @param {import('../GameAPI.mjs').ServerEngineAPI} engineAPI engine API
+ */
+export function Precache(engineAPI) {
+  // FIXME: move “use in c code” precache commands back to the engine
+  engineAPI.PrecacheSound('weapons/r_exp3.wav');	// new rocket explosion
+  engineAPI.PrecacheSound('weapons/rocket1i.wav');	// spike gun
+  engineAPI.PrecacheSound('weapons/sgun1.wav');
+  engineAPI.PrecacheSound('weapons/guncock.wav');	// player shotgun
+  engineAPI.PrecacheSound('weapons/ric1.wav');	// ricochet (used in c code)
+  engineAPI.PrecacheSound('weapons/ric2.wav');	// ricochet (used in c code)
+  engineAPI.PrecacheSound('weapons/ric3.wav');	// ricochet (used in c code)
+  engineAPI.PrecacheSound('weapons/spike2.wav');	// super spikes
+  engineAPI.PrecacheSound('weapons/tink1.wav');	// spikes tink (used in c code)
+  engineAPI.PrecacheSound('weapons/grenade.wav');	// grenade launcher
+  engineAPI.PrecacheSound('weapons/shotgn2.wav');	// super shotgun
+  engineAPI.PrecacheSound('weapons/lhit.wav');		//lightning
+  engineAPI.PrecacheSound('weapons/lstart.wav');		//lightning start
+
+  engineAPI.PrecacheModel('progs/bolt.mdl');		// for lightning gun
+  engineAPI.PrecacheModel('progs/bolt2.mdl');		// for lightning gun
+
+  // precache view models
+  for (const { viewModel } of weaponConfig.values()) {
+    engineAPI.PrecacheModel(viewModel);
+  }
+};
 
 /** @typedef {2 | 4096 | 1 | 4 | 8 | 16 | 32 | 64} WeaponConfigKey */
 
@@ -65,6 +74,10 @@ export class Explosions extends EntityWrapper {
     entityClass._defineState('s_explode4', 3, 's_explode5');
     entityClass._defineState('s_explode5', 4, 's_explode6');
     entityClass._defineState('s_explode6', 5, null, function () { this.remove(); });
+  }
+
+  static precache(engineAPI) {
+    engineAPI.PrecacheModel('progs/s_explod.spr');	// sprite explosion
   }
 
   becomeExplosion() {
@@ -533,6 +546,8 @@ export class DamageHandler extends EntityWrapper {
 export class BaseProjectile extends BaseEntity {
   static classname = 'weapon_projectile_abstract';
 
+  static _model = null;
+
   _declareFields() {
     this._damageInflictor = new DamageInflictor(this);
     /** @private */
@@ -542,6 +557,14 @@ export class BaseProjectile extends BaseEntity {
   static _initStates() {
     this._states = {};
     Explosions.initStates(this);
+  }
+
+  static _precache(engineAPI) {
+    Explosions.precache(engineAPI);
+
+    if (this._model) {
+      engineAPI.PrecacheModel(this._model);
+    }
   }
 
   /** @protected */
@@ -607,6 +630,11 @@ export class BaseProjectile extends BaseEntity {
 export class Grenade extends BaseProjectile {
   static classname = 'weapon_projectile_grenade';
 
+  static _precache(engineAPI) {
+    engineAPI.PrecacheModel('progs/grenade.mdl');
+    engineAPI.PrecacheSound('weapons/bounce.wav');		// grenade bounce
+  }
+
   /** @private */
   _explode() {
     this.resetThinking();
@@ -670,6 +698,10 @@ export class Grenade extends BaseProjectile {
 export class Missile extends BaseProjectile {
   static classname = 'weapon_projectile_missile';
 
+  static _precache(engineAPI) {
+    engineAPI.PrecacheModel('progs/missile.mdl');
+  }
+
   /**
    * @param {BaseEntity} touchedByEntity impacted entity
    * @protected
@@ -712,7 +744,6 @@ export class Missile extends BaseProjectile {
 export class BaseSpike extends BaseProjectile {
   static _damage = 0;
   static _tentType = null;
-  static _model = 'progs/s_spike.mdl';
 
   _declareFields() {
     this._serializer.startFields();
@@ -767,6 +798,7 @@ export class Spike extends BaseSpike {
   static classname = 'weapon_projectile_spike';
   static _damage = 9;
   static _tentType = tentType.TE_SPIKE;
+  static _model = 'progs/spike.mdl';
 
   spawn() {
     super.spawn();
@@ -784,6 +816,7 @@ export class Superspike extends BaseSpike {
   static classname = 'weapon_projectile_superspike';
   static _damage = 18;
   static _tentType = tentType.TE_SUPERSPIKE;
+  static _model = 'progs/s_spike.mdl';
 };
 
 export class Laser extends BaseSpike {

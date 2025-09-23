@@ -193,10 +193,25 @@ export default class BaseEntity {
   /**
    * All Precache* calls are placed here, it’s invoked by the engine indirectly upon loading.
    * You can use resources without precaching, but it will lead to artifacts and missing sounds during gameplay.
+   *
+   * This is only called upon spawning the entity. Meant for populating the map upon loading it.
    * @protected
    */
   _precache() {
     // this.engine.PrecacheModel('models/box.mdl');
+  }
+
+  /**
+   * All Precache* calls are placed here, it’s invoked by the engine indirectly upon loading.
+   * You can use resources without precaching, but it will lead to artifacts and missing sounds during gameplay.
+   *
+   * This is called during loading the game independent of this entity ever being spawned. Meant for dynamic entities that can be spawned at any time.
+   * @param {import('../GameAPI.mjs').ServerEngineAPI} engineAPI server game API
+   * @access package
+   */
+  // eslint-disable-next-line no-unused-vars
+  static _precache(engineAPI) {
+    // engineAPI.PrecacheModel('models/box.mdl');
   }
 
   /**

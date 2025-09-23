@@ -573,6 +573,11 @@ export class ServerGameAPI {
 
     // make sure stats are resubscribed
     this.stats.subscribeToEvents();
+
+    // precache all resources
+    for (const entityClass of entityRegistry.values()) {
+      entityClass._precache(this.engine);
+    }
   }
 
   // eslint-disable-next-line no-unused-vars
