@@ -851,7 +851,7 @@ export class StaticBubbleSpawnerEntity extends BubbleSpawnerEntity {
 export class BubbleEntity extends BaseEntity {
   static classname = 'misc_bubble';
 
-  static precache(engineAPI) {
+  static _precache(engineAPI) {
     engineAPI.PrecacheModel('progs/s_bubble.spr');
   }
 
