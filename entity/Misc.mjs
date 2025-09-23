@@ -178,7 +178,7 @@ export class LightFluorosparkEntity extends BaseLightEntity {
  * Default style is 0
  */
 export class LightGlobeEntity extends BaseLightEntity {
-  static class = 'light_globe';
+  static classname = 'light_globe';
 
   _precache() {
     this.engine.PrecacheModel('progs/s_light.spr');
