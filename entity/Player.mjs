@@ -2122,7 +2122,7 @@ export class PlayerEntity extends BaseEntity {
       this.engine.BroadcastClientEvent(true, clientEvent.OBITUARY, this.edictId, actualAttacker.edictId, 0, 0);
     }
 
-    this.engine.eventBus.publish('game.player.died', actualAttacker);
+    this.engine.eventBus.publish('game.player.died', this, actualAttacker);
   }
 
   /**

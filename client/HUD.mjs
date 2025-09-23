@@ -221,7 +221,7 @@ export default class HUD {
 
   /** damage related states */
   damage = {
-    /** time when the last damage was received based on CL.time */
+    /** time when the last damage was received based on CL.gametime */
     time: -Infinity,
 
     /** attack origin vector */
@@ -289,7 +289,7 @@ export default class HUD {
 
     // damage received
     this.engine.eventBus.subscribe('client.damage', (/** @type {import('../../../shared/GameInterfaces').ClientDamageEvent} */ clientDamageEvent) => {
-      this.damage.time = this.engine.CL.time;
+      this.damage.time = this.engine.CL.gametime;
       this.damage.attackOrigin.set(clientDamageEvent.attackOrigin);
       this.damage.damageReceived += clientDamageEvent.damageReceived;
 
@@ -339,7 +339,7 @@ export default class HUD {
     this.engine.eventBus.subscribe(clientEventName(clientEvent.INTERMISSION_START), (message, origin, angles) => {
       this.intermission.running = true;
       this.intermission.message = message || null;
-      this.intermission.mapCompletedTime = this.engine.CL.time;
+      this.intermission.mapCompletedTime = this.engine.CL.gametime;
 
       this.engine.CL.intermission = true;
 
