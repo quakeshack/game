@@ -441,7 +441,7 @@ export class QuakeEntityAI extends EntityAI {
     }
 
     // client got invisibility or has notarget set
-    if ((client.flags & flags.FL_NOTARGET) || client.items & items.IT_INVISIBILITY) { // FIXME: invisibility flag
+    if ((client.flags & flags.FL_NOTARGET) || (client.items & items.IT_INVISIBILITY)) { // FIXME: invisibility flag
       return false;
     }
 
@@ -677,7 +677,7 @@ export class QuakeEntityAI extends EntityAI {
     const isEnemyVisible = this._entity.enemy ? this._isVisible(this._entity.enemy) : false;
 
     // check knowledge of enemy
-    if (isEnemyVisible) {
+    if (isEnemyVisible || (this._entity.enemy instanceof PlayerEntity && this._entity.enemy.health > 0)) {
       this._searchTime = this._game.time + 5.0;
     }
 

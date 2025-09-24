@@ -2082,6 +2082,8 @@ export class PlayerEntity extends BaseEntity {
 
       this.frags--;
 
+      this.engine.eventBus.publish('game.player.died', this, this);
+
       return;
     }
 
