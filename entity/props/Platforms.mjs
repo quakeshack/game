@@ -2,6 +2,7 @@ import Vector from '../../../../shared/Vector.mjs';
 
 import { channel, moveType, solid } from '../../Defs.mjs';
 import BaseEntity from '../BaseEntity.mjs';
+import { PathCornerEntity } from '../Misc.mjs';
 import { PlayerEntity } from '../Player.mjs';
 import BasePropEntity, { state } from './BasePropEntity.mjs';
 
@@ -301,7 +302,7 @@ export class TrainEntity extends BasePropEntity { // CR: this beauty is written 
     const targetEntity = this.findFirstEntityByFieldAndValue('targetname', this.target);
     console.assert(targetEntity.target, 'func_train: no next target');
     this.target = targetEntity.target; // update to point to the next target
-    this.wait = targetEntity.wait ? targetEntity.wait : 0; // FIXME: is targetEntity always a train entity? if so, we can do an instanceof check instead
+    this.wait = targetEntity instanceof PathCornerEntity ? targetEntity.wait : 0; // CR: in QuakeC it would simply be "targetEntity.wait"
     this.startSound(channel.CHAN_VOICE, this.noise1);
     // move to the next target position (adjusted by our mins)
     this._sub.calcMove(targetEntity.origin.copy().subtract(this.mins), this.speed, () => this._trainWait());

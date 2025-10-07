@@ -260,8 +260,8 @@ export class Serializer { // TODO: move to shared
           }
 
           // arrow functions are a pain, we need to convert it into a regular function (though, no return value)
-          if (code.includes('=>')) { // FIXME: this check is not perfect, but it’s good enough for now
-            code = 'function ' + code.replace('=>', '{') + '}'; // FIXME: “=>” might break
+          if (code.includes('=>')) { // HACK: this check is not perfect, but it’s good enough for now
+            code = 'function ' + code.replace('=>', '{') + '}'; // any other “=>” will break
           } else {
             code = 'function ' + code; // third case, a regular function without the “function” keyword, four example "method() { ... }" on an object
           }

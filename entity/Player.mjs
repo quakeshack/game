@@ -628,14 +628,13 @@ export class PlayerEntity extends BaseEntity {
 
   /** @protected */
   _painSound() { // TODO: player.qc/PainSound
-
     // missing stuff: anything contents
 
     this.startSound(channel.CHAN_VOICE, `player/pain${Math.floor(Math.random() * 6) + 1}.wav`);
   }
 
   /** @protected */
-  _deathSound() { // TODO: player.qc/DeathSound
+  _deathSound() {
     // under water death sound
     if (this.waterlevel === 3) {
       this.startSound(channel.CHAN_VOICE, 'player/h2odeath.wav', 1.0, attn.ATTN_NONE);
@@ -2223,7 +2222,6 @@ export class PlayerEntity extends BaseEntity {
   }
 };
 
-// FIXME: move to triggers
 export class TelefragTriggerEntity extends BaseEntity {
   static classname = 'misc_teledeath';
 

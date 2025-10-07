@@ -471,7 +471,7 @@ export class DoorEntity extends BaseDoorEntity {
       return;
     }
 
-    // FIXME: blink key on player's status bar (CR: push an event)
+    // TODO: blink key on player's status bar (CR: push an event)
     if ((this.items & usedByEntity.items) !== this.items) {
       const requiredKeys = Object.entries(itemNames)
         .filter(([item]) => (this.items & +item) !== 0)

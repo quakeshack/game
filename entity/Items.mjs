@@ -43,6 +43,7 @@ export class BaseItemEntity extends BaseEntity {
     this.solid = solid.SOLID_TRIGGER;
     this.movetype = moveType.MOVETYPE_TOSS;
     this.origin[2] += 6.0;
+    // this.effects |= effect.EF_MINLIGHT;
     // this.dropToFloor();
   }
 

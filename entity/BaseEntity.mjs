@@ -109,8 +109,6 @@ export default class BaseEntity {
     this.nextthink = 0.0;
     /** @type {?BaseEntity} set by the phyiscs engine */
     this.groundentity = null;
-    /** @type {?BaseEntity} this is mainly used by QuakeC, not us */
-    this.chain = null; // FIXME: consider removing
 
     // relationships between entities
     /** @type {?BaseEntity} entity, who launched a missile */
@@ -673,7 +671,6 @@ export default class BaseEntity {
     this.dmg_attacker = null;
     this.dmg_inflictor = null;
     this.owner = null;
-    this.chain = null; // FIXME: consider removing
     this.groundentity = null;
   }
 

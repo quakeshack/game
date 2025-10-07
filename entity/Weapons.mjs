@@ -8,7 +8,6 @@ import { PlayerEntity } from './Player.mjs';
 
 /**
  * handy map to manage weapon slots
- * TODO: move this to a separate file, it’s shared with client
  */
 export const weaponConfig = new Map([
   [items.IT_AXE, { ammoSlot: null, viewModel: 'progs/v_axe.mdl', priority: 0 }],
