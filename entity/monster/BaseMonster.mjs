@@ -104,7 +104,7 @@ export default class BaseMonster extends BaseEntity {
     this.enemy = null;
     this.goalentity = null;
     this.movetarget = null;
-    this._ai.clear();
+    this._ai?.clear();
   }
 
   /**

@@ -300,17 +300,11 @@ export class Sub extends EntityWrapper {
 
     // fire targets
     if (this._entity.target) {
-      /** @type {BaseEntity} */
-      let searchEntity = this._game.worldspawn;
-      do {
-        searchEntity = searchEntity.findNextEntityByFieldAndValue('targetname', this._entity.target);
-        if (!searchEntity) {
-          return;
-        }
-        // CR: this is way more convenient than QuakeC’s version (subs.qc:260)
-        searchEntity.use(activatorEntity);
-        // eslint-disable-next-line no-constant-condition
-      } while (true);
+      for (const edict of this._engine.FindAllByFieldAndValue('targetname', this._entity.target)) {
+        // @ts-ignore
+        const entity = /** @type {BaseEntity} */(edict.entity);
+        entity.use(activatorEntity);
+      }
     }
   }
 };

@@ -2,7 +2,42 @@
 
 In general the game code is completely object-oriented and it has *no global state*, therefore we need to carry around both engine interface as well as game interface. This allows the dedicated server to handle multiple servers at the same time enabling dynamic game lobbies etc. The most global state must be the variables on the `ServerGameAPI` object or on the `WorldspawnEntity`.
 
-This repository should give you a good framework to build Quake mods in absolute no time.
+This repository provides a clean, modern framework to build Quake mods using JavaScript/ES6 modules.
+
+## Quick Start for Modders
+
+**Want to create a mod?** Here's what you need to know:
+
+1. **Everything is an Entity** - Players, monsters, items, doors, triggers - all extend `BaseEntity`
+2. **No Global State** - All game state lives in `ServerGameAPI` or individual entities
+3. **Object-Oriented** - Use classes, inheritance, and composition (helper classes)
+4. **Type-Safe** - JSDoc comments provide autocomplete and type checking
+5. **Modern JavaScript** - ES6 modules, classes, arrow functions
+
+**Common modding tasks:**
+
+- **Create a new monster** → Extend `BaseMonster` (see `entity/monster/` for examples)
+- **Create a new weapon** → Add to `entity/Weapons.mjs` and `weaponConfig`
+- **Create a new item** → Extend `BaseItemEntity` (see `entity/Items.mjs`)
+- **Create a new trigger** → Extend `BaseTriggerEntity` (see `entity/Triggers.mjs`)
+- **Create a custom entity** → Just pick one of the misc entities, they are an easy start.
+
+**File structure:**
+```
+source/game/id1/
+├── entity/           # All entity classes
+│   ├── monster/      # Monster AI and behaviors
+│   ├── props/        # Doors, platforms, buttons
+│   ├── BaseEntity.mjs
+│   ├── Items.mjs
+│   ├── Weapons.mjs
+│   ├── Triggers.mjs
+│   └── ...
+├── helper/           # Helper classes (AI, utilities)
+├── client/           # Client-side code (HUD, effects)
+├── GameAPI.mjs       # Server game state and entity registry
+└── Defs.mjs          # Constants and enums
+```
 
 ## Game
 
@@ -37,6 +72,8 @@ A few NPCs and features from the original game are still missing and yet to be i
 * [ ] monster_boss
 * [ ] monster_boss: event_lightning
 
+**Note:** Most monsters are now implemented! Only the final bosses (`monster_oldone` and `monster_boss`) remain.
+
 ### Client-side
 
 * [X] implement a more lean Sbar/HUD
@@ -45,10 +82,12 @@ A few NPCs and features from the original game are still missing and yet to be i
 * [X] implement damage effects (red flash)
 * [X] implement powerup effects (quad, invis etc.)
 * [ ] handle things like gibbing, bubbles etc. on the client-side only
-  * [ ] air_bubbles
-  * [ ] GibEntity
-  * [ ] MeatSprayEntity
+  * [X] air_bubbles (implemented as `StaticBubbleSpawnerEntity`)
+  * [X] GibEntity (implemented in `Player.mjs`)
+  * [X] MeatSprayEntity (implemented in `monster/BaseMonster.mjs`)
 * [X] handle screen flashes like bonus flash (`bf`) through events
+
+**Note:** Most client-side entities are implemented. Consider moving more visual-only effects to client-side code.
 
 ## Core concepts
 
@@ -106,26 +145,32 @@ However, the engine reads from a set of must be defined properties. `BaseEntity`
 
 ### Helper Classes
 
-| Class | Purpose |
-|-|-|
-| `EntityWrapper` | Wraps a `BaseEntity`, will also add shortcuts for engine API and the current game API instances. |
-| `Sub` | This class brings all the `target`/`killtarget`/`targetname` handling to an entity. Also provides movement related helpers. The name is based on the `SUB_CalcMove`, `SUB_UseTargets` etc. prefix. |
-| `DamageHandler` | This class brings all logic related to dealing with receiving damage to an entity. |
-| `DamageInflictor` | This class brings all more complex logic related to giving out damage. This is optional, every entity will expose `damage` to inflict basic damage to another entity. |
-| `Explosions` | A streamlined way on how to turn any entity into an explosion. |
+Helper classes extend `EntityWrapper` and are found in `entity/Weapons.mjs` and `entity/Subs.mjs`.
+
+| Class | Purpose | Location |
+|-|-|-|
+| `EntityWrapper` | Base wrapper for a `BaseEntity`. Adds shortcuts for engine API and game API instances. All helpers below extend this. | `helper/MiscHelpers.mjs` |
+| `Sub` | Brings all the `target`/`killtarget`/`targetname` handling to an entity. Also provides movement related helpers. The name is based on the `SUB_CalcMove`, `SUB_UseTargets` etc. prefix from QuakeC. | `entity/Subs.mjs` |
+| `DamageHandler` | Brings all logic related to receiving and handling damage to an entity. Used by monsters, players, and breakable objects. | `entity/Weapons.mjs` |
+| `DamageInflictor` | Brings more complex logic related to giving out damage. This is optional - every entity will expose `damage()` to inflict basic damage to another entity. | `entity/Weapons.mjs` |
+| `Explosions` | A streamlined way to turn any entity into an explosion with proper effects and damage radius. | `entity/Weapons.mjs` |
 
 ### Base Classes
 
-| Class | Purpose |
-|-|-|
-| `BaseItemEntity` | Allows easily creating entities containing an item, ammo. This base class provides all logic connected to target handling, respawning (multiplayer games), sound effects etc. |
-| `BaseKeyEntity` | Base keys. Main difference are sounds, regeneration, missing removal after picking a key up. |
-| `BaseWeaponEntity` | Weapons are based on items, only the sound is different. |
-| `BaseProjectile` | A moving object that will cause something upon impact. Used for spikes, rockets, grenades. |
-| `BaseTriggerEntity` | Convenient base class to make any kind of triggers. |
-| `BaseLightEntity` | Handles anything related to light entities. |
-| `BasePropEntity` | Base class to support platforms, doors etc. |
-| `BaseDoorEntity` | Base class to handle doors and secret doors. |
+These base classes make it easy to create new entities with common behaviors:
+
+| Class | Purpose | Location |
+|-|-|-|
+| `BaseItemEntity` | Allows easily creating entities containing an item or ammo. This base class provides all logic connected to target handling, respawning (multiplayer games), sound effects etc. | `entity/Items.mjs` |
+| `BaseKeyEntity` | Base for keys. Main differences from items are sounds, regeneration behavior, and keys not being removed after pickup. | `entity/Items.mjs` |
+| `BaseWeaponEntity` | Weapons are based on items, only the sound is different. | `entity/Items.mjs` |
+| `BaseAmmoEntity` | Base class for ammunition pickups (shells, nails, rockets, cells). | `entity/Items.mjs` |
+| `BaseProjectile` | A moving object that will cause something upon impact. Used for spikes, rockets, grenades. | `entity/Weapons.mjs` |
+| `BaseTriggerEntity` | Convenient base class to make any kind of triggers. | `entity/Triggers.mjs` |
+| `BaseLightEntity` | Handles anything related to light entities (torches, globes, fluorescent lights, etc.). | `entity/Misc.mjs` |
+| `BasePropEntity` | Base class to support platforms, doors, trains etc. Provides movement state machine. | `entity/props/BasePropEntity.mjs` |
+| `BaseDoorEntity` | Base class to handle doors and secret doors with key support and linking. | `entity/props/Doors.mjs` |
+| `BaseMonster` | Base class for all monsters. Provides AI, damage handling, gibbing, and common monster behaviors. | `entity/monster/BaseMonster.mjs` |
 
 ### Engine <-> Game
 
@@ -138,9 +183,17 @@ However, the engine reads from a set of must be defined properties. `BaseEntity`
 
 ### Loading QuakeJS
 
-`PR.Init` will try to import the server game code. During that, `ServerGameAPI.Init` will be invoked. This gives you the opportunity to register console variables before the game will actually start. Allowing you to define variables. Later when the server is spawned, `ServerGameAPI.init` will be called on a fresh instance of `ServerGameAPI`.
+**Server-side initialization:**
+1. `PR.Init` imports the server game code
+2. `ServerGameAPI.Init()` is called (static) - register console variables here
+3. When server spawns, `new ServerGameAPI(engineAPI)` is instantiated
+4. Map loads, entities spawn via `entityRegistry`
 
-`CL.Init` will do the similar thing, but on `ClientGameAPI.Init` and `ClientGameAPI.init` while connecting to a game session.
+**Client-side initialization:**
+1. `CL.Init` imports the client game code
+2. `ClientGameAPI.Init()` is called (static) - client-side setup
+3. When connecting, `new ClientGameAPI(engineAPI)` is instantiated
+4. HUD and effects are initialized
 
 ### Spawn Parameters
 
@@ -192,20 +245,3 @@ The server has to run every edict and it will run every edict, when certain cond
 
 * When a client disconnects or drops, the server is calling:
   * `ServerGameAPI.ClientDisconnect`
-
-### Example Entity
-
-For full reference, see `entity/Example.mjs`.
-
-Spawn an entity:
-
-```js
-const exampleEntity = this.engine.SpawnEntity(ExampleEntity.classname, {
-  origin: this.origin,
-  owner: this,
-  message: 'Hello World!',
-});
-
-exampleEntity.greet();
-```
-
