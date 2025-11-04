@@ -1,5 +1,5 @@
 
-import { GibEntity, InfoPlayerStart, InfoPlayerStartCoop, InfoPlayerStartDeathmatch, PlayerEntity, qc as playerModelQC, TelefragTriggerEntity } from './entity/Player.mjs';
+import { GibEntity, InfoPlayerStart, InfoPlayerStart2, InfoPlayerStartCoop, InfoPlayerStartDeathmatch, PlayerEntity, qc as playerModelQC, TelefragTriggerEntity } from './entity/Player.mjs';
 import { BodyqueEntity, WorldspawnEntity } from './entity/Worldspawn.mjs';
 import { clientEvent, spawnflags } from './Defs.mjs';
 import * as misc from './entity/Misc.mjs';
@@ -44,6 +44,7 @@ export const entityRegistry = new Map([
   misc.IntermissionCameraEntity,
 
   InfoPlayerStart,
+  InfoPlayerStart2,
   InfoPlayerStartCoop,
   InfoPlayerStartDeathmatch,
   GibEntity,

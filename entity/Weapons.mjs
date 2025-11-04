@@ -824,6 +824,15 @@ export class Laser extends BaseSpike {
   static _tentType = tentType.TE_GUNSHOT;
   static _model = 'progs/laser.mdl';
 
+  static _precache(engineAPI) {
+    // not available using shareware assets
+    if (!engineAPI.registered) {
+      return;
+    }
+
+    super._precache(engineAPI);
+  }
+
   _handleImpact(touchedByEntity) {
     super._handleImpact(touchedByEntity);
 

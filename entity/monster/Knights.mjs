@@ -339,6 +339,15 @@ export class KnightSpike extends BaseSpike {
   static _damage = 9;
   static _tentType = tentType.TE_SPIKE;
   static _model = 'progs/k_spike.mdl';
+
+  static _precache(engineAPI) {
+    // not available using shareware assets
+    if (!engineAPI.registered) {
+      return;
+    }
+
+    super._precache(engineAPI);
+  }
 };
 
 /**
