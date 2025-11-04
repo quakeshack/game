@@ -283,6 +283,8 @@ export class SecretTriggerEntity extends OnceTriggerEntity {
  *
  * If nomessage is not set, t will print "1 more.. " etc when triggered and "sequence complete" when finished.
  *
+ * Optional "message" key allows customization of the complete message shown to the player.
+ *
  * After the counter has been triggered "count" times (default 2), it will fire all of it's targets and remove itself.
  */
 export class CountTriggerEntity extends MultipleTriggerEntity {
@@ -294,6 +296,7 @@ export class CountTriggerEntity extends MultipleTriggerEntity {
     this._serializer.startFields();
 
     this.count = 0;
+    this.message = null;
 
     this._serializer.endFields();
   }
@@ -312,7 +315,8 @@ export class CountTriggerEntity extends MultipleTriggerEntity {
       return;
     }
 
-    if ((usedByEntity instanceof PlayerEntity) && !(this.spawnflags & BaseTriggerEntity.SPAWNFLAG_NOMESSAGE)) {
+    if ((usedByEntity instanceof PlayerEntity) && !(this.spawnflags & BaseTriggerEntity.SPAWNFLAG_NOMESSAGE) && this.message === null) {
+      // only show this when no custom message is set, otherwise Sub’s useTargets will handle it
       usedByEntity.centerPrint('Sequence completed!');
     }
 
