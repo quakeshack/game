@@ -472,7 +472,7 @@ export class OnlyRegisteredTriggerEntity extends BaseTriggerEntity {
 
     this.attack_finished = this.game.time + 2.0;
 
-    if (this.game.registered) {
+    if (this.engine.registered) {
       this.message = null;
       this._sub.useTargets(otherEntity);
       this.remove();

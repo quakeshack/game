@@ -1925,7 +1925,7 @@ export class PlayerEntity extends BaseEntity {
     // TODO: run some text if at the end of an episode
 
     if (this.game.intermission_running === 3) {
-      if (!this.game.registered) {
+      if (!this.engine.registered) {
         // TODO: shareware mode, sell screen
       }
 

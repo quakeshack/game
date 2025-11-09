@@ -340,7 +340,6 @@ export class ServerGameAPI {
     /** cvar cache @type {Record<string, Cvar>} @private */
     this._cvars = {
       teamplay: engineAPI.GetCvar('teamplay'),
-      registered: engineAPI.GetCvar('registered'),
       gravity: engineAPI.GetCvar('sv_gravity'),
     };
 
@@ -355,10 +354,6 @@ export class ServerGameAPI {
 
   get teamplay() {
     return this._cvars.teamplay.value;
-  }
-
-  get registered() {
-    return this._cvars.registered.value;
   }
 
   get timelimit() {
