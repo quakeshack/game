@@ -6,6 +6,10 @@ import BaseEntity from './BaseEntity.mjs';
 import BaseMonster from './monster/BaseMonster.mjs';
 import { PlayerEntity } from './Player.mjs';
 
+/** @typedef {2 | 4096 | 1 | 4 | 8 | 16 | 32 | 64} WeaponConfigKey */
+/** @typedef {import('../GameAPI.mjs').ServerEngineAPI} ServerEngineAPI */
+/** @typedef {typeof BaseEntity} BaseEntityType */
+
 /**
  * handy map to manage weapon slots
  */
@@ -22,7 +26,7 @@ export const weaponConfig = new Map([
 
 /**
  * called by worldspawn
- * @param {import('../GameAPI.mjs').ServerEngineAPI} engineAPI engine API
+ * @param {ServerEngineAPI} engineAPI engine API
  */
 export function Precache(engineAPI) {
   // FIXME: move “use in c code” precache commands back to the engine
@@ -49,8 +53,6 @@ export function Precache(engineAPI) {
   }
 };
 
-/** @typedef {2 | 4096 | 1 | 4 | 8 | 16 | 32 | 64} WeaponConfigKey */
-
 /** struct holding items and ammo */
 export class Backpack {
   ammo_shells = 0;
@@ -64,7 +66,7 @@ export class Backpack {
 export class Explosions extends EntityWrapper {
   /**
    *
-   * @param {import('./BaseEntity.mjs').BaseEntityType} entityClass entity class, not instance
+   * @param {BaseEntityType} entityClass entity class, not instance
    */
   static initStates(entityClass) {
     entityClass._defineState('s_explode1', 0, 's_explode2');
@@ -393,8 +395,8 @@ export class DamageHandler extends EntityWrapper {
   /**
    * The damage is coming from inflictor, but get mad at attacker
    * This should be the only function that ever reduces health.
-   * @param {import('./BaseEntity.mjs').default} inflictorEntity inflictor – what is causing the damage
-   * @param {import('./BaseEntity.mjs').default} attackerEntity attacker – who is causing the damage
+   * @param {BaseEntity} inflictorEntity inflictor – what is causing the damage
+   * @param {BaseEntity} attackerEntity attacker – who is causing the damage
    * @param {number} inflictedDamage damage caused
    * @param {Vector} hitPoint exact hit point
    */

@@ -11,6 +11,7 @@ import { Backpack, DamageHandler, PlayerWeapons, weaponConfig } from './Weapons.
 import { CopyToBodyQue } from './Worldspawn.mjs';
 
 /** @typedef {import('../../../shared/GameInterfaces').PlayerEntitySpawnParamsDynamic} PlayerEntitySpawnParamsDynamic */
+/** @typedef {import('./Weapons.mjs').WeaponConfigKey} WeaponConfigKey */
 
 /**
  *
@@ -902,7 +903,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     this.weapon = weapon;
     this.items &= ~(this.items & (items.IT_SHELLS | items.IT_NAILS | items.IT_ROCKETS | items.IT_CELLS));
 
-    const config = weaponConfig.get(/** @type {import('./Weapons.mjs').WeaponConfigKey} */(this.weapon));
+    const config = weaponConfig.get(/** @type {WeaponConfigKey} */(this.weapon));
     if (config) {
       this.currentammo = config.ammoSlot ? this[config.ammoSlot] : 0;
       this.weaponmodel = config.viewModel;
@@ -927,7 +928,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
    */
   chooseBestWeapon() { // FIXME: this seems to be off, constantly picks a different weapon than anticipated
     const it = this.items;
-    /** @type {import('./Weapons.mjs').WeaponConfigKey} */
+    /** @type {WeaponConfigKey} */
     let bestWeapon = items.IT_AXE; // Default weapon
     let maxPriority = 0;
 

@@ -5,6 +5,8 @@ import BaseEntity from './BaseEntity.mjs';
 import { PlayerEntity } from './Player.mjs';
 import { Sub } from './Subs.mjs';
 
+/** @typedef {{model: string, noise: string, healamount: number, items: number}} HealthItemConfiguration */
+
 // respawn times
 // - backpack: never
 // - weapon: 30s
@@ -707,8 +709,6 @@ export class SigilEntity extends BaseItemEntity {
     this.netname = 'the rune';
   }
 };
-
-/** @typedef {{model: string, noise: string, healamount: number, items: number}} HealthItemConfiguration */
 
 /**
  * QUAKED item_health (.3 .3 1) (0 0 0) (32 32 32) rotten megahealth

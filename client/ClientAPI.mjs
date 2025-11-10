@@ -1,11 +1,11 @@
-/** @typedef {typeof import('../../../engine/common/GameAPIs.mjs').ClientEngineAPI} ClientEngineAPI */
-/** @typedef {import('../../../shared/GameInterfaces').ClientGameInterface} ClientGameInterface  */
-/** @typedef {import('../../../shared/GameInterfaces').SerializableType} SerializableType */
-
 import { clientEvent, clientEventName, items } from '../Defs.mjs';
 import { weaponConfig } from '../entity/Weapons.mjs';
 import { entityRegistry } from '../GameAPI.mjs';
 import HUD from './HUD.mjs';
+
+/** @typedef {import('../../../shared/GameInterfaces').ClientEngineAPI} ClientEngineAPI  */
+/** @typedef {import('../../../shared/GameInterfaces').ClientGameInterface} ClientGameInterface  */
+/** @typedef {import('../../../shared/GameInterfaces').SerializableType} SerializableType */
 
 /** @augments ClientGameInterface */
 export class ClientGameAPI {

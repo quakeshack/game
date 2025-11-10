@@ -4,8 +4,10 @@ import { clientEvent, clientEventName, colors, contentShift, items } from '../De
 import { weaponConfig } from '../entity/Weapons.mjs';
 import { ClientGameAPI } from './ClientAPI.mjs';
 
-/** @typedef {typeof import('../../../engine/common/GameAPIs.mjs').ClientEngineAPI} ClientEngineAPI */
+/** @typedef {import('../../../shared/GameInterfaces').ClientEngineAPI} ClientEngineAPI  */
 /** @typedef {import('../../../shared/GameInterfaces').GLTexture} GLTexture */
+
+/** @typedef {import('../entity/Weapons.mjs').WeaponConfigKey} WeaponConfigKey */
 
 const backgrounds = {
   /** @type {GLTexture} */
@@ -411,8 +413,8 @@ export default class HUD {
     this.#drawFace(112, 0);
 
     // Draw current ammo
-    if (weaponConfig.has(/** @type {import('../entity/Weapons.mjs').WeaponConfigKey} */(this.game.clientdata.weapon))) {
-      const weapon = weaponConfig.get(/** @type {import('../entity/Weapons.mjs').WeaponConfigKey} */(this.game.clientdata.weapon));
+    if (weaponConfig.has(/** @type {WeaponConfigKey} */(this.game.clientdata.weapon))) {
+      const weapon = weaponConfig.get(/** @type {WeaponConfigKey} */(this.game.clientdata.weapon));
 
       if (weapon.ammoSlot) {
         this.sbar.drawPic(224, 0, ammos[weapon.ammoSlot]);

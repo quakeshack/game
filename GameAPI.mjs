@@ -26,8 +26,11 @@ import TarbabyMonsterEntity from './entity/monster/Tarbaby.mjs';
 import FishMonsterEntity from './entity/monster/Fish.mjs';
 import WizardMonsterEntity, { WizardMissile } from './entity/monster/Wizard.mjs';
 
-/** @typedef {typeof import("../../engine/common/GameAPIs.mjs").ServerEngineAPI} ServerEngineAPI */
-/** @typedef {import("../../engine/common/Cvar.mjs").default} Cvar */
+/** @typedef {import('../../shared/GameInterfaces').ServerGameInterface} ServerGameInterface */
+/** @typedef {import('../../shared/GameInterfaces').EdictData} EdictData */
+/** @typedef {import('../../shared/GameInterfaces').ServerEdict} ServerEdict */
+/** @typedef {import("../../shared/GameInterfaces").ServerEngineAPI} ServerEngineAPI */
+/** @typedef {import("../../shared/GameInterfaces").Cvar} Cvar */
 
 const featureFlags = [
   'correct-ballistic-grenades', // enables zombie gib and ogre grenade trajectory fix
@@ -226,12 +229,12 @@ class GameStats {
 
   subscribeToEvents() {
     this.engine.eventBus.subscribe('game.secret.spawned', () => { this.secrets_total++; });
-    this.engine.eventBus.subscribe('game.secret.found', (secretEntity, finderEntity) => {
+    this.engine.eventBus.subscribe('game.secret.found', (/** @type {BaseEntity} */ secretEntity, /** @type {BaseEntity} */ finderEntity) => {
       this.engine.BroadcastClientEvent(true, clientEvent.STATS_UPDATED, 'secrets_found', ++this.secrets_found, finderEntity.edict);
     });
 
     this.engine.eventBus.subscribe('game.monster.spawned', () => { this.monsters_total++; });
-    this.engine.eventBus.subscribe('game.monster.killed', (monsterEntity, attackerEntity) => {
+    this.engine.eventBus.subscribe('game.monster.killed', (/** @type {BaseEntity} */ monsterEntity, /** @type {BaseEntity} */ attackerEntity) => {
       this.engine.BroadcastClientEvent(true, clientEvent.STATS_UPDATED, 'monsters_killed', ++this.monsters_killed, attackerEntity.edict);
     });
   }
@@ -247,7 +250,6 @@ class GameStats {
   }
 };
 
-/** @typedef {import('../../shared/GameInterfaces').ServerGameInterface} ServerGameInterface */
 /** @augments ServerGameInterface */
 export class ServerGameAPI {
   /**
@@ -377,32 +379,32 @@ export class ServerGameAPI {
     this.framecount++;
   }
 
-  PlayerPreThink(clientEdict) {
+  PlayerPreThink(/** @type {ServerEdict} */ clientEdict) {
     const playerEntity = /** @type {PlayerEntity} */(clientEdict.entity);
     playerEntity.playerPreThink();
   }
 
-  PlayerPostThink(clientEdict) {
+  PlayerPostThink(/** @type {ServerEdict} */ clientEdict) {
     const playerEntity = /** @type {PlayerEntity} */(clientEdict.entity);
     playerEntity.playerPostThink();
   }
 
-  ClientConnect(clientEdict) {
+  ClientConnect(/** @type {ServerEdict} */ clientEdict) {
     const playerEntity = /** @type {PlayerEntity} */(clientEdict.entity);
     playerEntity.connected();
   }
 
-  ClientDisconnect(clientEdict) {
+  ClientDisconnect(/** @type {ServerEdict} */ clientEdict) {
     const playerEntity = /** @type {PlayerEntity} */(clientEdict.entity);
     playerEntity.disconnected();
   }
 
-  ClientKill(clientEdict) {
+  ClientKill(/** @type {ServerEdict} */ clientEdict) {
     const playerEntity = /** @type {PlayerEntity} */(clientEdict.entity);
     playerEntity.suicide();
   }
 
-  PutClientInServer(clientEdict) {
+  PutClientInServer(/** @type {ServerEdict} */ clientEdict) {
     const playerEntity = /** @type {PlayerEntity} */(clientEdict.entity);
     playerEntity.putPlayerInServer();
   }
@@ -474,6 +476,12 @@ export class ServerGameAPI {
     }
   }
 
+  /**
+   * @param {ServerEdict} edict edict to be prepared
+   * @param {string} classname entity classname
+   * @param {EdictData} initialData key-value initial data coming from the map
+   * @returns {boolean} true if the entity was successfully prepared
+   */
   prepareEntity(edict, classname, initialData = {}) {
     if (!entityRegistry.has(classname)) {
       this.engine.ConsoleWarning(`ServerGameAPI.prepareEntity: no entity factory for ${classname}!\n`);
@@ -484,7 +492,7 @@ export class ServerGameAPI {
 
     // spawnflags (control whether to spawn an entity or not)
     {
-      const sflags = initialData.spawnflags || 0;
+      const sflags = +initialData.spawnflags || 0;
 
       if (this.deathmatch && (sflags & spawnflags.SPAWNFLAG_NOT_DEATHMATCH)) { // no spawn in deathmatch
         return false;
@@ -511,6 +519,10 @@ export class ServerGameAPI {
     return true;
   }
 
+  /**
+   * @param {ServerEdict} edict edict to be prepared
+   * @returns {boolean} true if the entity was successfully spawned
+   */
   spawnPreparedEntity(edict) {
     if (!edict.entity) {
       this.engine.ConsoleError('ServerGameAPI.prepareEntity: no entity class instance set!\n');

@@ -4,6 +4,7 @@ import { damage, moveType, solid, range, colors, flags } from '../../Defs.mjs';
 import { EntityAI, ATTACK_STATE } from '../../helper/AI.mjs';
 import BaseEntity from '../BaseEntity.mjs';
 import { BackpackEntity } from '../Items.mjs';
+import { PathCornerEntity } from '../Misc.mjs';
 import { GibEntity } from '../Player.mjs';
 import { Sub } from '../Subs.mjs';
 import { DamageHandler } from '../Weapons.mjs';
@@ -310,7 +311,7 @@ export default class BaseMonster extends BaseEntity {
 
   /**
    * Currently only called by path_corner when touched and certain checks passed.
-   * @param {import('../Misc.mjs').PathCornerEntity} markerEntity marker entity
+   * @param {PathCornerEntity} markerEntity marker entity
    * @returns {boolean} true, if next target was found
    */
   moveTargetReached(markerEntity) {

@@ -1,5 +1,8 @@
-import { ServerEngineAPI } from '../../../engine/common/GameAPIs.mjs';
 import Vector from '../../../shared/Vector.mjs';
+
+/** @typedef {import('../../../shared/GameInterfaces').ServerEngineAPI} ServerEngineAPI */
+/** @typedef {import('../GameAPI.mjs').ServerGameAPI} ServerGameAPI */
+/** @typedef {import('../entity/BaseEntity.mjs').default} BaseEntity */
 
 /**
  * ported directly from QuakeC (weapons.qc/crandom)
@@ -78,7 +81,7 @@ export class Flag {
   }
 };
 
-/** @template {import('../entity/BaseEntity.mjs').default} T */
+/** @template {BaseEntity} T */
 export class EntityWrapper {
   /**
    * @param {T} entity wrapped entity
@@ -98,7 +101,7 @@ export class EntityWrapper {
   }
 
   /**
-   * @returns {import('../GameAPI.mjs').ServerGameAPI} game API
+   * @returns {ServerGameAPI} game API
    * @protected
    */
   get _game() {
@@ -106,7 +109,7 @@ export class EntityWrapper {
   }
 
   /**
-   * @returns {typeof ServerEngineAPI} engine API
+   * @returns {ServerEngineAPI} engine API
    * @protected
    */
   get _engine() {
@@ -135,7 +138,7 @@ export class Serializer { // TODO: move to shared
 
   /**
    * @param {object} object object to serialize
-   * @param {typeof ServerEngineAPI} engine Server Engine API
+   * @param {ServerEngineAPI} engine Server Engine API
    */
   constructor(object, engine) {
     /** @private */
@@ -296,7 +299,7 @@ export class Serializer { // TODO: move to shared
 
   /**
    * @param {object} object object to serialize
-   * @param {typeof ServerEngineAPI} engine Server Engine API
+   * @param {ServerEngineAPI} engine Server Engine API
    * @param {?string[]} fields fields to serialize, if null, all fields are serialized
    * @returns {Serializer} serializer instance
    */

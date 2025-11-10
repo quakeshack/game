@@ -3,6 +3,8 @@ import { PlayerEntity } from './Player.mjs';
 
 import { Precache as WeaponsPrecache } from './Weapons.mjs';
 
+/** @typedef {import("../GameAPI.mjs").ServerGameAPI} ServerGameAPI */
+
 export class BodyqueEntity extends BaseEntity {
   static classname = 'bodyque';
 
@@ -17,7 +19,7 @@ export class BodyqueEntity extends BaseEntity {
 };
 
 /**
- * @param {import("../GameAPI.mjs").ServerGameAPI} game gameAPI
+ * @param {ServerGameAPI} game gameAPI
  */
 function InitBodyQue(game) {
   game.bodyque_head = /** @type {BodyqueEntity} */(game.engine.SpawnEntity(BodyqueEntity.classname));
@@ -33,7 +35,7 @@ function InitBodyQue(game) {
 
 /**
  * copies entity to the body que
- * @param {import("../GameAPI.mjs").ServerGameAPI} game gameAPI
+ * @param {ServerGameAPI} game gameAPI
  * @param {PlayerEntity} entity entity to be copied
  */
 export function CopyToBodyQue(game, entity) {

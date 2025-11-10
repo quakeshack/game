@@ -6,7 +6,9 @@ import { damage, dead, flags, moveType, solid, content, attn } from '../Defs.mjs
 import { ServerGameAPI } from '../GameAPI.mjs';
 import { Serializer } from '../helper/MiscHelpers.mjs';
 
-/** @typedef {import('../../../engine/server/Edict.mjs').ServerEdict} ServerEdict */
+/** @typedef {import('../../../shared/GameInterfaces').ParsedQC} ParsedQC */
+/** @typedef {import('../../../shared/GameInterfaces').ServerEdict} ServerEdict */
+/** @typedef {import('../../../shared/GameInterfaces').ServerEngineAPI} ServerEngineAPI */
 
 class ScheduledThink {
   /**
@@ -25,8 +27,6 @@ class ScheduledThink {
     this._serializer.endFields();
   }
 };
-
-/** @typedef {typeof BaseEntity} BaseEntityType */
 
 /**
  * @access package
@@ -166,7 +166,7 @@ export default class BaseEntity {
     this._precache();
   }
 
-  /** @type {import('source/engine/common/GameAPIs.mjs').ParsedQC|null} model data parsed from QC */
+  /** @type {ParsedQC|null} model data parsed from QC */
   static _modelData = null;
 
   /** @type {string|null} QuakeC model definition (optional) */
@@ -211,7 +211,7 @@ export default class BaseEntity {
    * You can use resources without precaching, but it will lead to artifacts and missing sounds during gameplay.
    *
    * This is called during loading the game independent of this entity ever being spawned. Meant for dynamic entities that can be spawned at any time.
-   * @param {import('../GameAPI.mjs').ServerEngineAPI} engineAPI server game API
+   * @param {ServerEngineAPI} engineAPI server game API
    * @access package
    */
   // eslint-disable-next-line no-unused-vars
@@ -222,7 +222,7 @@ export default class BaseEntity {
   /**
    * Parses model QC data into model data so it’s available for the state machine.
    * @access package
-   * @param {import('../GameAPI.mjs').ServerEngineAPI} engineAPI server game API
+   * @param {ServerEngineAPI} engineAPI server game API
    */
   static _parseModelData(engineAPI) {
     if (this._modelQC) {
