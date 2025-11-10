@@ -702,7 +702,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
       ammo_shells: this.ammo_shells,
       regeneration_time: 0, // do not regenerate
       remove_after: 120, // remove after 120s
-    }));
+    }).entity);
 
     this.ammo_cells = 0;
     this.ammo_nails = 0;

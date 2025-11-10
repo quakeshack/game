@@ -22,12 +22,12 @@ export class BodyqueEntity extends BaseEntity {
  * @param {ServerGameAPI} game gameAPI
  */
 function InitBodyQue(game) {
-  game.bodyque_head = /** @type {BodyqueEntity} */(game.engine.SpawnEntity(BodyqueEntity.classname));
+  game.bodyque_head = /** @type {BodyqueEntity} */(game.engine.SpawnEntity(BodyqueEntity.classname).entity);
 
   let current = game.bodyque_head;
 
   for (let i = 0; i < 5; i++, current = /** @type {BodyqueEntity} */(current.owner)) {
-    current.owner = /** @type {BodyqueEntity} */(game.engine.SpawnEntity(BodyqueEntity.classname));
+    current.owner = /** @type {BodyqueEntity} */(game.engine.SpawnEntity(BodyqueEntity.classname).entity);
   }
 
   current.owner = game.bodyque_head;

@@ -747,7 +747,7 @@ export class TrapSpikeshooterEntity extends BaseEntity {
   // eslint-disable-next-line no-unused-vars
   use(usedByEntity) {
     if (this.spawnflags & TrapSpikeshooterEntity.SPAWNFLAG_LASER) {
-      const laser = this.engine.SpawnEntity(Laser.classname, { owner: this, origin: this.origin });
+      const laser = /** @type {Laser} */ (this.engine.SpawnEntity(Laser.classname, { owner: this, origin: this.origin }).entity);
       laser.effects |= effect.EF_MUZZLEFLASH;
     } else {
       this.startSound(channel.CHAN_VOICE, 'weapons/spike2.wav');
@@ -827,7 +827,7 @@ export class BubbleSpawnerEntity extends BaseEntity {
       origin: entity.origin.copy().add('view_ofs' in entity && entity.view_ofs instanceof Vector ? entity.view_ofs : Vector.origin),
       bubble_count: bubbles,
       spread: 5,
-    }));
+    }).entity);
   }
 };
 

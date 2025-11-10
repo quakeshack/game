@@ -51,7 +51,7 @@ export class BaseDoorEntity extends BasePropEntity {
       owner: this,
       mins,
       maxs,
-    }));
+    }).entity);
   }
 
   /**

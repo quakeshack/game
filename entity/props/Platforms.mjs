@@ -56,7 +56,7 @@ export class PlatformEntity extends BasePropEntity {
   }
 
   _spawnInsideTrigger() {
-    this._trigger = this.engine.SpawnEntity(PlatformTriggerEntity.classname, { owner: this });
+    this._trigger = /** @type {PlatformTriggerEntity} */ (this.engine.SpawnEntity(PlatformTriggerEntity.classname, { owner: this }).entity);
   }
 
   _hitBottom() {

@@ -352,7 +352,7 @@ export default class BaseMonster extends BaseEntity {
       regeneration_time: 0, // do not regenerate
       remove_after: 120, // remove after 2 minutes
       ...backpackParameters,
-    }));
+    }).entity);
 
     // toss it around
     backpack.toss();

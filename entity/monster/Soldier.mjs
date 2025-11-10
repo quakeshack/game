@@ -1,6 +1,6 @@
 import Vector from '../../../../shared/Vector.mjs';
 
-import { attn, channel, flags, solid } from '../../Defs.mjs';
+import { attn, channel, effect, flags, solid } from '../../Defs.mjs';
 import { QuakeEntityAI } from '../../helper/AI.mjs';
 import { DamageInflictor, Laser } from '../Weapons.mjs';
 import { WalkMonster } from './BaseMonster.mjs';
@@ -497,7 +497,7 @@ $frame paind17 paind18 paind19
   }
 
   fire() { // QuakeC: enforcer.qc/enforcer_fire
-    this.effects |= flags.EF_MUZZLEFLASH;
+    this.effects |= effect.EF_MUZZLEFLASH;
 
     const { forward, right } = this.angles.angleVectors();
 
@@ -508,7 +508,7 @@ $frame paind17 paind18 paind19
 
     this.movedir.set(movedir);
 
-    const laser = this.engine.SpawnEntity(Laser.classname, { owner: this });
+    const laser = /** @type {Laser} */ (this.engine.SpawnEntity(Laser.classname, { owner: this }).entity);
     laser.setOrigin(org);
   }
 
