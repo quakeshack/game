@@ -1,30 +1,30 @@
 
-import { GibEntity, InfoPlayerStart, InfoPlayerStart2, InfoPlayerStartCoop, InfoPlayerStartDeathmatch, PlayerEntity, qc as playerModelQC, TelefragTriggerEntity } from './entity/Player.mjs';
+import { GibEntity, InfoPlayerStart, InfoPlayerStart2, InfoPlayerStartCoop, InfoPlayerStartDeathmatch, PlayerEntity, TelefragTriggerEntity } from './entity/Player.mjs';
 import { BodyqueEntity, WorldspawnEntity } from './entity/Worldspawn.mjs';
 import { clientEvent, spawnflags } from './Defs.mjs';
 import * as misc from './entity/Misc.mjs';
 import * as door from './entity/props/Doors.mjs';
 import * as platform from './entity/props/Platforms.mjs';
 import * as trigger from './entity/Triggers.mjs';
-import { ArmySoldierMonster, ArmyEnforcerMonster, qc as soldierModelQCs } from './entity/monster/Soldier.mjs';
+import { ArmySoldierMonster, ArmyEnforcerMonster } from './entity/monster/Soldier.mjs';
 import { GameAI } from './helper/AI.mjs';
 import * as sub from './entity/Subs.mjs';
 import { ButtonEntity } from './entity/props/Buttons.mjs';
 import * as item from './entity/Items.mjs';
 import BaseEntity from './entity/BaseEntity.mjs';
 import * as weapon from './entity/Weapons.mjs';
-import DogMonsterEntity, { qc as dogModelQC } from './entity/monster/Dog.mjs';
+import DogMonsterEntity from './entity/monster/Dog.mjs';
 import { Serializer } from './helper/MiscHelpers.mjs';
-import DemonMonster, { qc as demonModelQC } from './entity/monster/Demon.mjs';
+import DemonMonster from './entity/monster/Demon.mjs';
 import { MeatSprayEntity } from './entity/monster/BaseMonster.mjs';
-import ZombieMonster, { ZombieGibGrenade, qc as zombieModelQC } from './entity/monster/Zombie.mjs';
-import { KnightMonster, HellKnightMonster, qc as knightModelQCs, KnightSpike } from './entity/monster/Knights.mjs';
-import OgreMonsterEntity, { qc as ogreModelQC } from './entity/monster/Ogre.mjs';
-import ShalrathMonsterEntity, { ShalrathMissileEntity, qc as shalrathModelQC } from './entity/monster/Shalrath.mjs';
-import ShamblerMonsterEntity, { qc as shamblerModelQC } from './entity/monster/Shambler.mjs';
-import TarbabyMonsterEntity, { qc as tbabyModelQC } from './entity/monster/Tarbaby.mjs';
-import FishMonsterEntity, { qc as fishQC } from './entity/monster/Fish.mjs';
-import WizardMonsterEntity, { WizardMissile, qc as wizardQC } from './entity/monster/Wizard.mjs';
+import ZombieMonster, { ZombieGibGrenade } from './entity/monster/Zombie.mjs';
+import { KnightMonster, HellKnightMonster, KnightSpike } from './entity/monster/Knights.mjs';
+import OgreMonsterEntity from './entity/monster/Ogre.mjs';
+import ShalrathMonsterEntity, { ShalrathMissileEntity } from './entity/monster/Shalrath.mjs';
+import ShamblerMonsterEntity from './entity/monster/Shambler.mjs';
+import TarbabyMonsterEntity from './entity/monster/Tarbaby.mjs';
+import FishMonsterEntity from './entity/monster/Fish.mjs';
+import WizardMonsterEntity, { WizardMissile } from './entity/monster/Wizard.mjs';
 
 /** @typedef {typeof import("../../engine/common/GameAPIs.mjs").ServerEngineAPI} ServerEngineAPI */
 /** @typedef {import("../../engine/common/Cvar.mjs").default} Cvar */
@@ -315,24 +315,6 @@ export class ServerGameAPI {
     /** @type {?BodyqueEntity} holds the dead player body chain */
     this.bodyque_head = null;
 
-    /** @type {Record<string, import('../../shared/GameInterfaces').ParsedQC>} */
-    this._modelData = { // FIXME: I’m not happy about this, this needs to be next to models, I should put QC inside the entity classes and make them wire up there, it’s also only relevant for the state machine
-      'progs/soldier.mdl': engineAPI.ParseQC(soldierModelQCs.solider),
-      'progs/enforcer.mdl': engineAPI.ParseQC(soldierModelQCs.enforcer),
-      'progs/player.mdl': engineAPI.ParseQC(playerModelQC),
-      'progs/dog.mdl': engineAPI.ParseQC(dogModelQC),
-      'progs/demon.mdl': engineAPI.ParseQC(demonModelQC),
-      'progs/zombie.mdl': engineAPI.ParseQC(zombieModelQC),
-      'progs/knight.mdl': engineAPI.ParseQC(knightModelQCs.knight),
-      'progs/hknight.mdl': engineAPI.ParseQC(knightModelQCs.hellKnight),
-      'progs/ogre.mdl': engineAPI.ParseQC(ogreModelQC),
-      'progs/shalrath.mdl': engineAPI.ParseQC(shalrathModelQC),
-      'progs/shambler.mdl': engineAPI.ParseQC(shamblerModelQC),
-      'progs/tarbaby.mdl': engineAPI.ParseQC(tbabyModelQC),
-      'progs/fish.mdl': engineAPI.ParseQC(fishQC),
-      'progs/wizard.mdl': engineAPI.ParseQC(wizardQC),
-    };
-
     /** @private */
     this._missingEntityClassStats = {};
 
@@ -343,7 +325,6 @@ export class ServerGameAPI {
       gravity: engineAPI.GetCvar('sv_gravity'),
     };
 
-    Object.seal(this._modelData);
     Object.seal(this._cvars);
     Object.seal(this);
   }
@@ -488,8 +469,7 @@ export class ServerGameAPI {
     this.engine.PlayTrack(3, 3); // TODO: client responsibility
 
     for (const player of this.engine.FindAllByFieldAndValue('classname', PlayerEntity.classname)) {
-      /** @type {PlayerEntity} */
-      const playerEntity = player.entity;
+      const playerEntity = /** @type {PlayerEntity} */(player.entity);
       playerEntity.startIntermission();
     }
   }
@@ -543,6 +523,7 @@ export class ServerGameAPI {
   }
 
   getClientEntityFields() {
+    /** @type {Record<string, string[]>} */
     const clientEntityFields = {};
 
     for (const [classname, entityClass] of entityRegistry) {
@@ -594,6 +575,7 @@ export class ServerGameAPI {
 
     // initialize all entity classes
     for (const entityClass of entityRegistry.values()) {
+      entityClass._parseModelData(ServerEngineAPI);
       entityClass._initStates();
     }
   }

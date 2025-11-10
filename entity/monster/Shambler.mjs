@@ -6,7 +6,17 @@ import { LightGlobeDynamicEntity } from '../Misc.mjs';
 import { DamageInflictor } from '../Weapons.mjs';
 import { MeatSprayEntity, WalkMonster } from './BaseMonster.mjs';
 
-export const qc = `
+/**
+ * QUAKED monster_shambler (1 0 0) (-32 -32 -24) (32 32 64) Ambush
+ */
+export default class ShamblerMonsterEntity extends WalkMonster {
+  static classname = 'monster_shambler';
+  static _health = 600;
+  static _size = [new Vector(-32.0, -32.0, -24.0), new Vector(32.0, 32.0, 64.0)];
+  static _modelDefault = 'progs/shambler.mdl';
+  static _modelHead = 'progs/h_shams.mdl';
+
+  static _modelQC = `
 $cd id1/models/shams
 $origin 0 0 24
 $base base
@@ -37,16 +47,6 @@ $frame pain1 pain2 pain3 pain4 pain5 pain6
 $frame death1 death2 death3 death4 death5 death6
 $frame death7 death8 death9 death10 death11
 `;
-
-/**
- * QUAKED monster_shambler (1 0 0) (-32 -32 -24) (32 32 64) Ambush
- */
-export default class ShamblerMonsterEntity extends WalkMonster {
-  static classname = 'monster_shambler';
-  static _health = 600;
-  static _size = [new Vector(-32.0, -32.0, -24.0), new Vector(32.0, 32.0, 64.0)];
-  static _modelDefault = 'progs/shambler.mdl';
-  static _modelHead = 'progs/h_shams.mdl';
 
   get netname() {
     return 'a Shambler';

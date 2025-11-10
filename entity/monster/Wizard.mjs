@@ -5,7 +5,22 @@ import BaseMonster, { FlyMonster } from './BaseMonster.mjs';
 import { attn, channel, effect, flags, range, solid, tentType } from '../../Defs.mjs';
 import { PlayerEntity } from '../Player.mjs';
 
-export const qc = `
+/**
+ * QUAKED monster_wizard (1 0 0) (-16 -16 -24) (16 16 40) Ambush
+ *
+ * If the player moves behind cover before the missile is launched, launch it
+ * at the last visible spot with no velocity leading, in hopes that the player
+ * will duck back out and catch it.
+ */
+export default class WizardMonsterEntity extends FlyMonster {
+  static classname = 'monster_wizard';
+  static _health = 25;
+  static _size = [new Vector(-16.0, -16.0, -24.0), new Vector(16.0, 16.0, 40.0)];
+
+  static _modelDefault = 'progs/wizard.mdl';
+
+  static _modelQC =
+  `
 $cd id1/models/a_wizard
 $origin 0 0 24
 $base wizbase
@@ -24,20 +39,6 @@ $frame pain1 pain2 pain3 pain4
 
 $frame death1 death2 death3 death4 death5 death6 death7 death8
 `;
-
-/**
- * QUAKED monster_wizard (1 0 0) (-16 -16 -24) (16 16 40) Ambush
- *
- * If the player moves behind cover before the missile is launched, launch it
- * at the last visible spot with no velocity leading, in hopes that the player
- * will duck back out and catch it.
- */
-export default class WizardMonsterEntity extends FlyMonster {
-  static classname = 'monster_wizard';
-  static _health = 25;
-  static _size = [new Vector(-16.0, -16.0, -24.0), new Vector(16.0, 16.0, 40.0)];
-
-  static _modelDefault = 'progs/wizard.mdl';
 
   get netname() {
     return 'a Scrag';

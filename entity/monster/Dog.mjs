@@ -5,7 +5,16 @@ import { ATTACK_STATE, QuakeEntityAI } from '../../helper/AI.mjs';
 import BaseEntity from '../BaseEntity.mjs';
 import { WalkMonster } from './BaseMonster.mjs';
 
-export const qc = `
+export default class DogMonsterEntity extends WalkMonster {
+  static classname = 'monster_dog';
+
+  static _health = 25;
+  static _size = [new Vector(-32.0, -32.0, -24.0), new Vector(32.0, 32.0, 40.0)];
+
+  static _modelDefault = 'progs/dog.mdl';
+  static _modelHead = 'progs/h_dog.mdl';
+
+  static _modelQC = `
 $cd id1/models/dog
 $origin 0 0 24
 $base base
@@ -31,15 +40,6 @@ $frame stand1 stand2 stand3 stand4 stand5 stand6 stand7 stand8 stand9
 
 $frame walk1 walk2 walk3 walk4 walk5 walk6 walk7 walk8
 `;
-
-export default class DogMonsterEntity extends WalkMonster {
-  static classname = 'monster_dog';
-
-  static _health = 25;
-  static _size = [new Vector(-32.0, -32.0, -24.0), new Vector(32.0, 32.0, 40.0)];
-
-  static _modelDefault = 'progs/dog.mdl';
-  static _modelHead = 'progs/h_dog.mdl';
 
   get netname() {
     return 'a Rottweiler';

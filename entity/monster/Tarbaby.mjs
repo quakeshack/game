@@ -5,7 +5,14 @@ import { QuakeEntityAI } from '../../helper/AI.mjs';
 import { DamageInflictor } from '../Weapons.mjs';
 import { WalkMonster } from './BaseMonster.mjs';
 
-export const qc = `
+export default class TarbabyMonsterEntity extends WalkMonster {
+  static classname = 'monster_tarbaby';
+
+  static _modelDefault = 'progs/tarbaby.mdl';
+  static _health = 80;
+  static _size = [new Vector(-16.0, -16.0, -24.0), new Vector(16.0, 16.0, 40.0)];
+
+  static _modelQC = `
 $cd id1/models/tarbaby
 $origin 0 0 24
 $base base
@@ -26,13 +33,6 @@ $frame fly1 fly2 fly3 fly4
 
 $frame exp
 `;
-
-export default class TarbabyMonsterEntity extends WalkMonster {
-  static classname = 'monster_tarbaby';
-
-  static _modelDefault = 'progs/tarbaby.mdl';
-  static _health = 80;
-  static _size = [new Vector(-16.0, -16.0, -24.0), new Vector(16.0, 16.0, 40.0)];
 
   _precache() {
     super._precache();

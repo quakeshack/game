@@ -12,8 +12,70 @@ import { CopyToBodyQue } from './Worldspawn.mjs';
 
 /** @typedef {import('../../../shared/GameInterfaces').PlayerEntitySpawnParamsDynamic} PlayerEntitySpawnParamsDynamic */
 
-export const qc = `
+/**
+ *
+ * @param {number} damage damage taken
+ * @returns {Vector} velocity vector based on damage
+ */
+function VelocityForDamage(damage) {
+  const v = new Vector(100.0 * crandom(), 100.0 * crandom(), 100.0 * crandom() + 200.0);
 
+  if (damage > -50) {
+    v.multiply(0.7);
+  } else if (damage > -200) {
+    v.multiply(2.0);
+  } else {
+    v.multiply(10.0);
+  }
+
+  return v;
+};
+
+/**
+ * QUAKED info_player_start (1 0 0) (-16 -16 -24) (16 16 24)
+ * The normal starting point for a level.
+ */
+export class InfoPlayerStart extends InfoNotNullEntity {
+  static classname = 'info_player_start';
+};
+
+/**
+ * QUAKED info_player_start2 (1 0 0) (-16 -16 -24) (16 16 24)
+ * Only used on start map for the return point from an episode.
+ */
+export class InfoPlayerStart2 extends InfoNotNullEntity {
+  static classname = 'info_player_start2';
+};
+
+/**
+ * Saved out by quaked in region mode.
+ * Details: https://quakewiki.org/wiki/testplayerstart
+ */
+export class InfoPlayerStartTest extends InfoNotNullEntity {
+  static classname = 'testplayerstart';
+};
+
+/**
+ * QUAKED info_player_deathmatch (1 0 1) (-16 -16 -24) (16 16 24)
+ * potential spawning position for deathmatch games
+ */
+export class InfoPlayerStartDeathmatch extends InfoNotNullEntity {
+  static classname = 'info_player_deathmatch';
+};
+
+/**
+ * QUAKED info_player_coop (1 0 1) (-16 -16 -24) (16 16 24)
+ * potential spawning position for coop games
+ */
+export class InfoPlayerStartCoop extends InfoNotNullEntity {
+  static classname = 'info_player_coop';
+};
+
+/** @mixes PlayerEntitySpawnParamsDynamic */
+export class PlayerEntity extends BaseEntity {
+  static classname = 'player';
+
+  static _modelQC = `
 $cd id1/models/player_4
 $origin 0 -6 24
 $base base
@@ -84,69 +146,6 @@ $frame axattc1 axattc2 axattc3 axattc4 axattc5 axattc6
 
 $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
 `;
-
-/**
- *
- * @param {number} damage damage taken
- * @returns {Vector} velocity vector based on damage
- */
-function VelocityForDamage(damage) {
-  const v = new Vector(100.0 * crandom(), 100.0 * crandom(), 100.0 * crandom() + 200.0);
-
-  if (damage > -50) {
-    v.multiply(0.7);
-  } else if (damage > -200) {
-    v.multiply(2.0);
-  } else {
-    v.multiply(10.0);
-  }
-
-  return v;
-};
-
-/**
- * QUAKED info_player_start (1 0 0) (-16 -16 -24) (16 16 24)
- * The normal starting point for a level.
- */
-export class InfoPlayerStart extends InfoNotNullEntity {
-  static classname = 'info_player_start';
-};
-
-/**
- * QUAKED info_player_start2 (1 0 0) (-16 -16 -24) (16 16 24)
- * Only used on start map for the return point from an episode.
- */
-export class InfoPlayerStart2 extends InfoNotNullEntity {
-  static classname = 'info_player_start2';
-};
-
-/**
- * Saved out by quaked in region mode.
- * Details: https://quakewiki.org/wiki/testplayerstart
- */
-export class InfoPlayerStartTest extends InfoNotNullEntity {
-  static classname = 'testplayerstart';
-};
-
-/**
- * QUAKED info_player_deathmatch (1 0 1) (-16 -16 -24) (16 16 24)
- * potential spawning position for deathmatch games
- */
-export class InfoPlayerStartDeathmatch extends InfoNotNullEntity {
-  static classname = 'info_player_deathmatch';
-};
-
-/**
- * QUAKED info_player_coop (1 0 1) (-16 -16 -24) (16 16 24)
- * potential spawning position for coop games
- */
-export class InfoPlayerStartCoop extends InfoNotNullEntity {
-  static classname = 'info_player_coop';
-};
-
-/** @mixes PlayerEntitySpawnParamsDynamic */
-export class PlayerEntity extends BaseEntity {
-  static classname = 'player';
 
   static clientdataFields = [
     'items',

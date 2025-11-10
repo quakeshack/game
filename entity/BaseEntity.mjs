@@ -166,6 +166,13 @@ export default class BaseEntity {
     this._precache();
   }
 
+  /** @type {import('source/engine/common/GameAPIs.mjs').ParsedQC|null} model data parsed from QC */
+  static _modelData = null;
+
+  /** @type {string|null} QuakeC model definition (optional) */
+  static _modelQC = null;
+
+  /** @type {Record<string, {keyframe: ?string|number, nextState: ?string, handler: ?Function}>|null} state machine definition */
   static _states = null;
 
   /** @returns {number} volume */
@@ -210,6 +217,18 @@ export default class BaseEntity {
   // eslint-disable-next-line no-unused-vars
   static _precache(engineAPI) {
     // engineAPI.PrecacheModel('models/box.mdl');
+  }
+
+  /**
+   * Parses model QC data into model data so it’s available for the state machine.
+   * @access package
+   * @param {import('../GameAPI.mjs').ServerEngineAPI} engineAPI server game API
+   */
+  static _parseModelData(engineAPI) {
+    if (this._modelQC) {
+      this._modelData = engineAPI.ParseQC(this._modelQC);
+      Object.freeze(this._modelData);
+    }
   }
 
   /**
@@ -274,7 +293,7 @@ export default class BaseEntity {
     // - set nextthink
     // - execute the rest
 
-    const animation = this.game._modelData[this.model];
+    const animation = /** @type {typeof BaseEntity} */(this.constructor)._modelData;
 
     if (typeof (data.keyframe) === 'number') {
       this.frame = data.keyframe;
@@ -284,7 +303,7 @@ export default class BaseEntity {
 
       if (frame) {
         this.frame = frame;
-        this.keyframe = data.keyframe;
+        this.keyframe = +data.keyframe;
       }
 
       // // set frame2 for linear interpolation between frames (CR: not thought out yet)

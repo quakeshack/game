@@ -5,8 +5,19 @@ import { QuakeEntityAI } from '../../helper/AI.mjs';
 import { BaseSpike } from '../Weapons.mjs';
 import { WalkMonster } from './BaseMonster.mjs';
 
-export const qc = {
-  knight:`
+/**
+ * QUAKED monster_knight (1 0 0) (-16 -16 -24) (16 16 40) Ambush
+ */
+export class KnightMonster extends WalkMonster {
+  static classname = 'monster_knight';
+
+  static _health = 75;
+  static _size = [new Vector(-16.0, -16.0, -24.0), new Vector(16.0, 16.0, 40.0)];
+
+  static _modelDefault = 'progs/knight.mdl';
+  static _modelHead = 'progs/h_knight.mdl';
+
+  static _modelQC = `
 $cd id1/models/knight
 $origin 0 0 24
 $base base
@@ -45,66 +56,7 @@ $frame death9 death10
 
 $frame deathb1 deathb2 deathb3 deathb4 deathb5 deathb6 deathb7 deathb8
 $frame deathb9 deathb10 deathb11
-`,
-  hellKnight: `
-$cd id1/models/knight2
-$origin 0 0 24
-$base base
-$skin skin
-
-$frame stand1 stand2 stand3 stand4 stand5 stand6 stand7 stand8 stand9
-
-$frame walk1 walk2 walk3 walk4 walk5 walk6 walk7 walk8 walk9
-$frame walk10 walk11 walk12 walk13 walk14 walk15 walk16 walk17
-$frame walk18 walk19 walk20
-
-$frame run1 run2 run3 run4 run5 run6 run7 run8
-
-$frame pain1 pain2 pain3 pain4 pain5
-
-$frame death1 death2 death3 death4 death5 death6 death7 death8
-$frame death9 death10 death11 death12
-
-$frame deathb1 deathb2 deathb3 deathb4 deathb5 deathb6 deathb7 deathb8
-$frame deathb9
-
-$frame char_a1 char_a2 char_a3 char_a4 char_a5 char_a6 char_a7 char_a8
-$frame char_a9 char_a10 char_a11 char_a12 char_a13 char_a14 char_a15 char_a16
-
-$frame magica1 magica2 magica3 magica4 magica5 magica6 magica7 magica8
-$frame magica9 magica10 magica11 magica12 magica13 magica14
-
-$frame magicb1 magicb2 magicb3 magicb4 magicb5 magicb6 magicb7 magicb8
-$frame magicb9 magicb10 magicb11 magicb12 magicb13
-
-$frame char_b1 char_b2 char_b3 char_b4 char_b5 char_b6
-
-$frame slice1 slice2 slice3 slice4 slice5 slice6 slice7 slice8 slice9 slice10
-
-$frame smash1 smash2 smash3 smash4 smash5 smash6 smash7 smash8 smash9 smash10
-$frame smash11
-
-$frame w_attack1 w_attack2 w_attack3 w_attack4 w_attack5 w_attack6 w_attack7
-$frame w_attack8 w_attack9 w_attack10 w_attack11 w_attack12 w_attack13 w_attack14
-$frame w_attack15 w_attack16 w_attack17 w_attack18 w_attack19 w_attack20
-$frame w_attack21 w_attack22
-
-$frame magicc1 magicc2 magicc3 magicc4 magicc5 magicc6 magicc7 magicc8
-$frame magicc9 magicc10 magicc11
-`,
-};
-
-/**
- * QUAKED monster_knight (1 0 0) (-16 -16 -24) (16 16 40) Ambush
- */
-export class KnightMonster extends WalkMonster {
-  static classname = 'monster_knight';
-
-  static _health = 75;
-  static _size = [new Vector(-16.0, -16.0, -24.0), new Vector(16.0, 16.0, 40.0)];
-
-  static _modelDefault = 'progs/knight.mdl';
-  static _modelHead = 'progs/h_knight.mdl';
+`;
 
   get netname() {
     return 'a Knight';
@@ -360,6 +312,53 @@ export class HellKnightMonster extends KnightMonster {
 
   static _modelDefault = 'progs/hknight.mdl';
   static _modelHead = 'progs/h_hellkn.mdl';
+
+  static _modelQC = `
+$cd id1/models/knight2
+$origin 0 0 24
+$base base
+$skin skin
+
+$frame stand1 stand2 stand3 stand4 stand5 stand6 stand7 stand8 stand9
+
+$frame walk1 walk2 walk3 walk4 walk5 walk6 walk7 walk8 walk9
+$frame walk10 walk11 walk12 walk13 walk14 walk15 walk16 walk17
+$frame walk18 walk19 walk20
+
+$frame run1 run2 run3 run4 run5 run6 run7 run8
+
+$frame pain1 pain2 pain3 pain4 pain5
+
+$frame death1 death2 death3 death4 death5 death6 death7 death8
+$frame death9 death10 death11 death12
+
+$frame deathb1 deathb2 deathb3 deathb4 deathb5 deathb6 deathb7 deathb8
+$frame deathb9
+
+$frame char_a1 char_a2 char_a3 char_a4 char_a5 char_a6 char_a7 char_a8
+$frame char_a9 char_a10 char_a11 char_a12 char_a13 char_a14 char_a15 char_a16
+
+$frame magica1 magica2 magica3 magica4 magica5 magica6 magica7 magica8
+$frame magica9 magica10 magica11 magica12 magica13 magica14
+
+$frame magicb1 magicb2 magicb3 magicb4 magicb5 magicb6 magicb7 magicb8
+$frame magicb9 magicb10 magicb11 magicb12 magicb13
+
+$frame char_b1 char_b2 char_b3 char_b4 char_b5 char_b6
+
+$frame slice1 slice2 slice3 slice4 slice5 slice6 slice7 slice8 slice9 slice10
+
+$frame smash1 smash2 smash3 smash4 smash5 smash6 smash7 smash8 smash9 smash10
+$frame smash11
+
+$frame w_attack1 w_attack2 w_attack3 w_attack4 w_attack5 w_attack6 w_attack7
+$frame w_attack8 w_attack9 w_attack10 w_attack11 w_attack12 w_attack13 w_attack14
+$frame w_attack15 w_attack16 w_attack17 w_attack18 w_attack19 w_attack20
+$frame w_attack21 w_attack22
+
+$frame magicc1 magicc2 magicc3 magicc4 magicc5 magicc6 magicc7 magicc8
+$frame magicc9 magicc10 magicc11
+`;
 
   get netname() {
     return 'a Death Knight';

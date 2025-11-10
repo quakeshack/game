@@ -7,7 +7,17 @@ import { BaseProjectile } from '../Weapons.mjs';
 import { WalkMonster } from './BaseMonster.mjs';
 import ZombieMonster from './Zombie.mjs';
 
-export const qc = `
+/**
+ * QUAKED monster_shalrath (1 0 0) (-32 -32 -24) (32 32 48) Ambush
+ */
+export default class ShalrathMonsterEntity extends WalkMonster {
+  static classname = 'monster_shalrath';
+  static _health = 400;
+  static _size = [new Vector(-32.0, -32.0, -24.0), new Vector(32.0, 32.0, 64.0)];
+  static _modelDefault = 'progs/shalrath.mdl';
+  static _modelHead = 'progs/h_shal.mdl';
+
+  static _modelQC = `
 $cd id1/models/shalrath
 $origin 0 0 24
 $base base
@@ -24,16 +34,6 @@ $frame death1 death2 death3 death4 death5 death6 death7
 $frame walk1 walk2 walk3 walk4 walk5 walk6 walk7 walk8 walk9 walk10
 $frame walk11 walk12
 `;
-
-/**
- * QUAKED monster_shalrath (1 0 0) (-32 -32 -24) (32 32 48) Ambush
- */
-export default class ShalrathMonsterEntity extends WalkMonster {
-  static classname = 'monster_shalrath';
-  static _health = 400;
-  static _size = [new Vector(-32.0, -32.0, -24.0), new Vector(32.0, 32.0, 64.0)];
-  static _modelDefault = 'progs/shalrath.mdl';
-  static _modelHead = 'progs/h_shal.mdl';
 
   get netname() {
     return 'a Vore';

@@ -5,8 +5,19 @@ import { QuakeEntityAI } from '../../helper/AI.mjs';
 import { DamageInflictor, Laser } from '../Weapons.mjs';
 import { WalkMonster } from './BaseMonster.mjs';
 
-export const qc = {
-  solider:`
+/**
+ * QUAKED monster_army (1 0 0) (-16 -16 -24) (16 16 40) Ambush
+ */
+export class ArmySoldierMonster extends WalkMonster {
+  static classname = 'monster_army';
+
+  static _health = 30;
+  static _size = [new Vector(-16.0, -16.0, -24.0), new Vector(16.0, 16.0, 40.0)];
+
+  static _modelDefault = 'progs/soldier.mdl';
+  static _modelHead = 'progs/h_guard.mdl';
+
+  static _modelQC = `
 $cd id1/models/soldier3
 $origin 0 -6 24
 $base base
@@ -37,51 +48,7 @@ $frame shoot1 shoot2 shoot3 shoot4 shoot5 shoot6 shoot7 shoot8 shoot9
 $frame prowl_1 prowl_2 prowl_3 prowl_4 prowl_5 prowl_6 prowl_7 prowl_8
 $frame prowl_9 prowl_10 prowl_11 prowl_12 prowl_13 prowl_14 prowl_15 prowl_16
 $frame prowl_17 prowl_18 prowl_19 prowl_20 prowl_21 prowl_22 prowl_23 prowl_24
-`,
-  enforcer: `
-$cd id1/models/enforcer
-$origin 0 -6 24
-$base base
-$skin skin
-
-$frame stand1 stand2 stand3 stand4 stand5 stand6 stand7
-
-$frame walk1 walk2 walk3 walk4 walk5 walk6 walk7 walk8 walk9 walk10
-$frame walk11 walk12 walk13 walk14 walk15 walk16
-
-$frame run1 run2 run3 run4 run5 run6 run7 run8
-
-$frame attack1 attack2 attack3 attack4 attack5 attack6
-$frame attack7 attack8 attack9 attack10
-
-$frame death1 death2 death3 death4 death5 death6 death7 death8
-$frame death9 death10 death11 death12 death13 death14
-
-$frame fdeath1 fdeath2 fdeath3 fdeath4 fdeath5 fdeath6 fdeath7 fdeath8
-$frame fdeath9 fdeath10 fdeath11
-
-$frame paina1 paina2 paina3 paina4
-
-$frame painb1 painb2 painb3 painb4 painb5
-
-$frame painc1 painc2 painc3 painc4 painc5 painc6 painc7 painc8
-
-$frame paind1 paind2 paind3 paind4 paind5 paind6 paind7 paind8
-$frame paind9 paind10 paind11 paind12 paind13 paind14 paind15 paind16
-$frame paind17 paind18 paind19
-`};
-
-/**
- * QUAKED monster_army (1 0 0) (-16 -16 -24) (16 16 40) Ambush
- */
-export class ArmySoldierMonster extends WalkMonster {
-  static classname = 'monster_army';
-
-  static _health = 30;
-  static _size = [new Vector(-16.0, -16.0, -24.0), new Vector(16.0, 16.0, 40.0)];
-
-  static _modelDefault = 'progs/soldier.mdl';
-  static _modelHead = 'progs/h_guard.mdl';
+`;
 
   get netname() {
     return 'a Grunt';
@@ -346,6 +313,39 @@ export class ArmyEnforcerMonster extends WalkMonster {
 
   static _modelDefault = 'progs/enforcer.mdl';
   static _modelHead = 'progs/h_mega.mdl';
+
+  static _modelQC = `
+$cd id1/models/enforcer
+$origin 0 -6 24
+$base base
+$skin skin
+
+$frame stand1 stand2 stand3 stand4 stand5 stand6 stand7
+
+$frame walk1 walk2 walk3 walk4 walk5 walk6 walk7 walk8 walk9 walk10
+$frame walk11 walk12 walk13 walk14 walk15 walk16
+
+$frame run1 run2 run3 run4 run5 run6 run7 run8
+
+$frame attack1 attack2 attack3 attack4 attack5 attack6
+$frame attack7 attack8 attack9 attack10
+
+$frame death1 death2 death3 death4 death5 death6 death7 death8
+$frame death9 death10 death11 death12 death13 death14
+
+$frame fdeath1 fdeath2 fdeath3 fdeath4 fdeath5 fdeath6 fdeath7 fdeath8
+$frame fdeath9 fdeath10 fdeath11
+
+$frame paina1 paina2 paina3 paina4
+
+$frame painb1 painb2 painb3 painb4 painb5
+
+$frame painc1 painc2 painc3 painc4 painc5 painc6 painc7 painc8
+
+$frame paind1 paind2 paind3 paind4 paind5 paind6 paind7 paind8
+$frame paind9 paind10 paind11 paind12 paind13 paind14 paind15 paind16
+$frame paind17 paind18 paind19
+`;
 
   get netname() {
     return 'an Enforcer';

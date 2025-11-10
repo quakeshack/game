@@ -6,7 +6,20 @@ import BaseEntity from '../BaseEntity.mjs';
 import { DamageInflictor } from '../Weapons.mjs';
 import { WalkMonster } from './BaseMonster.mjs';
 
-export const qc = `
+/**
+ * QUAKED monster_zombie (1 0 0) (-16 -16 -24) (16 16 32) Crucified ambush
+ * If crucified, stick the bounding box 12 pixels back into a wall to look right.
+ */
+export default class ZombieMonster extends WalkMonster {
+  static classname = 'monster_zombie';
+
+  static _health = 30;
+  static _size = [new Vector(-16.0, -16.0, -24.0), new Vector(16.0, 16.0, 40.0)];
+
+  static _modelDefault = 'progs/zombie.mdl';
+  static _modelHead = 'progs/h_zombie.mdl';
+
+  static _modelQC = `
 $cd id1/models/zombie
 
 $origin	0 0 24
@@ -52,19 +65,6 @@ $frame paine29 paine30
 
 $frame cruc_1 cruc_2 cruc_3 cruc_4 cruc_5 cruc_6
 `;
-
-/**
- * QUAKED monster_zombie (1 0 0) (-16 -16 -24) (16 16 32) Crucified ambush
- * If crucified, stick the bounding box 12 pixels back into a wall to look right.
- */
-export default class ZombieMonster extends WalkMonster {
-  static classname = 'monster_zombie';
-
-  static _health = 30;
-  static _size = [new Vector(-16.0, -16.0, -24.0), new Vector(16.0, 16.0, 40.0)];
-
-  static _modelDefault = 'progs/zombie.mdl';
-  static _modelHead = 'progs/h_zombie.mdl';
 
   static SPAWN_CRUCIFIED = 1;
 
@@ -158,8 +158,8 @@ export default class ZombieMonster extends WalkMonster {
     this._defineState('zombie_walk15', 'walk15', 'zombie_walk16', function () { this._ai.walk(0); });
     this._defineState('zombie_walk16', 'walk16', 'zombie_walk17', function () { this._ai.walk(0); });
     this._defineState('zombie_walk17', 'walk17', 'zombie_walk18', function () { this._ai.walk(0); });
-    this._defineState('zombie_walk18', 'walk18', 'zombie_walk19', function () { this._ai.walk(0); if (Math.random() < 0.2) {this.startSound(channel.CHAN_VOICE, 'zombie/z_idle.wav', 1.0, attn.ATTN_IDLE);} });
-    this._defineState('zombie_walk19', 'walk19', 'zombie_walk1', function () { this._ai.walk(0); if (Math.random() < 0.2) {this.startSound(channel.CHAN_VOICE, 'zombie/z_idle.wav', 1.0, attn.ATTN_IDLE);} });
+    this._defineState('zombie_walk18', 'walk18', 'zombie_walk19', function () { this._ai.walk(0); if (Math.random() < 0.2) { this.startSound(channel.CHAN_VOICE, 'zombie/z_idle.wav', 1.0, attn.ATTN_IDLE); } });
+    this._defineState('zombie_walk19', 'walk19', 'zombie_walk1', function () { this._ai.walk(0); if (Math.random() < 0.2) { this.startSound(channel.CHAN_VOICE, 'zombie/z_idle.wav', 1.0, attn.ATTN_IDLE); } });
 
     // run states
     this._defineState('zombie_run1', 'run1', 'zombie_run2', function () { this._ai.run(1); this.inpain = 0; });
@@ -179,7 +179,7 @@ export default class ZombieMonster extends WalkMonster {
     this._defineState('zombie_run15', 'run15', 'zombie_run16', function () { this._ai.run(6); });
     this._defineState('zombie_run16', 'run16', 'zombie_run17', function () { this._ai.run(7); });
     this._defineState('zombie_run17', 'run17', 'zombie_run18', function () { this._ai.run(3); });
-    this._defineState('zombie_run18', 'run18', 'zombie_run1', function () { this._ai.run(8); if (Math.random() < 0.2) {this.startSound(channel.CHAN_VOICE, 'zombie/z_idle.wav', 1.0, attn.ATTN_IDLE);} if (Math.random() > 0.8) {this.startSound(channel.CHAN_VOICE, 'zombie/z_idle1.wav', 1.0, attn.ATTN_IDLE);} });
+    this._defineState('zombie_run18', 'run18', 'zombie_run1', function () { this._ai.run(8); if (Math.random() < 0.2) { this.startSound(channel.CHAN_VOICE, 'zombie/z_idle.wav', 1.0, attn.ATTN_IDLE); } if (Math.random() > 0.8) { this.startSound(channel.CHAN_VOICE, 'zombie/z_idle1.wav', 1.0, attn.ATTN_IDLE); } });
 
     // attack sequences (prefix atta, attb, attc)
     this._defineState('zombie_atta1', 'atta1', 'zombie_atta2', function () { this._ai.face(); });
@@ -231,12 +231,12 @@ export default class ZombieMonster extends WalkMonster {
     this._defineState('zombie_paina4', 'paina4', 'zombie_paina5', function () { this._ai.pain(1); });
     this._defineState('zombie_paina5', 'paina5', 'zombie_paina6', function () { this._ai.pain(3); });
     this._defineState('zombie_paina6', 'paina6', 'zombie_paina7', function () { this._ai.pain(1); });
-    this._defineState('zombie_paina7', 'paina7', 'zombie_paina8', function () {});
-    this._defineState('zombie_paina8', 'paina8', 'zombie_paina9', function () {});
-    this._defineState('zombie_paina9', 'paina9', 'zombie_paina10', function () {});
-    this._defineState('zombie_paina10', 'paina10', 'zombie_paina11', function () {});
-    this._defineState('zombie_paina11', 'paina11', 'zombie_paina12', function () {});
-    this._defineState('zombie_paina12', 'paina12', 'zombie_run1', function () {});
+    this._defineState('zombie_paina7', 'paina7', 'zombie_paina8', function () { });
+    this._defineState('zombie_paina8', 'paina8', 'zombie_paina9', function () { });
+    this._defineState('zombie_paina9', 'paina9', 'zombie_paina10', function () { });
+    this._defineState('zombie_paina10', 'paina10', 'zombie_paina11', function () { });
+    this._defineState('zombie_paina11', 'paina11', 'zombie_paina12', function () { });
+    this._defineState('zombie_paina12', 'paina12', 'zombie_run1', function () { });
 
     // pain sequences (painb)
     this._defineState('zombie_painb1', 'painb1', 'zombie_painb2', function () { this.startSound(channel.CHAN_VOICE, 'zombie/z_pain1.wav'); });
@@ -244,64 +244,64 @@ export default class ZombieMonster extends WalkMonster {
     this._defineState('zombie_painb3', 'painb3', 'zombie_painb4', function () { this._ai.pain(8); });
     this._defineState('zombie_painb4', 'painb4', 'zombie_painb5', function () { this._ai.pain(6); });
     this._defineState('zombie_painb5', 'painb5', 'zombie_painb6', function () { this._ai.pain(2); });
-    this._defineState('zombie_painb6', 'painb6', 'zombie_painb7', function () {});
-    this._defineState('zombie_painb7', 'painb7', 'zombie_painb8', function () {});
-    this._defineState('zombie_painb8', 'painb8', 'zombie_painb9', function () {});
+    this._defineState('zombie_painb6', 'painb6', 'zombie_painb7', function () { });
+    this._defineState('zombie_painb7', 'painb7', 'zombie_painb8', function () { });
+    this._defineState('zombie_painb8', 'painb8', 'zombie_painb9', function () { });
     this._defineState('zombie_painb9', 'painb9', 'zombie_painb10', function () { this.startSound(channel.CHAN_BODY, 'zombie/z_fall.wav'); });
-    this._defineState('zombie_painb10', 'painb10', 'zombie_painb11', function () {});
-    this._defineState('zombie_painb11', 'painb11', 'zombie_painb12', function () {});
-    this._defineState('zombie_painb12', 'painb12', 'zombie_painb13', function () {});
-    this._defineState('zombie_painb13', 'painb13', 'zombie_painb14', function () {});
-    this._defineState('zombie_painb14', 'painb14', 'zombie_painb15', function () {});
-    this._defineState('zombie_painb15', 'painb15', 'zombie_painb16', function () {});
-    this._defineState('zombie_painb16', 'painb16', 'zombie_painb17', function () {});
-    this._defineState('zombie_painb17', 'painb17', 'zombie_painb18', function () {});
-    this._defineState('zombie_painb18', 'painb18', 'zombie_painb19', function () {});
-    this._defineState('zombie_painb19', 'painb19', 'zombie_painb20', function () {});
-    this._defineState('zombie_painb20', 'painb20', 'zombie_painb21', function () {});
-    this._defineState('zombie_painb21', 'painb21', 'zombie_painb22', function () {});
-    this._defineState('zombie_painb22', 'painb22', 'zombie_painb23', function () {});
-    this._defineState('zombie_painb23', 'painb23', 'zombie_painb24', function () {});
-    this._defineState('zombie_painb24', 'painb24', 'zombie_painb25', function () {});
+    this._defineState('zombie_painb10', 'painb10', 'zombie_painb11', function () { });
+    this._defineState('zombie_painb11', 'painb11', 'zombie_painb12', function () { });
+    this._defineState('zombie_painb12', 'painb12', 'zombie_painb13', function () { });
+    this._defineState('zombie_painb13', 'painb13', 'zombie_painb14', function () { });
+    this._defineState('zombie_painb14', 'painb14', 'zombie_painb15', function () { });
+    this._defineState('zombie_painb15', 'painb15', 'zombie_painb16', function () { });
+    this._defineState('zombie_painb16', 'painb16', 'zombie_painb17', function () { });
+    this._defineState('zombie_painb17', 'painb17', 'zombie_painb18', function () { });
+    this._defineState('zombie_painb18', 'painb18', 'zombie_painb19', function () { });
+    this._defineState('zombie_painb19', 'painb19', 'zombie_painb20', function () { });
+    this._defineState('zombie_painb20', 'painb20', 'zombie_painb21', function () { });
+    this._defineState('zombie_painb21', 'painb21', 'zombie_painb22', function () { });
+    this._defineState('zombie_painb22', 'painb22', 'zombie_painb23', function () { });
+    this._defineState('zombie_painb23', 'painb23', 'zombie_painb24', function () { });
+    this._defineState('zombie_painb24', 'painb24', 'zombie_painb25', function () { });
     this._defineState('zombie_painb25', 'painb25', 'zombie_painb26', function () { this._ai.painforward(1); });
-    this._defineState('zombie_painb26', 'painb26', 'zombie_painb27', function () {});
-    this._defineState('zombie_painb27', 'painb27', 'zombie_painb28', function () {});
-    this._defineState('zombie_painb28', 'painb28', 'zombie_run1', function () {});
+    this._defineState('zombie_painb26', 'painb26', 'zombie_painb27', function () { });
+    this._defineState('zombie_painb27', 'painb27', 'zombie_painb28', function () { });
+    this._defineState('zombie_painb28', 'painb28', 'zombie_run1', function () { });
 
     // pain sequences (painc)
     this._defineState('zombie_painc1', 'painc1', 'zombie_painc2', function () { this.startSound(channel.CHAN_VOICE, 'zombie/z_pain1.wav'); });
-    this._defineState('zombie_painc2', 'painc2', 'zombie_painc3', function () {});
+    this._defineState('zombie_painc2', 'painc2', 'zombie_painc3', function () { });
     this._defineState('zombie_painc3', 'painc3', 'zombie_painc4', function () { this._ai.pain(3); });
     this._defineState('zombie_painc4', 'painc4', 'zombie_painc5', function () { this._ai.pain(1); });
-    this._defineState('zombie_painc5', 'painc5', 'zombie_painc6', function () {});
-    this._defineState('zombie_painc6', 'painc6', 'zombie_painc7', function () {});
-    this._defineState('zombie_painc7', 'painc7', 'zombie_painc8', function () {});
-    this._defineState('zombie_painc8', 'painc8', 'zombie_painc9', function () {});
-    this._defineState('zombie_painc9', 'painc9', 'zombie_painc10', function () {});
-    this._defineState('zombie_painc10', 'painc10', 'zombie_painc11', function () {});
+    this._defineState('zombie_painc5', 'painc5', 'zombie_painc6', function () { });
+    this._defineState('zombie_painc6', 'painc6', 'zombie_painc7', function () { });
+    this._defineState('zombie_painc7', 'painc7', 'zombie_painc8', function () { });
+    this._defineState('zombie_painc8', 'painc8', 'zombie_painc9', function () { });
+    this._defineState('zombie_painc9', 'painc9', 'zombie_painc10', function () { });
+    this._defineState('zombie_painc10', 'painc10', 'zombie_painc11', function () { });
     this._defineState('zombie_painc11', 'painc11', 'zombie_painc12', function () { this._ai.painforward(1); });
     this._defineState('zombie_painc12', 'painc12', 'zombie_painc13', function () { this._ai.painforward(1); });
-    this._defineState('zombie_painc13', 'painc13', 'zombie_painc14', function () {});
-    this._defineState('zombie_painc14', 'painc14', 'zombie_painc15', function () {});
-    this._defineState('zombie_painc15', 'painc15', 'zombie_painc16', function () {});
-    this._defineState('zombie_painc16', 'painc16', 'zombie_painc17', function () {});
-    this._defineState('zombie_painc17', 'painc17', 'zombie_painc18', function () {});
-    this._defineState('zombie_painc18', 'painc18', 'zombie_run1', function () {});
+    this._defineState('zombie_painc13', 'painc13', 'zombie_painc14', function () { });
+    this._defineState('zombie_painc14', 'painc14', 'zombie_painc15', function () { });
+    this._defineState('zombie_painc15', 'painc15', 'zombie_painc16', function () { });
+    this._defineState('zombie_painc16', 'painc16', 'zombie_painc17', function () { });
+    this._defineState('zombie_painc17', 'painc17', 'zombie_painc18', function () { });
+    this._defineState('zombie_painc18', 'painc18', 'zombie_run1', function () { });
 
     // pain sequences (paind)
     this._defineState('zombie_paind1', 'paind1', 'zombie_paind2', function () { this.startSound(channel.CHAN_VOICE, 'zombie/z_pain.wav'); });
-    this._defineState('zombie_paind2', 'paind2', 'zombie_paind3', function () {});
-    this._defineState('zombie_paind3', 'paind3', 'zombie_paind4', function () {});
-    this._defineState('zombie_paind4', 'paind4', 'zombie_paind5', function () {});
-    this._defineState('zombie_paind5', 'paind5', 'zombie_paind6', function () {});
-    this._defineState('zombie_paind6', 'paind6', 'zombie_paind7', function () {});
-    this._defineState('zombie_paind7', 'paind7', 'zombie_paind8', function () {});
-    this._defineState('zombie_paind8', 'paind8', 'zombie_paind9', function () {});
+    this._defineState('zombie_paind2', 'paind2', 'zombie_paind3', function () { });
+    this._defineState('zombie_paind3', 'paind3', 'zombie_paind4', function () { });
+    this._defineState('zombie_paind4', 'paind4', 'zombie_paind5', function () { });
+    this._defineState('zombie_paind5', 'paind5', 'zombie_paind6', function () { });
+    this._defineState('zombie_paind6', 'paind6', 'zombie_paind7', function () { });
+    this._defineState('zombie_paind7', 'paind7', 'zombie_paind8', function () { });
+    this._defineState('zombie_paind8', 'paind8', 'zombie_paind9', function () { });
     this._defineState('zombie_paind9', 'paind9', 'zombie_paind10', function () { this._ai.pain(1); });
-    this._defineState('zombie_paind10', 'paind10', 'zombie_paind11', function () {});
-    this._defineState('zombie_paind11', 'paind11', 'zombie_paind12', function () {});
-    this._defineState('zombie_paind12', 'paind12', 'zombie_paind13', function () {});
-    this._defineState('zombie_paind13', 'paind13', 'zombie_run1', function () {});
+    this._defineState('zombie_paind10', 'paind10', 'zombie_paind11', function () { });
+    this._defineState('zombie_paind11', 'paind11', 'zombie_paind12', function () { });
+    this._defineState('zombie_paind12', 'paind12', 'zombie_paind13', function () { });
+    this._defineState('zombie_paind13', 'paind13', 'zombie_run1', function () { });
 
     // pain sequences (paine)
     this._defineState('zombie_paine1', 'paine1', 'zombie_paine2', function () { this.startSound(channel.CHAN_VOICE, 'zombie/z_pain.wav'); this.health = 60; });
@@ -316,24 +316,24 @@ export default class ZombieMonster extends WalkMonster {
     this._defineState('zombie_paine10', 'paine10', 'zombie_paine11', function () { this._fallDown(); });
     this._defineState('zombie_paine11', 'paine11', 'zombie_paine12', function () { this.nextthink += 5; this.health = 60; });
     this._defineState('zombie_paine12', 'paine12', 'zombie_paine13', function () { this._standUp(); });
-    this._defineState('zombie_paine13', 'paine13', 'zombie_paine14', function () {});
-    this._defineState('zombie_paine14', 'paine14', 'zombie_paine15', function () {});
-    this._defineState('zombie_paine15', 'paine15', 'zombie_paine16', function () {});
-    this._defineState('zombie_paine16', 'paine16', 'zombie_paine17', function () {});
-    this._defineState('zombie_paine17', 'paine17', 'zombie_paine18', function () {});
-    this._defineState('zombie_paine18', 'paine18', 'zombie_paine19', function () {});
-    this._defineState('zombie_paine19', 'paine19', 'zombie_paine20', function () {});
-    this._defineState('zombie_paine20', 'paine20', 'zombie_paine21', function () {});
-    this._defineState('zombie_paine21', 'paine21', 'zombie_paine22', function () {});
-    this._defineState('zombie_paine22', 'paine22', 'zombie_paine23', function () {});
-    this._defineState('zombie_paine23', 'paine23', 'zombie_paine24', function () {});
-    this._defineState('zombie_paine24', 'paine24', 'zombie_paine25', function () {});
+    this._defineState('zombie_paine13', 'paine13', 'zombie_paine14', function () { });
+    this._defineState('zombie_paine14', 'paine14', 'zombie_paine15', function () { });
+    this._defineState('zombie_paine15', 'paine15', 'zombie_paine16', function () { });
+    this._defineState('zombie_paine16', 'paine16', 'zombie_paine17', function () { });
+    this._defineState('zombie_paine17', 'paine17', 'zombie_paine18', function () { });
+    this._defineState('zombie_paine18', 'paine18', 'zombie_paine19', function () { });
+    this._defineState('zombie_paine19', 'paine19', 'zombie_paine20', function () { });
+    this._defineState('zombie_paine20', 'paine20', 'zombie_paine21', function () { });
+    this._defineState('zombie_paine21', 'paine21', 'zombie_paine22', function () { });
+    this._defineState('zombie_paine22', 'paine22', 'zombie_paine23', function () { });
+    this._defineState('zombie_paine23', 'paine23', 'zombie_paine24', function () { });
+    this._defineState('zombie_paine24', 'paine24', 'zombie_paine25', function () { });
     this._defineState('zombie_paine25', 'paine25', 'zombie_paine26', function () { this._ai.painforward(5); });
     this._defineState('zombie_paine26', 'paine26', 'zombie_paine27', function () { this._ai.painforward(3); });
     this._defineState('zombie_paine27', 'paine27', 'zombie_paine28', function () { this._ai.painforward(1); });
     this._defineState('zombie_paine28', 'paine28', 'zombie_paine29', function () { this._ai.pain(1); });
-    this._defineState('zombie_paine29', 'paine29', 'zombie_paine30', function () {});
-    this._defineState('zombie_paine30', 'paine30', 'zombie_run1', function () {});
+    this._defineState('zombie_paine29', 'paine29', 'zombie_paine30', function () { });
+    this._defineState('zombie_paine30', 'paine30', 'zombie_run1', function () { });
   }
 
   _fallDown() {
@@ -367,9 +367,9 @@ export default class ZombieMonster extends WalkMonster {
   thinkMissile() {
     // randomly choose grenade attack variant
     const r = Math.random();
-    if (r < 0.3) {this._runState('zombie_atta1');}
-    else if (r < 0.6) {this._runState('zombie_attb1');}
-    else {this._runState('zombie_attc1');}
+    if (r < 0.3) { this._runState('zombie_atta1'); }
+    else if (r < 0.6) { this._runState('zombie_attb1'); }
+    else { this._runState('zombie_attc1'); }
   }
 
   hasMeleeAttack() {
@@ -482,7 +482,7 @@ export default class ZombieMonster extends WalkMonster {
   }
 
   idleSound() {
-    if (Math.random() < 0.1) {return;}
+    if (Math.random() < 0.1) { return; }
     this.startSound(channel.CHAN_VOICE, 'zombie/z_idle.wav', 1.0, attn.ATTN_IDLE);
   }
 

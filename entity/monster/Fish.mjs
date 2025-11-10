@@ -4,7 +4,14 @@ import { attn, channel, range, solid } from '../../Defs.mjs';
 import { ATTACK_STATE, QuakeEntityAI } from '../../helper/AI.mjs';
 import { SwimMonster } from './BaseMonster.mjs';
 
-export const qc = `
+export default class FishMonsterEntity extends SwimMonster {
+  static classname = 'monster_fish';
+  static _health = 25;
+  static _size = [new Vector(-16.0, -16.0, -24.0), new Vector(16.0, 16.0, 24.0)];
+
+  static _modelDefault = 'progs/fish.mdl';
+
+  static _modelQC = `
 $cd id1/models/fish
 $origin 0 0 24
 $base base
@@ -25,13 +32,6 @@ $frame swim18
 $frame pain1 pain2 pain3 pain4 pain5 pain6 pain7 pain8
 $frame pain9
 `;
-
-export default class FishMonsterEntity extends SwimMonster {
-  static classname = 'monster_fish';
-  static _health = 25;
-  static _size = [new Vector(-16.0, -16.0, -24.0), new Vector(16.0, 16.0, 24.0)];
-
-  static _modelDefault = 'progs/fish.mdl';
 
   get netname() {
     return 'a fish';

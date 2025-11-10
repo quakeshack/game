@@ -4,7 +4,17 @@ import { MeatSprayEntity, WalkMonster } from './BaseMonster.mjs';
 import { attn, channel, flags, range, solid } from '../../Defs.mjs';
 import { ATTACK_STATE, QuakeEntityAI } from '../../helper/AI.mjs';
 
-export const qc = `
+/**
+ * QUAKED monster_demon1 (1 0 0) (-32 -32 -24) (32 32 64) Ambush
+ */
+export default class DemonMonster extends WalkMonster {
+  static classname = 'monster_demon1';
+  static _health = 300;
+  static _size = [new Vector(-32.0, -32.0, -24.0), new Vector(32.0, 32.0, 64.0)];
+  static _modelDefault = 'progs/demon.mdl';
+  static _modelHead = 'progs/h_demon.mdl';
+
+  static _modelQC = `
 $cd id1/models/demon3
 $scale	0.8
 $origin 0 0 24
@@ -28,16 +38,6 @@ $frame death1 death2 death3 death4 death5 death6 death7 death8 death9
 $frame attacka1 attacka2 attacka3 attacka4 attacka5 attacka6 attacka7 attacka8
 $frame attacka9 attacka10 attacka11 attacka12 attacka13 attacka14 attacka15
 `;
-
-/**
- * QUAKED monster_demon1 (1 0 0) (-32 -32 -24) (32 32 64) Ambush
- */
-export default class DemonMonster extends WalkMonster {
-  static classname = 'monster_demon1';
-  static _health = 300;
-  static _size = [new Vector(-32.0, -32.0, -24.0), new Vector(32.0, 32.0, 64.0)];
-  static _modelDefault = 'progs/demon.mdl';
-  static _modelHead = 'progs/h_demon.mdl';
 
   get netname() {
     return 'a Fiend';

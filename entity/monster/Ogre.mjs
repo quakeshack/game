@@ -6,7 +6,19 @@ import { GibEntity } from '../Player.mjs';
 import { Grenade } from '../Weapons.mjs';
 import { WalkMonster } from './BaseMonster.mjs';
 
-export const qc = `
+/**
+ * QUAKED monster_ogre (1 0 0) (-32 -32 -24) (32 32 64) Ambush
+ */
+export default class OgreMonsterEntity extends WalkMonster {
+  static classname = 'monster_ogre';
+
+  static _health = 200;
+  static _size = [new Vector(-32.0, -32.0, -24.0), new Vector(32.0, 32.0, 64.0)];
+
+  static _modelDefault = 'progs/ogre.mdl';
+  static _modelHead = 'progs/h_ogre.mdl';
+
+  static _modelQC = `
 $cd id1/models/ogre_c
 $origin 0 0 24
 $base base
@@ -48,18 +60,6 @@ $frame bdeath7 bdeath8 bdeath9 bdeath10
 
 $frame pull1 pull2 pull3 pull4 pull5 pull6 pull7 pull8 pull9 pull10 pull11
 `;
-
-/**
- * QUAKED monster_ogre (1 0 0) (-32 -32 -24) (32 32 64) Ambush
- */
-export default class OgreMonsterEntity extends WalkMonster {
-  static classname = 'monster_ogre';
-
-  static _health = 200;
-  static _size = [new Vector(-32.0, -32.0, -24.0), new Vector(32.0, 32.0, 64.0)];
-
-  static _modelDefault = 'progs/ogre.mdl';
-  static _modelHead = 'progs/h_ogre.mdl';
 
   get netname() {
     return 'an Ogre';
