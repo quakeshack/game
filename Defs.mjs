@@ -169,7 +169,7 @@ export const spawnflags = Object.freeze({
  * @enum {number}
  * @readonly
  */
-export const clientEvent = {
+export const clientEvent = Object.freeze({
   /** @deprecated */
   BONUS_FLASH: 1,
 
@@ -199,7 +199,7 @@ export const clientEvent = {
 
   /** test event, args: some gargabe */
   TEST_EVENT: 254,
-};
+});
 
 /**
  * @param {number} eventId event id from clientEvent
