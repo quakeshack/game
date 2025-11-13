@@ -1,15 +1,21 @@
-import { clientEvent, clientEventName, items } from '../Defs.mjs';
+import { clientEventName, items } from '../Defs.mjs';
 import { weaponConfig } from '../entity/Weapons.mjs';
 import { ServerGameAPI } from '../GameAPI.mjs';
-import HUD from './HUD.mjs';
+import { Q1HUD } from './HUD.mjs';
+import { ServerInfo } from './Sync.mjs';
 
 /** @typedef {import('../../../shared/GameInterfaces').ClientEngineAPI} ClientEngineAPI  */
 /** @typedef {import('../../../shared/GameInterfaces').ClientGameInterface} ClientGameInterface  */
 /** @typedef {import('../../../shared/GameInterfaces').SerializableType} SerializableType */
+/** @typedef {import('../../../shared/GameInterfaces').ViewmodelConfig} ViewmodelConfig */
+/** @typedef {import('../../../shared/GameInterfaces').RefDef} RefDef */
+/** @typedef {import('../../../shared/GameInterfaces').ClientdataMap} ClientdataMap */
+
+/** @typedef {import('../entity/Weapons.mjs').WeaponConfigKey} WeaponConfigKey */
 
 /** @augments ClientGameInterface */
 export class ClientGameAPI {
-  /** current player’s data */
+  /** @see {ClientdataMap} current player’s data */
   clientdata = {
     health: 100,
     armorvalue: 0,
@@ -25,20 +31,25 @@ export class ClientGameAPI {
     weaponframe: 0,
   };
 
-  /** @type {Record<string, string>} server cvar values */
-  serverInfo = {
-    hostname: '',
-    coop: '0',
-    deathmatch: '0',
-    skill: '0',
-  };
+  /** @type {ServerInfo} */
+  serverInfo = null;
 
-  /** @type {import('../../../shared/GameInterfaces').ViewmodelConfig} */
+  /** @type {ViewmodelConfig} */
   viewmodel = {
     visible: false,
     model: null,
     frame: 0,
   };
+
+  /** @returns {Q1HUD} HUD @protected */
+  _newHUD() {
+    return new Q1HUD(this, this.engine);
+  }
+
+  /** @returns {ServerInfo} server info @protected */
+  _newServerInfo() {
+    return new ServerInfo(this.engine);
+  }
 
   /**
    * @param {ClientEngineAPI} engineAPI client engine API
@@ -46,50 +57,34 @@ export class ClientGameAPI {
   constructor(engineAPI) {
     this.engine = engineAPI;
 
-    this.hud = new HUD(this, engineAPI);
+    this.hud = this._newHUD();
+    this.serverInfo = this._newServerInfo();
 
     Object.seal(this);
   }
 
   init() {
     this.hud.init();
-
-    this.engine.eventBus.subscribe('client.server-info.ready', (serverInfo) => {
-      Object.assign(this.serverInfo, serverInfo);
-    });
-
-    this.engine.eventBus.subscribe('client.server-info.updated', (key, value) => {
-      this.serverInfo[key] = value;
-    });
-
-    this.engine.eventBus.subscribe('client.chat.message', (name, message, isDirect) => {
-      if (isDirect) {
-        this.engine.ConsolePrint(`${name} to you: ${message}\n`);
-      } else {
-        this.engine.ConsolePrint(`${name}: ${message}\n`);
-      }
-
-      this.engine.LoadSound('misc/talk.wav').play();
-    });
-
-    this.engine.eventBus.subscribe(clientEventName(clientEvent.OBITUARY), (...args) => {
-      console.log('OBITUARY event received', args);
-    });
   }
 
   shutdown() {
     this.hud.shutdown();
   }
 
-  startFrame() {
+  /** @protected */
+  _updateViewModel() {
     if (this.clientdata.health <= 0 || !this.clientdata.weapon || (this.clientdata.items & items.IT_INVISIBILITY)) {
       this.viewmodel.visible = false;
     } else {
       this.viewmodel.visible = true;
 
-      this.viewmodel.model = this.engine.ModForName(weaponConfig.get(/** @type {import('../entity/Weapons.mjs').WeaponConfigKey} */(this.clientdata.weapon)).viewModel);
+      this.viewmodel.model = this.engine.ModForName(weaponConfig.get(/** @type {WeaponConfigKey} */(this.clientdata.weapon)).viewModel);
       this.viewmodel.frame = this.clientdata.weaponframe;
     }
+  }
+
+  startFrame() {
+    this._updateViewModel();
 
     this.hud.startFrame();
   }
@@ -99,7 +94,7 @@ export class ClientGameAPI {
   }
 
   /**
-   * @param {import('../../../shared/GameInterfaces').RefDef} refdef current refresh definition
+   * @param {RefDef} refdef current refresh definition
    */
   updateRefDef(refdef) {
     if (this.clientdata.health <= 0) {
@@ -131,23 +126,21 @@ export class ClientGameAPI {
   }
 
   static GetClientEdictHandler(classname) {
-    const entityRegistry = ServerGameAPI._entityRegistry;
-
-    return entityRegistry.has(classname) ? entityRegistry.get(classname).clientEdictHandler : null;
+    return ServerGameAPI._entityRegistry.get(classname)?.clientEdictHandler || null;
   }
 
   /**
    * @param {ClientEngineAPI} engineAPI client engine API
    */
   static Init(engineAPI) {
-    HUD.Init(engineAPI);
+    Q1HUD.Init(engineAPI);
   }
 
   /**
    * @param {ClientEngineAPI} engineAPI client engine API
    */
   static Shutdown(engineAPI) {
-    HUD.Shutdown(engineAPI);
+    Q1HUD.Shutdown(engineAPI);
   }
 
   static IsServerCompatible(version) {

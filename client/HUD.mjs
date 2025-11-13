@@ -3,7 +3,9 @@ import Vector from '../../../shared/Vector.mjs';
 import { clientEvent, clientEventName, colors, contentShift, items } from '../Defs.mjs';
 import { weaponConfig } from '../entity/Weapons.mjs';
 import { ClientGameAPI } from './ClientAPI.mjs';
+import { StatsInfo } from './Sync.mjs';
 
+/** @typedef {import('../../../shared/GameInterfaces').ClientDamageEvent} ClientDamageEvent */
 /** @typedef {import('../../../shared/GameInterfaces').ClientEngineAPI} ClientEngineAPI  */
 /** @typedef {import('../../../shared/GameInterfaces').GLTexture} GLTexture */
 
@@ -99,7 +101,7 @@ const inventory = [
  * Graphics helper class for the HUD.
  * Used to draw pictures, strings, numbers, and rectangles within a defined layout.
  */
-class Gfx {
+export class Gfx {
   offsets = [0, 0];
   scale = 1.0;
 
@@ -209,19 +211,14 @@ class Gfx {
 const ammoLowColor = new Vector(1.0, 1.0, 1.0);
 const ammoColor = new Vector(1.0, 1.0, 1.0);
 
-export default class HUD {
-  /** +showscores/-showscores */
-  static #showScoreboard = false;
+export class Q1HUD {
+  /** +showscores/-showscores @protected */
+  static _showScoreboard = false;
 
-  /** gamewide stats */
-  stats = {
-    monsters_total: 0,
-    monsters_killed: 0,
-    secrets_total: 0,
-    secrets_found: 0,
-  };
+  /** @type {StatsInfo} gamewide stats @protected */
+  stats = null;
 
-  /** damage related states */
+  /** damage related states @protected */
   damage = {
     /** time when the last damage was received based on CL.gametime */
     time: -Infinity,
@@ -239,10 +236,14 @@ export default class HUD {
     mapCompletedTime: 0,
   };
 
-  /** @type {Gfx} drawing things within the layout of the status bar */
+  /** @type {Gfx} drawing things within the layout of the status bar @protected */
   sbar = null;
-  /** @type {Gfx} drawing things within the layout of any overlay (intermission, rankings etc.) */
+  /** @type {Gfx} drawing things within the layout of any overlay (intermission, rankings etc.) @protected */
   overlay = null;
+
+  _newStats() {
+    return new StatsInfo(this.engine);
+  }
 
   /**
    * @param {ClientGameAPI} clientGameAPI this game’s API
@@ -262,10 +263,12 @@ export default class HUD {
   init() {
     // make sure the HUD is initialized with the correct viewport size
     const { width, height } = this.engine.VID;
-    this.#viewportResize(width, height);
+    this._viewportResize(width, height);
 
     // observe notable events
-    this.#subscribeToEvents();
+    this._subscribeToEvents();
+
+    this.stats = this._newStats();
 
     ammoColor.set(this.engine.IndexToRGB(colors.HUD_AMMO_NORMAL));
     ammoLowColor.set(this.engine.IndexToRGB(colors.HUD_AMMO_WARNING));
@@ -274,23 +277,27 @@ export default class HUD {
   shutdown() {
   }
 
-  #subscribeToEvents() {
+  /**
+   * Subscribes to relevant events.
+   * @protected
+   */
+  _subscribeToEvents() {
     // subscribe to viewsize resize events
     this.engine.eventBus.subscribe('cvar.changed', (name) => {
       switch (name) {
         case 'viewsize': {
           const { width, height } = this.engine.VID;
-          this.#viewportResize(width, height);
+          this._viewportResize(width, height);
         }
         break;
       }
     });
 
     // subscribe to viewport resize events
-    this.engine.eventBus.subscribe('vid.resize', ({ width, height }) => this.#viewportResize(width, height));
+    this.engine.eventBus.subscribe('vid.resize', ({ width, height }) => this._viewportResize(width, height));
 
     // damage received
-    this.engine.eventBus.subscribe('client.damage', (/** @type {import('../../../shared/GameInterfaces').ClientDamageEvent} */ clientDamageEvent) => {
+    this.engine.eventBus.subscribe('client.damage', (/** @type {ClientDamageEvent} */ clientDamageEvent) => {
       this.damage.time = this.engine.CL.gametime;
       this.damage.attackOrigin.set(clientDamageEvent.attackOrigin);
       this.damage.damageReceived += clientDamageEvent.damageReceived;
@@ -311,7 +318,7 @@ export default class HUD {
       }
 
       // TODO: do the picked up animation effect
-      console.debug(`Picked up item: ${itemEntity.classname} (items = ${items})`);
+      // console.debug(`Picked up item: ${itemEntity.classname} (items = ${items})`);
 
       this.engine.ContentShift(contentShift.bonus, this.engine.IndexToRGB(colors.HUD_CSHIFT_BONUSFLASH), 0.2);
     });
@@ -321,17 +328,8 @@ export default class HUD {
       this.engine.ContentShift(contentShift.bonus, this.engine.IndexToRGB(colors.HUD_CSHIFT_BONUSFLASH), 0.2);
     });
 
-    // game stats base value
-    this.engine.eventBus.subscribe(clientEventName(clientEvent.STATS_INIT), (slot, value) => {
-      console.assert(slot in this.stats, `Unknown stat slot ${slot}`);
-      this.stats[slot] = value;
-    });
-
     // game stats updates during game play
-    this.engine.eventBus.subscribe(clientEventName(clientEvent.STATS_UPDATED), (slot, value) => {
-      console.assert(slot in this.stats, `Unknown stat slot ${slot}`);
-      this.stats[slot] = value;
-
+    this.engine.eventBus.subscribe(clientEventName(clientEvent.STATS_UPDATED), (slot) => {
       if (slot === 'secrets_found') {
         this.engine.ContentShift(contentShift.info, this.engine.IndexToRGB(colors.HUD_CSHIFT_SECRET), 0.2);
       }
@@ -347,9 +345,31 @@ export default class HUD {
 
       console.debug('Intermission started:', this.intermission.message, 'origin: ' + origin, 'angles:' + angles);
     });
+
+    // chat message
+    this.engine.eventBus.subscribe('client.chat.message', (name, message, isDirect) => {
+      if (isDirect) {
+        this.engine.ConsolePrint(`${name} to you: ${message}\n`);
+      } else {
+        this.engine.ConsolePrint(`${name}: ${message}\n`);
+      }
+
+      this.engine.LoadSound('misc/talk.wav').play();
+    });
+
+    // obituary event
+    this.engine.eventBus.subscribe(clientEventName(clientEvent.OBITUARY), (...args) => {
+      console.log('OBITUARY event received', args);
+    });
   }
 
-  #drawFace(x, y) {
+  /**
+   * Draws our protagonist’s face.
+   * @param {number} x x position
+   * @param {number} y y position
+   * @protected
+   */
+  _drawFace(x, y) {
     const citems = this.game.clientdata.items;
 
     if (citems & (items.IT_INVISIBILITY | items.IT_INVULNERABILITY)) {
@@ -378,9 +398,10 @@ export default class HUD {
   }
 
   /**
-   * Draw the status bar, inventory bar, and score bar.
+   * Draws the status bar, inventory bar, and score bar.
+   * @protected
    */
-  #drawStatusBar() {
+  _drawStatusBar() {
     const isFullscreen = this.engine.SCR.viewsize === 120;
 
     if (!isFullscreen) {
@@ -410,7 +431,7 @@ export default class HUD {
     this.sbar.drawNumber(136, 0, Math.max(0, this.game.clientdata.health), 3, this.game.clientdata.health <= 25 ? 1 : 0);
 
     // Draw face
-    this.#drawFace(112, 0);
+    this._drawFace(112, 0);
 
     // Draw current ammo
     if (weaponConfig.has(/** @type {WeaponConfigKey} */(this.game.clientdata.weapon))) {
@@ -426,7 +447,12 @@ export default class HUD {
     }
   }
 
-  #drawInventory(offsetY = 0) {
+  /**
+   * Draws inventory.
+   * @param {number} offsetY optional Y offset
+   * @protected
+   */
+  _drawInventory(offsetY = 0) {
     this.sbar.drawPic(0, offsetY, backgrounds.inventorybar);
 
     // Draw ammo slots
@@ -453,7 +479,11 @@ export default class HUD {
     }
   }
 
-  #drawScoreboard() {
+  /**
+   * Draws multiplayer scoreboard.
+   * @protected
+   */
+  _drawScoreboard() {
     const secondaryColor = this.engine.IndexToRGB(colors.HUD_RANKING_TEXT);
 
     this.overlay.drawPic(this.overlay.width - labels.ranking.width, 32, labels.ranking);
@@ -497,7 +527,11 @@ export default class HUD {
     }
   }
 
-  #drawIntermission() {
+  /**
+   * Draws intermission screen.
+   * @protected
+   */
+  _drawIntermission() {
     if (this.intermission.message) {
       this.overlay.drawString(16, 16, 'TODO: Intermission Message', 2.0);
       // TODO: draw the intermission message
@@ -529,8 +563,9 @@ export default class HUD {
   /**
    * Draws a mini info bar at the top of the screen with game stats and level name.
    * @param {number} offsetY vertical offset for the mini info bar
+   * @protected
    */
-  #drawMiniInfo(offsetY = 0) {
+  _drawMiniInfo(offsetY = 0) {
     this.sbar.drawPic(0, offsetY, backgrounds.scorebar);
 
     const monsters = `Monsters: ${this.stats.monsters_killed} / ${this.stats.monsters_total}`;
@@ -543,33 +578,37 @@ export default class HUD {
   draw() {
     if (this.intermission.running) {
       if (this.engine.CL.maxclients > 1) {
-        this.#drawScoreboard();
+        this._drawScoreboard();
       } else {
-        this.#drawIntermission();
+        this._drawIntermission();
       }
       return;
     }
 
-    if (HUD.#showScoreboard) {
+    if (Q1HUD._showScoreboard) {
       if (this.engine.CL.maxclients > 1) {
-        this.#drawScoreboard();
+        this._drawScoreboard();
       } else {
         if (this.engine.SCR.viewsize === 120 || this.engine.SCR.viewsize <= 100) {
-          this.#drawInventory(-24);
+          this._drawInventory(-24);
         }
-        this.#drawMiniInfo();
+        this._drawMiniInfo();
         return;
       }
     }
 
     if (this.engine.SCR.viewsize <= 100) {
-      this.#drawInventory(-24);
+      this._drawInventory(-24);
     }
 
-    this.#drawStatusBar();
+    this._drawStatusBar();
   }
 
-  #powerupFlash() {
+  /**
+   * Handles the power-up flash effect.
+   * @protected
+   */
+  _powerupFlash() {
     const color = new Vector();
 
     let isFlickering = true;
@@ -606,7 +645,7 @@ export default class HUD {
       }
     }
 
-    this.#powerupFlash();
+    this._powerupFlash();
   }
 
   saveState() {
@@ -625,10 +664,12 @@ export default class HUD {
   }
 
   /**
+   * Handling viewport resize events.
    * @param {number} width viewport width
    * @param {number} height viewport height
+   * @protected
    */
-  #viewportResize(width, height) {
+  _viewportResize(width, height) {
     // TODO: scale is broken
     // if (width > 1024 && height > 768) {
     //   this.gfx.scale = 1.5;
@@ -688,8 +729,8 @@ export default class HUD {
       weapon.iconWidth = weapon.icon.width;
     }
 
-    engineAPI.RegisterCommand('+showscores', () => { this.#showScoreboard = true; });
-    engineAPI.RegisterCommand('-showscores', () => { this.#showScoreboard = false; });
+    engineAPI.RegisterCommand('+showscores', () => { this._showScoreboard = true; });
+    engineAPI.RegisterCommand('-showscores', () => { this._showScoreboard = false; });
 
     Gfx.loadAssets(engineAPI);
   }

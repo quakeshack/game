@@ -34,7 +34,9 @@ import EntityRegistry from './helper/Registry.mjs';
 /** @typedef {import("../../shared/GameInterfaces").ServerEngineAPI} ServerEngineAPI */
 /** @typedef {import("../../shared/GameInterfaces").Cvar} Cvar */
 
-const featureFlags = [
+/** @typedef {Record<string, Cvar|null>} CvarMap */
+
+export const featureFlags = [
   'correct-ballistic-grenades', // enables zombie gib and ogre grenade trajectory fix
 ];
 
@@ -185,25 +187,41 @@ export const entityClasses = [
   item.WeaponThunderbolt,
 ];
 
-/**
- * Cvar cache
- * @type {Record<string, Cvar|null>}
- */
-const cvars = {
-  nomonster: null,
-  fraglimit: null,
-  timelimit: null,
-  samelevel: null,
-  noexit: null,
-  skill: null,
-  deathmatch: null,
-  coop: null,
-};
-
 /** @augments ServerGameInterface */
 export class ServerGameAPI {
   /** @access package */
   static _entityRegistry = new EntityRegistry(entityClasses);
+
+  /**
+   * Cvar cache, defined by the game code
+   * @type {CvarMap}
+   */
+  static _cvars = {
+    nomonster: null,
+    fraglimit: null,
+    timelimit: null,
+    samelevel: null,
+    noexit: null,
+    skill: null,
+    deathmatch: null,
+    coop: null,
+  };
+
+  _newGameStats() {
+    return new GameStats(this, this.engine);
+  }
+
+  _newGameAI() {
+    return new GameAI(this);
+  }
+
+  _lookupCvars() {
+    // looking up Cvars defined by the engine
+    return /** @type {CvarMap} */({
+      teamplay: this.engine.GetCvar('teamplay'),
+      gravity: this.engine.GetCvar('sv_gravity'),
+    });
+  }
 
   /**
    * Invoked by spawning a server or a changelevel. It will initialize the global game state.
@@ -222,7 +240,7 @@ export class ServerGameAPI {
     this.force_retouch = 0; // Engine API
 
     // stats
-    this.stats = new GameStats(this, engineAPI);
+    this.stats = this._newGameStats();
 
     // checkout Player.decodeLevelParms to understand this
     this.parm1 = 0;
@@ -265,7 +283,7 @@ export class ServerGameAPI {
 
     this._serializer.endFields();
 
-    this.gameAI = new GameAI(this);
+    this.gameAI = this._newGameAI();
 
     /** @type {?BodyqueEntity} holds the dead player body chain */
     this.bodyque_head = null;
@@ -274,17 +292,15 @@ export class ServerGameAPI {
     this._missingEntityClassStats = {};
 
     // FIXME: I’m not happy about this structure, especially with the getters down below
-    /** cvar cache @type {Record<string, Cvar>} @private */
-    this._cvars = {
-      teamplay: engineAPI.GetCvar('teamplay'),
-      gravity: engineAPI.GetCvar('sv_gravity'),
-    };
+    /** cvar cache @protected */
+    this._cvars = this._lookupCvars();
 
     Object.seal(this._cvars);
     Object.seal(this);
   }
 
   get skill() {
+    const cvars = /** @type {typeof ServerGameAPI} */(this.constructor)._cvars;
     return cvars.skill.value;
   }
 
@@ -293,30 +309,37 @@ export class ServerGameAPI {
   }
 
   get timelimit() {
+    const cvars = /** @type {typeof ServerGameAPI} */(this.constructor)._cvars;
     return cvars.timelimit.value;
   }
 
   get fraglimit() {
+    const cvars = /** @type {typeof ServerGameAPI} */(this.constructor)._cvars;
     return cvars.fraglimit.value;
   }
 
   get deathmatch() {
+    const cvars = /** @type {typeof ServerGameAPI} */(this.constructor)._cvars;
     return cvars.deathmatch.value;
   }
 
   get coop() {
+    const cvars = /** @type {typeof ServerGameAPI} */(this.constructor)._cvars;
     return cvars.coop.value;
   }
 
   get samelevel() {
+    const cvars = /** @type {typeof ServerGameAPI} */(this.constructor)._cvars;
     return cvars.samelevel.value;
   }
 
   get noexit() {
+    const cvars = /** @type {typeof ServerGameAPI} */(this.constructor)._cvars;
     return cvars.noexit.value;
   }
 
   get nomonsters() {
+    const cvars = /** @type {typeof ServerGameAPI} */(this.constructor)._cvars;
     return cvars.nomonster.value;
   }
 
@@ -519,6 +542,8 @@ export class ServerGameAPI {
    * @param {number} serverflags server flags
    */
   init(mapname, serverflags) {
+    const cvars = /** @type {typeof ServerGameAPI} */(this.constructor)._cvars;
+
     this.mapname = mapname;
     this.serverflags = serverflags;
 
@@ -544,6 +569,8 @@ export class ServerGameAPI {
 
   /** @param {ServerEngineAPI} ServerEngineAPI engine API for server game code */
   static Init(ServerEngineAPI) {
+    const cvars = this._cvars;
+
     // define game cvars
     cvars.nomonster = ServerEngineAPI.RegisterCvar('nomonster', '0', /* Cvar.FLAG.DEFERRED */ 0, 'Do not spawn monsters.');
     cvars.samelevel = ServerEngineAPI.RegisterCvar('samelevel', '0', 0, 'Set to 1 to stay on the same map even the map is over');
@@ -559,6 +586,8 @@ export class ServerGameAPI {
   }
 
   static Shutdown() {
+    const cvars = this._cvars;
+
     // free all cvars
     for (const [key, cvar] of Object.entries(cvars).filter((cvar) => cvar !== null)) {
       cvar.free();

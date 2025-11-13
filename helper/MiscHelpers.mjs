@@ -125,6 +125,7 @@ export class EntityWrapper {
  * Serializes and deserializes objects.
  * It’s mainly used to save and load the game.
  * NOTE: This is not a general-purpose serialization, it’s only used for game state. Also its function serialization support is limited.
+ * @template {WeakKey} T
  */
 export class Serializer { // TODO: move to shared
   static TYPE_SKIPPED = 'X';
@@ -137,7 +138,7 @@ export class Serializer { // TODO: move to shared
   static TYPE_VECTOR = 'V';
 
   /**
-   * @param {object} object object to serialize
+   * @param {T} object object to serialize
    * @param {ServerEngineAPI} engine Server Engine API
    */
   constructor(object, engine) {

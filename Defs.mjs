@@ -165,6 +165,7 @@ export const spawnflags = Object.freeze({
 
 /**
  * used to emit effects etc. to the client
+ * NOTE: if you plan on extending this, start from 128
  * @enum {number}
  * @readonly
  */
