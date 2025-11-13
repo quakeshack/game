@@ -1,6 +1,6 @@
 import { clientEvent, clientEventName, items } from '../Defs.mjs';
 import { weaponConfig } from '../entity/Weapons.mjs';
-import { entityRegistry } from '../GameAPI.mjs';
+import { ServerGameAPI } from '../GameAPI.mjs';
 import HUD from './HUD.mjs';
 
 /** @typedef {import('../../../shared/GameInterfaces').ClientEngineAPI} ClientEngineAPI  */
@@ -131,6 +131,8 @@ export class ClientGameAPI {
   }
 
   static GetClientEdictHandler(classname) {
+    const entityRegistry = ServerGameAPI._entityRegistry;
+
     return entityRegistry.has(classname) ? entityRegistry.get(classname).clientEdictHandler : null;
   }
 

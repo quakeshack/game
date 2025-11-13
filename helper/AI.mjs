@@ -292,6 +292,8 @@ export class QuakeEntityAI extends EntityAI {
         } else {
           console.warn(`${this._entity} could not find path to enemy ${this._entity.enemy}`);
         }
+      }).catch((err) => {
+        console.error(`${this._entity} failed to compute path to enemy ${this._entity.enemy}: ${err}`);
       });
 
       this._enemyMetadata.nextPathUpdateTime = this._game.time + 10.0 + Math.random() * 5.0;

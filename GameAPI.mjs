@@ -1,7 +1,7 @@
 
 import { GibEntity, InfoPlayerStart, InfoPlayerStart2, InfoPlayerStartCoop, InfoPlayerStartDeathmatch, PlayerEntity, TelefragTriggerEntity } from './entity/Player.mjs';
 import { BodyqueEntity, WorldspawnEntity } from './entity/Worldspawn.mjs';
-import { clientEvent, spawnflags } from './Defs.mjs';
+import { spawnflags } from './Defs.mjs';
 import * as misc from './entity/Misc.mjs';
 import * as door from './entity/props/Doors.mjs';
 import * as platform from './entity/props/Platforms.mjs';
@@ -25,6 +25,8 @@ import ShamblerMonsterEntity from './entity/monster/Shambler.mjs';
 import TarbabyMonsterEntity from './entity/monster/Tarbaby.mjs';
 import FishMonsterEntity from './entity/monster/Fish.mjs';
 import WizardMonsterEntity, { WizardMissile } from './entity/monster/Wizard.mjs';
+import GameStats from './helper/GameStats.mjs';
+import EntityRegistry from './helper/Registry.mjs';
 
 /** @typedef {import('../../shared/GameInterfaces').ServerGameInterface} ServerGameInterface */
 /** @typedef {import('../../shared/GameInterfaces').EdictData} EdictData */
@@ -36,8 +38,11 @@ const featureFlags = [
   'correct-ballistic-grenades', // enables zombie gib and ogre grenade trajectory fix
 ];
 
-/** entity class registry */
-export const entityRegistry = new Map([
+/**
+ * List of all entity classes.
+ * @type {(typeof BaseEntity)[]}
+ */
+export const entityClasses = [
   WorldspawnEntity,
   BodyqueEntity,
   PlayerEntity,
@@ -178,10 +183,7 @@ export const entityRegistry = new Map([
   item.WeaponSuperNailgun,
   item.WeaponRocketLauncher,
   item.WeaponThunderbolt,
-].map((entityClass) => [
-  /** @type {string} */(entityClass.classname),
-  /** @type {typeof BaseEntity} */(entityClass),
-]));
+];
 
 /**
  * Cvar cache
@@ -198,60 +200,11 @@ const cvars = {
   coop: null,
 };
 
-/**
- * Game statistics class.
- * It tracks monsters and secrets.
- * It is used to send statistics to clients.
- */
-class GameStats {
-  /**
-   * @param {ServerGameAPI} gameAPI game API
-   * @param {ServerEngineAPI} engineAPI engineAPI
-   */
-  constructor(gameAPI, engineAPI) {
-    this.game = gameAPI;
-    this.engine = engineAPI;
-
-    this._serializer = new Serializer(this, engineAPI);
-    this._serializer.startFields();
-    this.reset();
-    this._serializer.endFields();
-
-    Object.seal(this);
-  }
-
-  reset() {
-    this.monsters_total = 0;
-    this.monsters_killed = 0;
-    this.secrets_total = 0;
-    this.secrets_found = 0;
-  }
-
-  subscribeToEvents() {
-    this.engine.eventBus.subscribe('game.secret.spawned', () => { this.secrets_total++; });
-    this.engine.eventBus.subscribe('game.secret.found', (/** @type {BaseEntity} */ secretEntity, /** @type {BaseEntity} */ finderEntity) => {
-      this.engine.BroadcastClientEvent(true, clientEvent.STATS_UPDATED, 'secrets_found', ++this.secrets_found, finderEntity.edict);
-    });
-
-    this.engine.eventBus.subscribe('game.monster.spawned', () => { this.monsters_total++; });
-    this.engine.eventBus.subscribe('game.monster.killed', (/** @type {BaseEntity} */ monsterEntity, /** @type {BaseEntity} */ attackerEntity) => {
-      this.engine.BroadcastClientEvent(true, clientEvent.STATS_UPDATED, 'monsters_killed', ++this.monsters_killed, attackerEntity.edict);
-    });
-  }
-
-  /**
-   * @param {PlayerEntity} playerEntity client player entity
-   */
-  sendToPlayer(playerEntity) {
-    this.engine.DispatchClientEvent(playerEntity.edict, true, clientEvent.STATS_INIT, 'monsters_total', this.monsters_total);
-    this.engine.DispatchClientEvent(playerEntity.edict, true, clientEvent.STATS_INIT, 'monsters_killed', this.monsters_killed);
-    this.engine.DispatchClientEvent(playerEntity.edict, true, clientEvent.STATS_INIT, 'secrets_total', this.secrets_total);
-    this.engine.DispatchClientEvent(playerEntity.edict, true, clientEvent.STATS_INIT, 'secrets_found', this.secrets_found);
-  }
-};
-
 /** @augments ServerGameInterface */
 export class ServerGameAPI {
+  /** @access package */
+  static _entityRegistry = new EntityRegistry(entityClasses);
+
   /**
    * Invoked by spawning a server or a changelevel. It will initialize the global game state.
    * @param {ServerEngineAPI} engineAPI engine exports
@@ -468,12 +421,41 @@ export class ServerGameAPI {
     this.intermission_running = 1;
     this.intermission_exittime = this.time + (this.deathmatch ? 5.0 : 2.0); // 5s for dm games
 
-    this.engine.PlayTrack(3, 3); // TODO: client responsibility
+    this.engine.PlayTrack(3); // TODO: client responsibility
 
     for (const player of this.engine.FindAllByFieldAndValue('classname', PlayerEntity.classname)) {
       const playerEntity = /** @type {PlayerEntity} */(player.entity);
       playerEntity.startIntermission();
     }
+  }
+
+  /**
+   * Determine whether preparing an entity is allowed based e.g. on spawnflags and game mode.
+   * @param {string} classname entity classname
+   * @param {EdictData} initialData key-value initial data coming from the map
+   * @returns {boolean} true if the entity was successfully prepared
+   * @protected
+   */
+  _isPreparingEntityAllowed(classname, initialData) {
+    const sflags = +initialData.spawnflags || 0;
+
+    if (this.deathmatch && (sflags & spawnflags.SPAWNFLAG_NOT_DEATHMATCH)) { // no spawn in deathmatch
+      return false;
+    }
+
+    if (this.skill === 0 && (sflags & spawnflags.SPAWNFLAG_NOT_EASY)) {
+      return false;
+    }
+
+    if (this.skill === 1 && (sflags & spawnflags.SPAWNFLAG_NOT_MEDIUM)) {
+      return false;
+    }
+
+    if (this.skill >= 2 && (sflags & spawnflags.SPAWNFLAG_NOT_HARD)) {
+      return false;
+    }
+
+    return true;
   }
 
   /**
@@ -483,6 +465,8 @@ export class ServerGameAPI {
    * @returns {boolean} true if the entity was successfully prepared
    */
   prepareEntity(edict, classname, initialData = {}) {
+    const entityRegistry = /** @type {typeof ServerGameAPI} */(this.constructor)._entityRegistry;
+
     if (!entityRegistry.has(classname)) {
       this.engine.ConsoleWarning(`ServerGameAPI.prepareEntity: no entity factory for ${classname}!\n`);
 
@@ -491,30 +475,17 @@ export class ServerGameAPI {
     }
 
     // spawnflags (control whether to spawn an entity or not)
-    {
-      const sflags = +initialData.spawnflags || 0;
-
-      if (this.deathmatch && (sflags & spawnflags.SPAWNFLAG_NOT_DEATHMATCH)) { // no spawn in deathmatch
-        return false;
-      }
-
-      if (this.skill === 0 && (sflags & spawnflags.SPAWNFLAG_NOT_EASY)) {
-        return false;
-      }
-
-      if (this.skill === 1 && (sflags & spawnflags.SPAWNFLAG_NOT_MEDIUM)) {
-        return false;
-      }
-
-      if (this.skill >= 2 && (sflags & spawnflags.SPAWNFLAG_NOT_HARD)) {
-        return false;
-      }
+    if (!this._isPreparingEntityAllowed(classname, initialData)) {
+      return false;
     }
 
     const entityClass = entityRegistry.get(classname);
     const entity = edict.entity?.classname === classname ? edict.entity : new entityClass(edict, this);
 
     entity.assignInitialData(initialData);
+
+    // @ts-ignore: skipping the ReadOnly restriction for entity assignment
+    edict.entity = entity;
 
     return true;
   }
@@ -535,18 +506,18 @@ export class ServerGameAPI {
   }
 
   getClientEntityFields() {
-    /** @type {Record<string, string[]>} */
-    const clientEntityFields = {};
-
-    for (const [classname, entityClass] of entityRegistry) {
-      if (entityClass.clientEntityFields.length > 0) {
-        clientEntityFields[classname] = entityClass.clientEntityFields;
-      }
-    }
-
-    return clientEntityFields;
+    return /** @type {typeof ServerGameAPI} */(this.constructor)._entityRegistry.getClientEntityFields();
   }
 
+  _precacheResources() {
+    /** @type {typeof ServerGameAPI} */(this.constructor)._entityRegistry.precacheAll(this.engine);
+  }
+
+  /**
+   * Initialize the server game code.
+   * @param {string} mapname map name
+   * @param {number} serverflags server flags
+   */
   init(mapname, serverflags) {
     this.mapname = mapname;
     this.serverflags = serverflags;
@@ -564,9 +535,7 @@ export class ServerGameAPI {
     this.stats.subscribeToEvents();
 
     // precache all resources
-    for (const entityClass of entityRegistry.values()) {
-      entityClass._precache(this.engine);
-    }
+    this._precacheResources();
   }
 
   // eslint-disable-next-line no-unused-vars
@@ -586,10 +555,7 @@ export class ServerGameAPI {
     cvars.coop = ServerEngineAPI.RegisterCvar('coop', '0');
 
     // initialize all entity classes
-    for (const entityClass of entityRegistry.values()) {
-      entityClass._parseModelData(ServerEngineAPI);
-      entityClass._initStates();
-    }
+    this._entityRegistry.initializeAll(ServerEngineAPI);
   }
 
   static Shutdown() {

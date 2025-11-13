@@ -58,7 +58,6 @@ export default class BaseEntity {
     // hooking up the edict and the entity, also the APIs
     /** @private */
     this.edict_wf = new WeakRef(edict);
-    this.edict.entity = this;
     this.engine = gameAPI.engine;
     this.game = gameAPI;
 
@@ -226,8 +225,7 @@ export default class BaseEntity {
    */
   static _parseModelData(engineAPI) {
     if (this._modelQC) {
-      this._modelData = engineAPI.ParseQC(this._modelQC);
-      Object.freeze(this._modelData);
+      this._modelData = Object.freeze(engineAPI.ParseQC(this._modelQC));
     }
   }
 
