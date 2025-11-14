@@ -57,7 +57,7 @@ export default class BaseEntity {
   constructor(edict, gameAPI) {
     // hooking up the edict and the entity, also the APIs
     /** @private */
-    this.edict_wf = new WeakRef(edict);
+    this.edict_wf = edict ? new WeakRef(edict) : null;
     this.engine = gameAPI.engine;
     this.game = gameAPI;
 

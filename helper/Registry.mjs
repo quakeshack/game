@@ -30,6 +30,10 @@ export default class EntityRegistry {
     return this._registry.get(classname) || null;
   }
 
+  getAll() {
+    return this._registry.values();
+  }
+
   /** @param {ServerEngineAPI} engineAPI engine API for server game code */
   precacheAll(engineAPI) {
     for (const entityClass of this._registry.values()) {
