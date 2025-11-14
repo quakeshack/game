@@ -59,8 +59,6 @@ export class ClientGameAPI {
 
     this.hud = this._newHUD();
     this.serverInfo = this._newServerInfo();
-
-    Object.seal(this);
   }
 
   init() {

@@ -7,7 +7,7 @@ import { clientEvent, clientEventName } from '../Defs.mjs';
  * Keeps track of game statistics during the current game.
  * NOTE: Make sure to keep it in sync with the server GameStats!
  */
-export class StatsInfo {
+export class ClientStats {
   monsters_total = 0;
   monsters_killed = 0;
   secrets_total = 0;

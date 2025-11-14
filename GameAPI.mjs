@@ -294,9 +294,6 @@ export class ServerGameAPI {
     // FIXME: I’m not happy about this structure, especially with the getters down below
     /** cvar cache @protected */
     this._cvars = this._lookupCvars();
-
-    Object.seal(this._cvars);
-    Object.seal(this);
   }
 
   get skill() {

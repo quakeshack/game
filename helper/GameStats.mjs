@@ -10,7 +10,7 @@ import { Serializer } from './MiscHelpers.mjs';
  * Game statistics class.
  * It tracks monsters and secrets.
  * It is used to send statistics to clients.
- * NOTE: Make sure the client side is up-to-date.
+ * NOTE: Make sure the client side is up-to-date, see ClientStats!
  */
 export default class GameStats {
   /**

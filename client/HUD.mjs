@@ -3,7 +3,7 @@ import Vector from '../../../shared/Vector.mjs';
 import { clientEvent, clientEventName, colors, contentShift, items } from '../Defs.mjs';
 import { weaponConfig } from '../entity/Weapons.mjs';
 import { ClientGameAPI } from './ClientAPI.mjs';
-import { StatsInfo } from './Sync.mjs';
+import { ClientStats } from './Sync.mjs';
 
 /** @typedef {import('../../../shared/GameInterfaces').ClientDamageEvent} ClientDamageEvent */
 /** @typedef {import('../../../shared/GameInterfaces').ClientEngineAPI} ClientEngineAPI  */
@@ -215,7 +215,7 @@ export class Q1HUD {
   /** +showscores/-showscores @protected */
   static _showScoreboard = false;
 
-  /** @type {StatsInfo} gamewide stats @protected */
+  /** @type {ClientStats} gamewide stats @protected */
   stats = null;
 
   /** damage related states @protected */
@@ -242,7 +242,7 @@ export class Q1HUD {
   overlay = null;
 
   _newStats() {
-    return new StatsInfo(this.engine);
+    return new ClientStats(this.engine);
   }
 
   /**
@@ -252,8 +252,6 @@ export class Q1HUD {
   constructor(clientGameAPI, clientEngineAPI) {
     this.game = clientGameAPI;
     this.engine = clientEngineAPI;
-    Object.seal(this);
-    Object.seal(this.stats);
 
     // setup the viewport
     this.sbar = new Gfx(this.engine, 320, 24);
