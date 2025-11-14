@@ -116,6 +116,21 @@ export class BaseItemEntity extends BaseEntity {
     return playerEntity.applyBackpack(this);
   }
 
+  _collectItems(playerEntity) {
+    const items = [];
+
+    // check if this items is new in player’s inventory
+    if (this.items > 0 && (playerEntity.items & this.items) !== this.items) {
+      for (const [item, name] of Object.entries(itemNames)) {
+        if ((this.items & ~playerEntity.items) & (+item)) { // only mention new items
+          items.push(name);
+        }
+      }
+    }
+
+    return items;
+  }
+
   /** @param {BaseEntity} otherEntity other */
   touch(otherEntity) {
     if (!(otherEntity instanceof PlayerEntity) || otherEntity.health <= 0 || !this._canPickup(otherEntity)) {
@@ -125,37 +140,12 @@ export class BaseItemEntity extends BaseEntity {
     /** @type {PlayerEntity} */
     const player = otherEntity;
 
-    const items = [];
-
-    // check if this items is new in player’s inventory
-    if (this.items > 0 && (player.items & this.items) !== this.items) {
-      for (const [item, name] of Object.entries(itemNames)) {
-        if ((this.items & ~player.items) & (+item)) { // only mention new items
-          items.push(name);
-        }
-      }
-    }
-
-    if (this.ammo_shells > 0) {
-      items.push(`${this.ammo_shells} shells`);
-    }
-
-    if (this.ammo_nails > 0) {
-      items.push(`${this.ammo_nails} nails`);
-    }
-
-    if (this.ammo_rockets > 0) {
-      items.push(`${this.ammo_rockets} rockets`);
-    }
-
-    if (this.ammo_cells > 0) {
-      items.push(`${this.ammo_cells} cells`);
-    }
-
     // let the player consume this backpack
     if (!this._pickup(player)) {
       return; // player’s inventory is already full
     }
+
+    const items = this._collectItems(player);
 
     player.startSound(channel.CHAN_ITEM, this.noise);
     player.dispatchExpeditedEvent(clientEvent.ITEM_PICKED, this.edict, items, this.netname || null, this.items);
@@ -203,6 +193,28 @@ export class BackpackEntity extends BaseItemEntity {
     this.remove_after = 0;
 
     this._serializer.endFields();
+  }
+
+  _collectItems(playerEntity) {
+    const items = super._collectItems(playerEntity);
+
+    if (this.ammo_shells > 0) {
+      items.push(`${this.ammo_shells} shells`);
+    }
+
+    if (this.ammo_nails > 0) {
+      items.push(`${this.ammo_nails} nails`);
+    }
+
+    if (this.ammo_rockets > 0) {
+      items.push(`${this.ammo_rockets} rockets`);
+    }
+
+    if (this.ammo_cells > 0) {
+      items.push(`${this.ammo_cells} cells`);
+    }
+
+    return items;
   }
 
   spawn() {
@@ -284,6 +296,16 @@ export class ItemShellsEntity extends BaseAmmoEntity {
   _setAmmo(ammo) {
     this.ammo_shells = ammo;
   }
+
+  _collectItems(playerEntity) {
+    const items = super._collectItems(playerEntity);
+
+    if (this.ammo_shells > 0) {
+      items.push(`${this.ammo_shells} shells`);
+    }
+
+    return items;
+  }
 };
 
 /**
@@ -300,6 +322,16 @@ export class ItemSpikesEntity extends BaseAmmoEntity {
 
   _setAmmo(ammo) {
     this.ammo_nails = ammo;
+  }
+
+  _collectItems(playerEntity) {
+    const items = super._collectItems(playerEntity);
+
+    if (this.ammo_nails > 0) {
+      items.push(`${this.ammo_nails} nails`);
+    }
+
+    return items;
   }
 };
 
@@ -318,6 +350,16 @@ export class ItemRocketsEntity extends BaseAmmoEntity {
   _setAmmo(ammo) {
     this.ammo_rockets = ammo;
   }
+
+  _collectItems(playerEntity) {
+    const items = super._collectItems(playerEntity);
+
+    if (this.ammo_rockets > 0) {
+      items.push(`${this.ammo_rockets} rockets`);
+    }
+
+    return items;
+  }
 };
 
 /**
@@ -334,6 +376,16 @@ export class ItemCellsEntity extends BaseAmmoEntity {
 
   _setAmmo(ammo) {
     this.ammo_cells = ammo;
+  }
+
+  _collectItems(playerEntity) {
+    const items = super._collectItems(playerEntity);
+
+    if (this.ammo_cells > 0) {
+      items.push(`${this.ammo_cells} cells`);
+    }
+
+    return items;
   }
 };
 

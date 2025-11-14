@@ -173,6 +173,19 @@ export class Serializer { // TODO: move to shared
     this._markerStart = null;
   }
 
+  /**
+   * Adds fields to serialize.
+   * NOTE: Highly recommended to use startFields/endFields instead, otherwise you may forget to add new fields or change existing ones.
+   * @param  {...string} fields fields to add
+   */
+  addFields(...fields) {
+    for (const field of fields) {
+      if (!this._serializableFields.includes(field)) {
+        this._serializableFields.push(field);
+      }
+    }
+  }
+
   /** Starts recording added fields. */
   startFields() {
     this._markerStart = Object.keys(this._object);
