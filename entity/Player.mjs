@@ -165,6 +165,13 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     'items',
   ];
 
+  static _backpackLimits = {
+    ammo_nails: 200,
+    ammo_cells: 100,
+    ammo_rockets: 100,
+    ammo_shells: 100,
+  };
+
   static clientEdictHandler = class PlayerClientEntity extends BaseClientEdictHandler {
     emit() {
       if (+this.clientEdict.extended.items & items.IT_QUAD) {
@@ -962,10 +969,12 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
   applyBackpack(backpack) {
     let backpackUsed = false, ammoUsed = false;
 
-    const ammo_nails = Math.min(200, this.ammo_nails + backpack.ammo_nails);
-    const ammo_cells = Math.min(100, this.ammo_cells + backpack.ammo_cells);
-    const ammo_rockets = Math.min(100, this.ammo_rockets + backpack.ammo_rockets);
-    const ammo_shells = Math.min(100, this.ammo_shells + backpack.ammo_shells);
+    const thisClass = /** @type {typeof PlayerEntity} */(this.constructor);
+
+    const ammo_nails = Math.min(thisClass._backpackLimits.ammo_nails, this.ammo_nails + backpack.ammo_nails);
+    const ammo_cells = Math.min(thisClass._backpackLimits.ammo_cells, this.ammo_cells + backpack.ammo_cells);
+    const ammo_rockets = Math.min(thisClass._backpackLimits.ammo_rockets, this.ammo_rockets + backpack.ammo_rockets);
+    const ammo_shells = Math.min(thisClass._backpackLimits.ammo_shells, this.ammo_shells + backpack.ammo_shells);
 
     if (ammo_nails !== this.ammo_nails) {
       this.ammo_nails = ammo_nails;
@@ -1104,7 +1113,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     }
   }
 
-  /** @private */
+  /** @protected */
   _cheatCommandGeneric() {
     if (!this._canUseCheats()) {
       return;
@@ -1131,7 +1140,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     this.dispatchEvent(clientEvent.BONUS_FLASH);
   }
 
-  /** @private */
+  /** @protected */
   _cheatCommandQuad() {
     if (!this._canUseCheats()) {
       return;
@@ -1142,7 +1151,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     this.items |= items.IT_QUAD;
   }
 
-  /** @private */
+  /** @protected */
   _cycleWeaponCommand() {
     while (true) {
       let am = 0;
@@ -1193,7 +1202,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     }
   }
 
-  /** @private */
+  /** @protected */
   _cycleWeaponReverseCommand() {
     while (true) {
       let am = 0;
@@ -1245,7 +1254,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
   }
 
   /**
-   * @private
+   * @protected
    * @returns {boolean} true, when cheats are allowed
    */
   _canUseCheats() {

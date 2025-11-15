@@ -1003,6 +1003,8 @@ export class BaseWeaponEntity extends BaseItemEntity {
     this.setModel(thisClass._model);
     this.setSize(new Vector(-16.0, -16.0, 0.0), new Vector(16.0, 16.0, 56.0));
 
+    this.netname = itemNames[thisClass._weapon] || thisClass.classname;
+
     super.spawn();
   }
 };
