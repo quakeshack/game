@@ -562,6 +562,9 @@ export class ServerGameAPI {
 
   // eslint-disable-next-line no-unused-vars
   shutdown(isCrashShutdown) {
+    this.bodyque_head = null;
+    this.worldspawn = null;
+    this.lastspawn = null;
   }
 
   /** @param {ServerEngineAPI} ServerEngineAPI engine API for server game code */
