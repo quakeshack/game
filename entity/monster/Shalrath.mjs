@@ -216,7 +216,7 @@ export class ShalrathMissileEntity extends BaseProjectile {
       this.damage(touchedByEntity, 110, this.owner, this.origin);
     }
 
-    this._damageInflictor.blastDamage(40, this.owner, this.origin);
+    this._damageInflictor.blastDamage(40, this.owner);
 
     this.velocity.normalize();
     this.origin.subtract(this.velocity.multiply(8.0));

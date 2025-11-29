@@ -1,7 +1,7 @@
 import { BaseClientEdictHandler } from '../../../shared/ClientEdict.mjs';
 import Vector from '../../../shared/Vector.mjs';
 
-import { attn, channel, colors, content, damage, effect, moveType, solid, tentType } from '../Defs.mjs';
+import { attn, channel, colors, content, damage, effect, moveType, solid, tentType, waterlevel } from '../Defs.mjs';
 import { crandom } from '../helper/MiscHelpers.mjs';
 import BaseEntity from './BaseEntity.mjs';
 import BaseMonster from './monster/BaseMonster.mjs';
@@ -606,6 +606,7 @@ export class BaseBarrelEntity extends BaseEntity {
     this._serializer.startFields();
 
     this.health = 20;
+    this.bloodcolor = colors.DUST;
 
     this._serializer.endFields();
 
@@ -625,7 +626,7 @@ export class BaseBarrelEntity extends BaseEntity {
 
   thinkDie() {
     this.takedamage = damage.DAMAGE_NO; // prevents explosion recursion
-    this._damageInflictor.blastDamage(160, this, this.centerPoint, this);
+    this._damageInflictor.blastDamage(160, this, this);
     this.startSound(channel.CHAN_VOICE, /** @type {typeof BaseBarrelEntity} */(this.constructor)._noise);
     this.engine.StartParticles(this.origin, Vector.origin, colors.FIRE, 255);
 
@@ -887,8 +888,8 @@ export class BubbleEntity extends BaseEntity {
 
     // FIXME: this should be moveType.MOVETYPE_BOUNCE but with buoyancy handled by the engine
 
-    // CR: waterlevel 3 and watertype water makes the engine not play splash sounds
-    this.waterlevel = 3;
+    // CR: waterlevel head and watertype water makes the engine not play splash sounds
+    this.waterlevel = waterlevel.WATERLEVEL_HEAD;
     this.watertype = content.CONTENT_WATER;
 
     // CR: make sure world touching the bubbles make them go away

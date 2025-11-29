@@ -137,7 +137,7 @@ $frame exp
   _dieInAnExplosion() {
     this.startSound(channel.CHAN_VOICE, 'blob/death1.wav');
 
-    this._damageInflictor.blastDamage(120, this, this.origin);
+    this._damageInflictor.blastDamage(120, this);
 
     const vel = this.velocity.copy();
     vel.normalize();

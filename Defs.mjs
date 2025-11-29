@@ -9,6 +9,7 @@ export const channel = engine.channel;
 export const attn = engine.attn;
 export const hull = engine.hull;
 export const content = engine.content;
+export const waterlevel = engine.waterlevel;
 
 /**
  * range values

@@ -38,6 +38,7 @@ import EntityRegistry from './helper/Registry.mjs';
 
 export const featureFlags = [
   'correct-ballistic-grenades', // enables zombie gib and ogre grenade trajectory fix
+  'improved-gib-physics', // enables improved gib physics
 ];
 
 /**

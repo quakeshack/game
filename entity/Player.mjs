@@ -1,7 +1,8 @@
 import { BaseClientEdictHandler } from '../../../shared/ClientEdict.mjs';
 import Vector from '../../../shared/Vector.mjs';
 
-import { attn, channel, clientEvent, colors, content, damage, dead, deathType, effect, flags, hull, items, moveType, solid } from '../Defs.mjs';
+import { attn, channel, clientEvent, colors, content, damage, dead, deathType, effect, flags, hull, items, moveType, solid, waterlevel } from '../Defs.mjs';
+import { featureFlags } from '../GameAPI.mjs';
 import { crandom, Flag, Serializer } from '../helper/MiscHelpers.mjs';
 import BaseEntity from './BaseEntity.mjs';
 import { BackpackEntity } from './Items.mjs';
@@ -643,7 +644,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
   /** @protected */
   _deathSound() {
     // under water death sound
-    if (this.waterlevel === 3) {
+    if (this.waterlevel === waterlevel.WATERLEVEL_HEAD) {
       this.startSound(channel.CHAN_VOICE, 'player/h2odeath.wav', 1.0, attn.ATTN_NONE);
       return;
     }
@@ -942,7 +943,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     for (const [weapon, config] of weaponConfig.entries()) {
       const hasWeapon = it & weapon; // Check if player has this weapon
       const hasAmmo = config.ammoSlot === 0 || this[config.ammoSlot] > 0; // Check if ammo is available
-      const isUsable = !(weapon === items.IT_LIGHTNING && this.waterlevel > 1); // Lightning unusable in water
+      const isUsable = !(weapon === items.IT_LIGHTNING && this.waterlevel >= waterlevel.WATERLEVEL_WAIST); // Lightning unusable in water
 
       if (hasWeapon && hasAmmo && isUsable && config.priority > maxPriority) {
         bestWeapon = weapon;
@@ -1739,7 +1740,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
       return;
     }
 
-    if (this.waterlevel >= 2) {
+    if (this.waterlevel >= waterlevel.WATERLEVEL_WAIST) {
       if (this.watertype === content.CONTENT_WATER) {
         this.velocity[2] = 100;
       } else if (this.watertype === content.CONTENT_SLIME) {
@@ -1794,7 +1795,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
       return;
     }
 
-    if (this.waterlevel !== 3) {
+    if (this.waterlevel !== waterlevel.WATERLEVEL_HEAD) {
       if (this.air_finished < this.game.time) {
         this.startSound(channel.CHAN_VOICE, 'player/gasp2.wav');
       } else if (this.air_finished < this.game.time + 9.0) {
@@ -1863,7 +1864,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
 
   /** @protected */
   _playerWaterJump() {
-    if (this.waterlevel !== 2) {
+    if (this.waterlevel !== waterlevel.WATERLEVEL_WAIST) {
       return;
     }
 
@@ -2067,7 +2068,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
 
     // check for self-inflicted damage first
     if (attackerEntity.equals(this)) {
-      if (this.waterlevel > 0) {
+      if (this.waterlevel !== waterlevel.WATERLEVEL_NONE) {
         switch (this.watertype) {
           case content.CONTENT_WATER:
             this.engine.BroadcastPrint(`${this.netname} identified as a fish.\n`);
@@ -2299,15 +2300,16 @@ export class GibEntity extends BaseEntity {
    * Throws around a few giblets.
    * @param {BaseMonster|PlayerEntity} entity the entity being gibbed
    * @param {?number} damage taken damage (negative)
+   * @param {?Vector} impact impact velocity (optional)
    */
-  static throwGibs(entity, damage = null) {
+  static throwGibs(entity, damage = null, impact = Vector.origin) {
     // TODO: offload this to the client entity side
     const models = ['progs/gib1.mdl', 'progs/gib2.mdl', 'progs/gib3.mdl'];
 
     for (let i = 0, max = Math.ceil(entity.volume / 16000); i < max; i++) {
       entity.engine.SpawnEntity(GibEntity.classname, {
         origin: entity.origin.copy(),
-        velocity: VelocityForDamage(damage !== null ? damage : entity.health),
+        velocity: VelocityForDamage(damage !== null ? damage : entity.health).add(impact),
         model: models[Math.floor(Math.random() * models.length)],
       });
     }
@@ -2348,13 +2350,20 @@ export class GibEntity extends BaseEntity {
     entity.solid = solid.SOLID_NOT;
     entity.view_ofs = new Vector(0.0, 0.0, 8.0);
     entity.setSize(new Vector(-16.0, -16.0, 0.0), new Vector(16.0, 16.0, 56.0));
-    entity.velocity = VelocityForDamage(damagePoints);
     entity.origin[2] -= 24.0;
     entity.flags &= ~flags.FL_ONGROUND;
     entity.avelocity = (new Vector(0.0, 600.0, 0.0)).multiply(crandom());
     entity.deadflag = dead.DEAD_DEAD;
 
-    GibEntity.throwGibs(entity, damagePoints);
+    const impact = new Vector();
+
+    if (featureFlags.includes('improved-gib-physics')) {
+      entity.velocity.normalize();
+      impact.set(entity.velocity.multiply(-5.0 * damagePoints));
+      entity.velocity = VelocityForDamage(damagePoints).add(impact);
+    }
+
+    GibEntity.throwGibs(entity, damagePoints, impact);
 
     if (playSound) {
       entity.startSound(channel.CHAN_VOICE, Math.random() < 0.5 ? 'player/gib.wav' : 'player/udeath.wav', 1.0, attn.ATTN_NONE);

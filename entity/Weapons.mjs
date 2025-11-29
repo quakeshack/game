@@ -1,6 +1,7 @@
 import Vector, { DirectionalVectors } from '../../../shared/Vector.mjs';
 
-import { attn, channel, colors, content, damage, flags, items, moveType, solid, tentType } from '../Defs.mjs';
+import { attn, channel, colors, content, damage, flags, items, moveType, solid, tentType, waterlevel } from '../Defs.mjs';
+import { featureFlags } from '../GameAPI.mjs';
 import { crandom, EntityWrapper } from '../helper/MiscHelpers.mjs';
 import BaseEntity from './BaseEntity.mjs';
 import BaseMonster from './monster/BaseMonster.mjs';
@@ -224,10 +225,9 @@ export class DamageInflictor extends EntityWrapper {
   /**
    * @param {number} damage damage points
    * @param {?BaseEntity} attackerEntity attacking entity
-   * @param {?Vector} hitPoint exact hit point (defaults to attacker’s origin)
    * @param {?BaseEntity} ignore (optionally) entity to not hurt
    */
-  blastDamage(damage, attackerEntity, hitPoint = attackerEntity.origin, ignore = null) { // QuakeC: combat.qc/T_RadiusDamage
+  blastDamage(damage, attackerEntity, ignore = null) { // QuakeC: combat.qc/T_RadiusDamage
     // this._entity = missile
     // attackerEntity = missile’s owner (e.g. player)
 
@@ -252,7 +252,7 @@ export class DamageInflictor extends EntityWrapper {
       }
 
       if (points > 0 && victim._damageHandler && victim._damageHandler.canReceiveDamage(this._entity)) {
-        this._entity.damage(victim, points * victim._damageHandler.receiveDamageFactor.blast, attackerEntity, hitPoint);
+        this._entity.damage(victim, points * victim._damageHandler.receiveDamageFactor.blast, attackerEntity);
       }
     }
   }
@@ -450,7 +450,7 @@ export class DamageHandler extends EntityWrapper {
     }
 
     // figure momentum add
-    if (!inflictorEntity.isWorld() && this._entity.movetype === moveType.MOVETYPE_WALK) {
+    if (!inflictorEntity.isWorld() && (this._entity.movetype === moveType.MOVETYPE_WALK || featureFlags.includes('improved-gib-physics'))) {
       const direction = this._entity.origin.copy().subtract(inflictorEntity.centerPoint);
       direction.normalize();
       this._entity.velocity.add(direction.multiply(8.0 * inflictedDamage));
@@ -643,7 +643,7 @@ export class Grenade extends BaseProjectile {
     // nerfing grenade damage for NPCs
     const damage = this.owner instanceof PlayerEntity ? 120 : 40;
 
-    this._damageInflictor.blastDamage(damage, this.owner, this.origin);
+    this._damageInflictor.blastDamage(damage, this.owner);
 
     this.velocity.normalize();
     this.origin.subtract(this.velocity.multiply(8.0));
@@ -720,7 +720,7 @@ export class Missile extends BaseProjectile {
 
     // don't do radius damage to the other, because all the damage
     // was done in the impact
-    this._damageInflictor.blastDamage(120, this.owner, this.origin, touchedByEntity);
+    this._damageInflictor.blastDamage(120, this.owner, touchedByEntity);
 
     this.velocity.normalize();
     this.origin.subtract(this.velocity.multiply(8.0));
@@ -1049,9 +1049,9 @@ export class PlayerWeapons extends EntityWrapper {
     }
 
     // explode if under water
-    if (this._player.waterlevel > 1) {
+    if (this._player.waterlevel >= waterlevel.WATERLEVEL_WAIST) {
       const ammo = this._player.ammo_cells;
-      this._damageInflictor.blastDamage(ammo * 35, this._player, this._player.centerPoint);
+      this._damageInflictor.blastDamage(ammo * 35, this._player);
       this._player.currentammo = this._player.ammo_cells = 0;
       return;
     }

@@ -130,7 +130,7 @@ $frame prowl_17 prowl_18 prowl_19 prowl_20 prowl_21 prowl_22 prowl_23 prowl_24
     this._defineState('army_atk1', 'shoot1', 'army_atk2', function () { this._ai.face(); });
     this._defineState('army_atk2', 'shoot2', 'army_atk3', function () { this._ai.face(); });
     this._defineState('army_atk3', 'shoot3', 'army_atk4', function () { this._ai.face(); });
-    this._defineState('army_atk4', 'shoot4', 'army_atk5', function () { this._ai.face(); this._fire(); this.effects |= flags.EF_MUZZLEFLASH; });
+    this._defineState('army_atk4', 'shoot4', 'army_atk5', function () { this._ai.face(); this._fire(); this.effects |= effect.EF_MUZZLEFLASH; });
     this._defineState('army_atk5', 'shoot5', 'army_atk6', function () { this._ai.face(); });
     this._defineState('army_atk6', 'shoot6', 'army_atk7', function () { this._ai.face(); });
     this._defineState('army_atk7', 'shoot7', 'army_atk8', function () { this._ai.face(); this._refire('army_atk1'); });

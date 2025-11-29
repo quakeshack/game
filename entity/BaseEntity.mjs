@@ -2,7 +2,7 @@ import { BaseClientEdictHandler } from '../../../shared/ClientEdict.mjs';
 import Q from '../../../shared/Q.mjs';
 import Vector from '../../../shared/Vector.mjs';
 
-import { damage, dead, flags, moveType, solid, content, attn } from '../Defs.mjs';
+import { damage, dead, flags, moveType, solid, content, attn, waterlevel } from '../Defs.mjs';
 import { ServerGameAPI } from '../GameAPI.mjs';
 import { Serializer } from '../helper/MiscHelpers.mjs';
 
@@ -86,10 +86,10 @@ export default class BaseEntity {
     /** @type {number} @see {flags} */
     this.flags = flags.FL_NONE; // SV.WriteClientdataToMessage
     this.spawnflags = 0;
-    /** @type {number} @see {content} */
-    this.watertype = content.CONTENT_EMPTY;
-    /** determines the waterlevel: 0 outside, 1 inside, > 1 different contents */
-    this.waterlevel = 0; // SV.WriteClientdataToMessage
+    /** @type {number} @see {content} for water, it should be something like CONTENT_WATER, CONTENT_LAVA etc. */
+    this.watertype = content.CONTENT_NONE;
+    /** @type {number} @see {waterlevel} determines the waterlevel: outside, feet high, waist high, submerged */
+    this.waterlevel = waterlevel.WATERLEVEL_NONE;
     /** used by the engine to handle water and air move after a teleportation */
     this.teleport_time = 0;
 
@@ -841,7 +841,6 @@ export default class BaseEntity {
    * @param {Vector} origin starting point
    * @param {Vector} target ending point
    * @param {boolean} ignoreMonsters whether to pass through monsters
-   * @returns {*} trace information
    */
   traceline(origin, target, ignoreMonsters) {
     return this.engine.Traceline(origin, target, ignoreMonsters, this.edict);
