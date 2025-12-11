@@ -58,7 +58,7 @@ A couple of things I spotted or I’m unhappy with
 
 * [X] applyBackpack: currentammo not updated --> fixed by the new client code
 * [ ] cvars: move game related cvars to PR and QuakeJS game, less game duties on the engine
-* [ ] BaseEntity: make state definitions static, right now it’s bloating up the memory footprint
+* [X] BaseEntity: make state definitions static, right now it’s bloating up the memory footprint
 
 ### Entities
 

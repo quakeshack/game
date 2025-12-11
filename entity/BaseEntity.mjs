@@ -581,7 +581,7 @@ export default class BaseEntity {
    * @returns {string} String representation (not serialization) of this entity.
    */
   toString() {
-    return `${this.constructor.name} (${this.classname}, num: ${this.edictId}, origin: ${this.origin})`;
+    return `${this.classname} (num: ${this.edictId}, origin: ${this.origin})`;
   }
 
   /**

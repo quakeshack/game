@@ -15,6 +15,7 @@ const identification = {
     gameCapabilities.CAP_SPAWNPARMS_DYNAMIC,
     gameCapabilities.CAP_CHAT_MANAGED,
     gameCapabilities.CAP_ENTITY_EXTENDED,
+    gameCapabilities.CAP_ENTITY_BBOX_ADJUSTMENTS_DURING_LINK,
   ],
 };
 
