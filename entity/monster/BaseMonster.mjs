@@ -57,10 +57,6 @@ export default class BaseMonster extends BaseEntity {
     this._sub = new Sub(this);
   }
 
-  get v_angle() {
-    return this.angles;
-  }
-
   _precache() {
     // precache monster model
     this.engine.PrecacheModel(/** @type {typeof BaseMonster} */(this.constructor)._modelDefault);
@@ -380,7 +376,7 @@ export default class BaseMonster extends BaseEntity {
     }
 
     const gravity = this.game.gravity;
-    const target = 'view_ofs' in targetEntity && targetEntity.view_ofs instanceof Vector ? targetEntity.origin.copy().add(targetEntity.view_ofs) : targetEntity.centerPoint;
+    const target = targetEntity.origin.copy().add(targetEntity.view_ofs);
     const displacement = target.copy().subtract(origin);
     const velocity = displacement.copy();
     velocity.multiply(1 / travelTime);

@@ -825,7 +825,7 @@ export class BubbleSpawnerEntity extends BaseEntity {
     console.assert(bubbles < 50, 'bubble() requires a number of bubbles less than 50');
 
     return /** @type {BubbleSpawnerEntity} */(entity.engine.SpawnEntity(BubbleSpawnerEntity.classname, {
-      origin: entity.origin.copy().add('view_ofs' in entity && entity.view_ofs instanceof Vector ? entity.view_ofs : Vector.origin),
+      origin: entity.origin.copy().add(entity.view_ofs),
       bubble_count: bubbles,
       spread: 5,
     }).entity);

@@ -2,7 +2,7 @@ import { BaseClientEdictHandler } from '../../../shared/ClientEdict.mjs';
 import Q from '../../../shared/Q.mjs';
 import Vector from '../../../shared/Vector.mjs';
 
-import { damage, dead, flags, moveType, solid, content, attn, waterlevel } from '../Defs.mjs';
+import { damage, dead, flags, moveType, solid, content, attn, waterlevel, effect } from '../Defs.mjs';
 import { ServerGameAPI } from '../GameAPI.mjs';
 import { Serializer } from '../helper/MiscHelpers.mjs';
 
@@ -93,21 +93,33 @@ export default class BaseEntity {
     /** used by the engine to handle water and air move after a teleportation */
     this.teleport_time = 0;
 
-    // Quake model related
+    // view related
+    this.view_ofs = new Vector();
+    this.v_angle = new Vector();
+    this.punchangle = new Vector();
+    this.idealpitch = 0;
+    this.fixangle = false;
+
+    // physics related
+    /** @type {number|null} different gravity than server’s sv_gravity */
+    this.gravity = null;
+    /** @type {?BaseEntity} set by the physics engine */
+    this.groundentity = null;
+
+    // Quake model and rendering related
+    /** @type {?string} model to use */
     this.model = null;
     this.modelindex = 0;
     this.frame = 0;
-    this.frame2 = 0;
     this.skin = 0;
-    this.effects = 0;
+    /** @type {number} @see {effect} */
+    this.effects = effect.EF_NONE;
 
     // QuakeJS model related
-    /** @type {?number} */
+    /** @type {?number} @deprecated needs rework */
     this.keyframe = null;
 
     this.nextthink = 0.0;
-    /** @type {?BaseEntity} set by the phyiscs engine */
-    this.groundentity = null;
 
     // relationships between entities
     /** @type {?BaseEntity} entity, who launched a missile */
@@ -743,9 +755,10 @@ export default class BaseEntity {
   /**
    * This object is touched, invoked by the physics engine.
    * @param {BaseEntity} touchedByEntity what entity is touching this one
+   * @param {Vector} pushVector push vector
    */
   // eslint-disable-next-line no-unused-vars
-  touch(touchedByEntity) {
+  touch(touchedByEntity, pushVector) {
   }
 
   /**
@@ -820,8 +833,8 @@ export default class BaseEntity {
    * @returns {*} trace information
    */
   tracelineToEntity(target, ignoreMonsters) {
-    const start = this.origin.copy().add('view_ofs' in this && this.view_ofs instanceof Vector ? this.view_ofs : Vector.origin);
-    const end = target.origin.copy().add('view_ofs' in target && target.view_ofs instanceof Vector ? target.view_ofs : Vector.origin);
+    const start = this.origin.copy().add(this.view_ofs);
+    const end = target.origin.copy().add(target.view_ofs);
 
     return this.engine.Traceline(start, end, ignoreMonsters, this.edict);
   }
@@ -832,7 +845,7 @@ export default class BaseEntity {
    * @returns {*} trace information
    */
   tracelineToVector(target, ignoreMonsters) {
-    const start = this.origin.copy().add('view_ofs' in this && this.view_ofs instanceof Vector ? this.view_ofs : Vector.origin);
+    const start = this.origin.copy().add(this.view_ofs);
 
     return this.engine.Traceline(start, target, ignoreMonsters, this.edict);
   }
