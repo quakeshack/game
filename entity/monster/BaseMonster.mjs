@@ -163,7 +163,7 @@ export default class BaseMonster extends BaseEntity {
 
   /**
    * Called by the AI code.
-   * @returns {*} desired attack state
+   * @returns {ATTACK_STATE|null} desired attack state
    */
   checkAttack() { // QuakeC: fight.qc/CheckAttack
     const target = this.enemy;

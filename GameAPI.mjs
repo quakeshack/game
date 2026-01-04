@@ -37,8 +37,9 @@ import EntityRegistry from './helper/Registry.mjs';
 /** @typedef {Record<string, Cvar|null>} CvarMap */
 
 export const featureFlags = [
-  'correct-ballistic-grenades', // enables zombie gib and ogre grenade trajectory fix
+  // 'correct-ballistic-grenades', // enables zombie gib and ogre grenade trajectory fix
   'improved-gib-physics', // enables improved gib physics
+  // 'draw-bullet-hole-decals', // enables handling decal events upon bullet impacts
 ];
 
 /**
@@ -186,6 +187,8 @@ export const entityClasses = [
   item.WeaponSuperNailgun,
   item.WeaponRocketLauncher,
   item.WeaponThunderbolt,
+
+  misc.MiscModelEntity,
 ];
 
 /** @augments ServerGameInterface */

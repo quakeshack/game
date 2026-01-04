@@ -1,6 +1,6 @@
-import { clientEventName, items } from '../Defs.mjs';
+import { clientEvent, clientEventName, decals, items } from '../Defs.mjs';
 import { weaponConfig } from '../entity/Weapons.mjs';
-import { ServerGameAPI } from '../GameAPI.mjs';
+import { featureFlags, ServerGameAPI } from '../GameAPI.mjs';
 import { Q1HUD } from './HUD.mjs';
 import { ServerInfo } from './Sync.mjs';
 
@@ -10,6 +10,7 @@ import { ServerInfo } from './Sync.mjs';
 /** @typedef {import('../../../shared/GameInterfaces').ViewmodelConfig} ViewmodelConfig */
 /** @typedef {import('../../../shared/GameInterfaces').RefDef} RefDef */
 /** @typedef {import('../../../shared/GameInterfaces').ClientdataMap} ClientdataMap */
+/** @typedef {import('../../../shared/GameInterfaces').GLTexture} GLTexture */
 
 /** @typedef {import('../entity/Weapons.mjs').WeaponConfigKey} WeaponConfigKey */
 
@@ -41,6 +42,13 @@ export class ClientGameAPI {
     frame: 0,
   };
 
+  decals = {
+    axehit: /** @type {GLTexture[]} */ ([]),
+    bhole: /** @type {GLTexture[]} */ ([]),
+  };
+
+  decalEventHandler = /** @type {Function|null} */ (null);
+
   /** @returns {Q1HUD} HUD @protected */
   _newHUD() {
     return new Q1HUD(this, this.engine);
@@ -63,10 +71,86 @@ export class ClientGameAPI {
 
   init() {
     this.hud.init();
+
+    if (featureFlags.includes('draw-bullet-hole-decals')) {
+      this._initDecalEvents();
+    }
   }
 
   shutdown() {
     this.hud.shutdown();
+
+    if (featureFlags.includes('draw-bullet-hole-decals')) {
+      this._shutdownDecalEvents();
+    }
+  }
+
+  _initDecalEvents() {
+    Promise.all([
+      this.engine.LoadPicFromFile('gfx/bhole1.png'),
+      this.engine.LoadPicFromFile('gfx/bhole2.png'),
+      this.engine.LoadPicFromFile('gfx/bhole3.png'),
+      this.engine.LoadPicFromFile('gfx/bhole4.png'),
+    ]).then((txs) => {
+      for (const tx of txs) {
+        tx.wrapClamped();
+        this.decals.bhole.push(tx);
+      }
+    }).catch((e) => {
+      this.engine.ConsoleError(`failed to load bullet holes decal textures: ${e.message}\n`);
+    });
+
+    Promise.all([
+      this.engine.LoadPicFromFile('gfx/axehit1.png'),
+      this.engine.LoadPicFromFile('gfx/axehit2.png'),
+      this.engine.LoadPicFromFile('gfx/axehit3.png'),
+      this.engine.LoadPicFromFile('gfx/axehit4.png'),
+    ]).then((txs) => {
+      for (const tx of txs) {
+        tx.wrapClamped();
+        this.decals.axehit.push(tx);
+      }
+    }).catch((e) => {
+      this.engine.ConsoleError(`failed to load axehit decal textures: ${e.message}\n`);
+    });
+
+    this.decalEventHandler = this.engine.eventBus.subscribe(clientEventName(clientEvent.EMIT_DECAL), (origin, normal, texture) => {
+      switch (texture) {
+        case decals.DECAL_BULLETHOLE:
+          if (this.decals.bhole.length > 0) {
+            this.engine.PlaceDecal(origin, normal, this.decals.bhole[Math.floor(Math.random() * this.decals.bhole.length)]);
+          }
+          break;
+
+        case decals.DECAL_AXEHIT:
+          if (this.decals.axehit.length > 0) {
+            this.engine.PlaceDecal(origin, normal, this.decals.axehit[Math.floor(Math.random() * this.decals.axehit.length)]);
+          }
+          break;
+
+        default:
+          this.engine.ConsoleDebug(`EMIT_DECAL handler: unknown decal texture id: ${texture}\n`);
+      }
+    });
+  }
+
+  _shutdownDecalEvents() {
+    if (this.decalEventHandler) {
+      this.decalEventHandler();
+      this.decalEventHandler = null;
+    }
+
+    for (const tx of this.decals.bhole) {
+      tx.free();
+    }
+
+    this.decals.bhole.length = 0;
+
+    for (const tx of this.decals.axehit) {
+      tx.free();
+    }
+
+    this.decals.axehit.length = 0;
   }
 
   /** @protected */

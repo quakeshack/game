@@ -913,3 +913,30 @@ export class BubbleEntity extends BaseEntity {
     this._bubble();
   }
 }
+
+export class MiscModelEntity extends BaseEntity {
+  static classname = 'misc_model';
+
+  _declareFields() {
+    this._serializer.startFields();
+
+    /** @type {string} model path */
+    this.model = null;
+
+    this._serializer.endFields();
+  }
+
+  // _precache() {
+  //   console.assert(this.model, 'misc_model requires a model to be set');
+  //   this.engine.PrecacheModel(this.model);
+  // }
+
+  spawn() {
+    console.assert(this.model, 'misc_model requires a model to be set');
+
+    this.movetype = moveType.MOVETYPE_NONE;
+    this.solid = solid.SOLID_MESH;
+
+    this.setModel(this.model);
+  }
+}

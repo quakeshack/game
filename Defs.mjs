@@ -165,6 +165,15 @@ export const spawnflags = Object.freeze({
 });
 
 /**
+ * @readonly
+ * @enum {number}
+ */
+export const decals = Object.freeze({
+  DECAL_BULLETHOLE: 1,
+  DECAL_AXEHIT: 2,
+});
+
+/**
  * used to emit effects etc. to the client
  * NOTE: if you plan on extending this, start from 128
  * @enum {number}
@@ -194,6 +203,9 @@ export const clientEvent = Object.freeze({
 
   /** enters intermission, args: message (optional) */
   INTERMISSION_START: 8,
+
+  /** emits decal events upon bullet impacts or for blood splatter, args: origin (vector), normal (vector), decal id (number, see decals) */
+  EMIT_DECAL: 9,
 
   /** TODO: damage received, args: damage (number), origin (vector) */
   DAMAGE_RECEIVED: 99,

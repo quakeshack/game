@@ -1,6 +1,6 @@
 import Vector, { DirectionalVectors } from '../../../shared/Vector.mjs';
 
-import { attn, channel, colors, content, damage, flags, items, moveType, solid, tentType, waterlevel } from '../Defs.mjs';
+import { attn, channel, clientEvent, colors, content, damage, decals, flags, items, moveType, solid, tentType, waterlevel } from '../Defs.mjs';
 import { featureFlags } from '../GameAPI.mjs';
 import { crandom, EntityWrapper } from '../helper/MiscHelpers.mjs';
 import BaseEntity from './BaseEntity.mjs';
@@ -157,7 +157,7 @@ export class DamageInflictor extends EntityWrapper {
     // velocity.normalize();
     // velocity.add(trace.plane.normal.copy().multiply(2.0)).multiply(40.0);
 
-    const origin = trace.point.subtract(direction.copy().multiply(4.0));
+    const origin = trace.point.copy().subtract(direction.copy().multiply(4.0));
 
     if (trace.entity && trace.entity.takedamage) {
       /** @type {DamageHandler} */
@@ -169,6 +169,7 @@ export class DamageInflictor extends EntityWrapper {
       }
     } else {
       this.dispatchGunshotEvent(origin);
+      this._engine.BroadcastClientEvent(false, clientEvent.EMIT_DECAL, trace.point, trace.plane.normal, decals.DECAL_BULLETHOLE);
     }
   }
 
@@ -924,7 +925,7 @@ export class PlayerWeapons extends EntityWrapper {
       return;
     }
 
-    const origin = trace.point.subtract(forward.copy().multiply(4.0));
+    const origin = trace.point.copy().subtract(forward.copy().multiply(4.0));
 
     if (trace.entity.takedamage !== damage.DAMAGE_NO) {
       this._player.damage(trace.entity, 20.0, null, trace.point);
@@ -932,6 +933,7 @@ export class PlayerWeapons extends EntityWrapper {
       // hit wall
       this._startSound('player/axhit2.wav');
       this._damageInflictor.dispatchGunshotEvent(origin);
+      this._engine.BroadcastClientEvent(false, clientEvent.EMIT_DECAL, trace.point, trace.plane.normal, decals.DECAL_AXEHIT);
     }
   }
 

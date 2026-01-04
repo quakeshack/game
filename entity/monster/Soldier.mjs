@@ -1,6 +1,6 @@
 import Vector from '../../../../shared/Vector.mjs';
 
-import { attn, channel, effect, flags, solid } from '../../Defs.mjs';
+import { attn, channel, effect, solid } from '../../Defs.mjs';
 import { QuakeEntityAI } from '../../helper/AI.mjs';
 import { DamageInflictor, Laser } from '../Weapons.mjs';
 import { WalkMonster } from './BaseMonster.mjs';

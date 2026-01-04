@@ -306,6 +306,7 @@ export class Q1HUD {
     });
 
     // picked up an item
+    // eslint-disable-next-line no-unused-vars
     this.engine.eventBus.subscribe(clientEventName(clientEvent.ITEM_PICKED), (itemEntity, itemNames, netname, items) => {
       if (netname !== null) {
         this.engine.ConsolePrint(`You got ${netname}.\n`);
