@@ -167,7 +167,7 @@ export class DamageInflictor extends EntityWrapper {
         damageHandler.spawnBlood(damage, origin); // , velocity);
         this._addMultiDamage(trace.entity, damage);
       }
-    } else {
+    } else if (this._engine.DeterminePointContents(origin) !== content.CONTENT_SKY) {
       this.dispatchGunshotEvent(origin);
       this._engine.BroadcastClientEvent(false, clientEvent.EMIT_DECAL, trace.point, trace.plane.normal, decals.DECAL_BULLETHOLE);
     }
