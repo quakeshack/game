@@ -33,6 +33,8 @@ import EntityRegistry from './helper/Registry.mjs';
 /** @typedef {import('../../shared/GameInterfaces').ServerEdict} ServerEdict */
 /** @typedef {import("../../shared/GameInterfaces").ServerEngineAPI} ServerEngineAPI */
 /** @typedef {import("../../shared/GameInterfaces").Cvar} Cvar */
+/** @typedef {import('../../shared/GameInterfaces').ServerInfoField} ServerInfoField */
+/** @typedef {import('../../shared/GameInterfaces').MapDetails} MapDetails */
 
 /** @typedef {Record<string, Cvar|null>} CvarMap */
 
@@ -527,6 +529,68 @@ export class ServerGameAPI {
     edict.entity.spawn();
 
     return true;
+  }
+
+  /**
+   * @returns {ServerInfoField[]} server info fields
+   */
+  static GetServerInfoFields() {
+    return [
+      { name: 'nomonster', label: 'Do not spawn monsters', type: 'boolean' },
+      { name: 'noexit', label: 'Level cannot be exited', type: 'boolean' },
+      { name: 'samelevel', label: 'Exit will lead to the same map', type: 'boolean' },
+      { name: 'skill', label: 'Game skill level', type: 'enum', enumValues: { '0': 'Easy', '1': 'Medium', '2': 'Hard', '3': 'Nightmare' } },
+      { name: 'deathmatch', label: 'Deathmatch mode', type: 'boolean' },
+      { name: 'coop', label: 'Cooperative mode', type: 'boolean' },
+      { name: 'timelimit', label: 'Time limit (minutes)', type: 'number' },
+      { name: 'fraglimit', label: 'Frag limit', type: 'number' },
+    ];
+  };
+
+  /**
+   * @returns {MapDetails[]} map list
+   */
+  static GetMapList() {
+    // TODO: add the corresponding pictures and names
+    return [
+      { name: 'start', label: 'Start Map', maxplayers: 4, pictures: [] },
+      { name: 'dm1', label: 'DM1', maxplayers: 4, pictures: [] },
+      { name: 'dm2', label: 'DM2', maxplayers: 4, pictures: [] },
+      { name: 'dm3', label: 'DM3', maxplayers: 4, pictures: [] },
+      { name: 'dm4', label: 'DM4', maxplayers: 4, pictures: [] },
+      { name: 'dm5', label: 'DM5', maxplayers: 4, pictures: [] },
+      { name: 'dm6', label: 'DM6', maxplayers: 4, pictures: [] },
+      { name: 'e1m1', label: 'E1M1', maxplayers: 4, pictures: [] },
+      { name: 'e1m2', label: 'E1M2', maxplayers: 4, pictures: [] },
+      { name: 'e1m3', label: 'E1M3', maxplayers: 4, pictures: [] },
+      { name: 'e1m4', label: 'E1M4', maxplayers: 4, pictures: [] },
+      { name: 'e1m5', label: 'E1M5', maxplayers: 4, pictures: [] },
+      { name: 'e1m6', label: 'E1M6', maxplayers: 4, pictures: [] },
+      { name: 'e1m7', label: 'E1M7', maxplayers: 4, pictures: [] },
+      { name: 'e1m8', label: 'E1M8', maxplayers: 4, pictures: [] },
+      { name: 'e2m1', label: 'E2M1', maxplayers: 4, pictures: [] },
+      { name: 'e2m2', label: 'E2M2', maxplayers: 4, pictures: [] },
+      { name: 'e2m3', label: 'E2M3', maxplayers: 4, pictures: [] },
+      { name: 'e2m4', label: 'E2M4', maxplayers: 4, pictures: [] },
+      { name: 'e2m5', label: 'E2M5', maxplayers: 4, pictures: [] },
+      { name: 'e2m6', label: 'E2M6', maxplayers: 4, pictures: [] },
+      { name: 'e2m7', label: 'E2M7', maxplayers: 4, pictures: [] },
+      { name: 'e3m1', label: 'E3M1', maxplayers: 4, pictures: [] },
+      { name: 'e3m2', label: 'E3M2', maxplayers: 4, pictures: [] },
+      { name: 'e3m3', label: 'E3M3', maxplayers: 4, pictures: [] },
+      { name: 'e3m4', label: 'E3M4', maxplayers: 4, pictures: [] },
+      { name: 'e3m5', label: 'E3M5', maxplayers: 4, pictures: [] },
+      { name: 'e3m6', label: 'E3M6', maxplayers: 4, pictures: [] },
+      { name: 'e3m7', label: 'E3M7', maxplayers: 4, pictures: [] },
+      { name: 'e4m1', label: 'E4M1', maxplayers: 4, pictures: [] },
+      { name: 'e4m2', label: 'E4M2', maxplayers: 4, pictures: [] },
+      { name: 'e4m3', label: 'E4M3', maxplayers: 4, pictures: [] },
+      { name: 'e4m4', label: 'E4M4', maxplayers: 4, pictures: [] },
+      { name: 'e4m5', label: 'E4M5', maxplayers: 4, pictures: [] },
+      { name: 'e4m6', label: 'E4M6', maxplayers: 4, pictures: [] },
+      { name: 'e4m7', label: 'E4M7', maxplayers: 4, pictures: [] },
+      { name: 'e4m8', label: 'E4M8', maxplayers: 4, pictures: [] },
+    ];
   }
 
   getClientEntityFields() {

@@ -207,6 +207,11 @@ export class ClientGameAPI {
     this.hud.loadState(parsedData.hud);
   }
 
+  // eslint-disable-next-line no-unused-vars
+  static GetStartGameInterface(engineAPI) {
+    return null;
+  }
+
   static GetClientEdictHandler(classname) {
     return ServerGameAPI._entityRegistry.get(classname)?.clientEdictHandler || null;
   }
