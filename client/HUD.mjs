@@ -223,6 +223,9 @@ export class MessageBag {
     this._gfx = gfx;
   }
 
+  /** @type {number[]} */
+  _offset = [];
+
   addMessage(message, duration = 5.0, color = new Vector(1.0, 1.0, 1.0)) {
     this._messages.push({
       message,
@@ -242,7 +245,7 @@ export class MessageBag {
 
     for (let i = this._messages.length - 1; i >= 0; i--) {
       const msg = this._messages[i];
-      this._gfx.drawString(-160, (this._messages.length - i + 2) * -16, msg.message.trim(), 2.0, msg.color);
+      this._gfx.drawString(-160 + this._offset[0], (this._messages.length - i + 2) * -16 + this._offset[1], msg.message.trim(), 2.0, msg.color);
     }
   }
 };
