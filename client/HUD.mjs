@@ -208,15 +208,60 @@ export class Gfx {
   }
 }
 
-const ammoLowColor = new Vector(1.0, 1.0, 1.0);
-const ammoColor = new Vector(1.0, 1.0, 1.0);
+export class MessageBag {
+  /** @type {ClientEngineAPI} @protected */
+  _engine = null;
+
+  /** @type {Gfx} @protected */
+  _gfx = null;
+
+  /** @type {{message: string, color: Vector, endtime: number}[]} @protected */
+  _messages = [];
+
+  constructor(engine, gfx) {
+    this._engine = engine;
+    this._gfx = gfx;
+  }
+
+  addMessage(message, duration = 5.0, color = new Vector(1.0, 1.0, 1.0)) {
+    this._messages.push({
+      message,
+      color,
+      endtime: this._engine.CL.gametime + duration,
+    });
+  }
+
+  drawMessages() {
+    const now = this._engine.CL.gametime;
+
+    this._messages = this._messages.filter((msg) => msg.endtime > now);
+
+    if (this._messages.length > 5) {
+      this._messages = this._messages.slice(this._messages.length - 5);
+    }
+
+    for (let i = this._messages.length - 1; i >= 0; i--) {
+      const msg = this._messages[i];
+      this._gfx.drawString(-160, (this._messages.length - i + 2) * -16, msg.message.trim(), 2.0, msg.color);
+    }
+  }
+};
 
 export class Q1HUD {
   /** +showscores/-showscores @protected */
   static _showScoreboard = false;
 
+  /** @protected */
+  static _ammoLowColor = new Vector(1.0, 1.0, 1.0);
+
+  /** @protected */
+  static _ammoColor = new Vector(1.0, 1.0, 1.0);
+
   /** @type {ClientStats} gamewide stats @protected */
   stats = null;
+
+  /** @type {MessageBag} message bag for HUD messages @protected */
+  messageBag = null;
 
   /** damage related states @protected */
   damage = {
@@ -245,6 +290,10 @@ export class Q1HUD {
     return new ClientStats(this.engine);
   }
 
+  _newMessageBag() {
+    return new MessageBag(this.engine, this.sbar);
+  }
+
   /**
    * @param {ClientGameAPI} clientGameAPI this game’s API
    * @param {ClientEngineAPI} clientEngineAPI engine API
@@ -263,16 +312,27 @@ export class Q1HUD {
     const { width, height } = this.engine.VID;
     this._viewportResize(width, height);
 
+    this.stats = this._newStats();
+    this.messageBag = this._newMessageBag();
+
+    this._initColors();
+
     // observe notable events
     this._subscribeToEvents();
-
-    this.stats = this._newStats();
-
-    ammoColor.set(this.engine.IndexToRGB(colors.HUD_AMMO_NORMAL));
-    ammoLowColor.set(this.engine.IndexToRGB(colors.HUD_AMMO_WARNING));
   }
 
   shutdown() {
+  }
+
+  /**
+   * Initializes color values.
+   * @protected
+   */
+  _initColors() {
+    const thisClass = /** @type {typeof Q1HUD} */ (this.constructor);
+
+    thisClass._ammoColor.set(this.engine.IndexToRGB(colors.HUD_AMMO_NORMAL));
+    thisClass._ammoLowColor.set(this.engine.IndexToRGB(colors.HUD_AMMO_WARNING));
   }
 
   /**
@@ -309,11 +369,11 @@ export class Q1HUD {
     // eslint-disable-next-line no-unused-vars
     this.engine.eventBus.subscribe(clientEventName(clientEvent.ITEM_PICKED), (itemEntity, itemNames, netname, items) => {
       if (netname !== null) {
-        this.engine.ConsolePrint(`You got ${netname}.\n`);
+        this.messageBag.addMessage(`You got ${netname}.\n`);
       } else if (itemNames.length > 0) {
-        this.engine.ConsolePrint(`You got ${itemNames.join(', ')}.\n`);
+        this.messageBag.addMessage(`You got ${itemNames.join(', ')}.\n`);
       } else {
-        this.engine.ConsolePrint('You found an empty item.\n');
+        this.messageBag.addMessage('You found an empty item.\n');
       }
 
       // TODO: do the picked up animation effect
@@ -347,11 +407,9 @@ export class Q1HUD {
 
     // chat message
     this.engine.eventBus.subscribe('client.chat.message', (name, message, isDirect) => {
-      if (isDirect) {
-        this.engine.ConsolePrint(`${name} to you: ${message}\n`);
-      } else {
-        this.engine.ConsolePrint(`${name}: ${message}\n`);
-      }
+      const color = isDirect ? new Vector(0.5, 1.0, 0.5) : new Vector(1.0, 1.0, 1.0);
+
+      this.messageBag.addMessage(`${name}: ${message}\n`, 10.0, color);
 
       this.engine.LoadSound('misc/talk.wav').play();
     });
@@ -452,6 +510,10 @@ export class Q1HUD {
    * @protected
    */
   _drawInventory(offsetY = 0) {
+    const thisClass = /** @type {typeof Q1HUD} */ (this.constructor);
+    const ammoLowColor = thisClass._ammoLowColor;
+    const ammoColor = thisClass._ammoColor;
+
     this.sbar.drawPic(0, offsetY, backgrounds.inventorybar);
 
     // Draw ammo slots
@@ -601,6 +663,8 @@ export class Q1HUD {
     }
 
     this._drawStatusBar();
+
+    this.messageBag.drawMessages();
   }
 
   /**
