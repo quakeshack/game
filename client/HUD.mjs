@@ -218,14 +218,24 @@ export class MessageBag {
   /** @type {{message: string, color: Vector, endtime: number}[]} @protected */
   _messages = [];
 
+  /** @type {[number, number]} @protected */
+  _offset = [0, 0];
+
+  /**
+   * @param {ClientEngineAPI} engine engine API
+   * @param {Gfx} gfx graphics helper
+   */
   constructor(engine, gfx) {
     this._engine = engine;
     this._gfx = gfx;
   }
 
-  /** @type {number[]} */
-  _offset = [];
-
+  /**
+   * Adds a message to the bag.
+   * @param {string} message message to display
+   * @param {number} duration seconds to display the message
+   * @param {Vector} color color in RGB
+   */
   addMessage(message, duration = 5.0, color = new Vector(1.0, 1.0, 1.0)) {
     this._messages.push({
       message,
@@ -234,6 +244,9 @@ export class MessageBag {
     });
   }
 
+  /**
+   * Draws messages from the bag. Also removes expired messages.
+   */
   drawMessages() {
     const now = this._engine.CL.gametime;
 
