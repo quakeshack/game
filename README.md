@@ -64,20 +64,24 @@ A couple of things I spotted or I’m unhappy with
 
 A few NPCs and features from the original game are still missing and yet to be implemented:
 
-* [ ] player: Finale screen
+* [X] player: Finale screen
 * [X] monster_fish
-* [ ] monster_oldone
+* [X] monster_oldone
 * [X] monster_tarbaby
 * [X] monster_wizard
-* [ ] monster_boss
-* [ ] monster_boss: event_lightning
+* [X] monster_boss
+* [X] monster_boss: event_lightning
+
+#### Bugs
+
+* [ ] telefragging moster_oldone does not work? might be a bug over at the engine
 
 **Note:** Most monsters are now implemented! Only the final bosses (`monster_oldone` and `monster_boss`) remain.
 
 ### Client-side
 
 * [X] implement a more lean Sbar/HUD
-  * [ ] implement intermission, finale etc. screens
+  * [X] implement intermission, finale etc. screens
 * [X] move more of the effect handling from the engine to the game code
 * [X] implement damage effects (red flash)
 * [X] implement powerup effects (quad, invis etc.)
@@ -194,6 +198,102 @@ These base classes make it easy to create new entities with common behaviors:
 2. `ClientGameAPI.Init()` is called (static) - client-side setup
 3. When connecting, `new ClientGameAPI(engineAPI)` is instantiated
 4. HUD and effects are initialized
+
+
+### Porting QuakeC Monsters
+
+When porting monsters from QuakeC to JavaScript, follow these patterns:
+
+#### Standard Monsters (using AI)
+
+Most monsters extend `WalkMonster`, `FlyMonster`, or `SwimMonster` (which all extend `BaseMonster`):
+
+```javascript
+import { WalkMonster } from './BaseMonster.mjs';
+
+export class MyMonster extends WalkMonster {
+  static classname = 'monster_mymonster';
+  static _health = 100;
+  static _size = [new Vector(-16, -16, -24), new Vector(16, 16, 40)];
+  static _modelDefault = 'progs/mymonster.mdl';
+}
+```
+
+Key requirements:
+- Always call `super._declareFields()` at the start of `_declareFields()`
+- Use `_defineState()` in `static _initStates()` to define animation states
+- Use `_runState('statename')` to transition between states
+
+#### Boss Monsters (no AI, state machine only)
+
+Bosses like Chthon and Shub-Niggurath don't use the standard AI system. They are purely state-machine driven:
+
+```javascript
+import BaseEntity from '../BaseEntity.mjs';
+import BaseMonster from './BaseMonster.mjs';
+
+export class MyBoss extends BaseMonster {
+  static classname = 'monster_myboss';
+
+  // Disable the AI system
+  _newEntityAI() {
+    return null;
+  }
+
+  // Skip AI think but still process scheduled thinks for state machine
+  think() {
+    BaseEntity.prototype.think.call(this);
+  }
+
+  // Custom spawn - don't call _postSpawn() which sets up AI
+  spawn() {
+    if (this.game.deathmatch) {
+      this.remove();
+      return;
+    }
+    this.engine.eventBus.publish('game.monster.spawned', this);
+    // Boss starts inactive until triggered via use()
+  }
+}
+```
+
+**Important**: The `think()` override must call `BaseEntity.prototype.think.call(this)` directly (not `super.think()`) to:
+- Skip `BaseMonster.think()` which calls `this._ai.think()`
+- Still process `_scheduledThinks` which the state machine relies on
+
+#### State Machine Pattern
+
+Define states using `_defineState(stateName, frameId, nextState, callback)`:
+
+```javascript
+static _initStates() {
+  this._states = {};
+
+  // Simple state
+  this._defineState('boss_idle1', 'walk1', 'boss_idle2', function () {});
+
+  // State with callback
+  this._defineState('boss_attack1', 'attack1', 'boss_attack2', function () {
+    this._bossFace();  // 'this' is the entity instance
+  });
+
+  // Looping state (nextState points to itself)
+  this._defineState('boss_wait', 'idle1', 'boss_wait', function () {});
+}
+```
+
+#### Registering New Entities
+
+Add your entity class to `GameAPI.mjs`:
+
+```javascript
+import { MyBoss } from './entity/monster/MyBoss.mjs';
+
+const entityClasses = [
+  // ... existing entities
+  MyBoss,
+];
+```
 
 ### Spawn Parameters
 

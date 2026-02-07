@@ -58,9 +58,16 @@ export default class BaseMonster extends BaseEntity {
   }
 
   _precache() {
-    // precache monster model
-    this.engine.PrecacheModel(/** @type {typeof BaseMonster} */(this.constructor)._modelDefault);
-    this.engine.PrecacheModel(/** @type {typeof BaseMonster} */(this.constructor)._modelHead);
+    const _modelDefault = /** @type {typeof BaseMonster} */(this.constructor)._modelDefault;
+    const _modelHead = /** @type {typeof BaseMonster} */(this.constructor)._modelHead;
+
+    if (_modelDefault !== null) {
+      this.engine.PrecacheModel(_modelDefault);
+    }
+
+    if (_modelHead !== null) {
+      this.engine.PrecacheModel(_modelHead);
+    }
 
     // gib assets
     this.engine.PrecacheModel('progs/gib1.mdl');

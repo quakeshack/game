@@ -25,6 +25,8 @@ import ShamblerMonsterEntity from './entity/monster/Shambler.mjs';
 import TarbabyMonsterEntity from './entity/monster/Tarbaby.mjs';
 import FishMonsterEntity from './entity/monster/Fish.mjs';
 import WizardMonsterEntity, { WizardMissile } from './entity/monster/Wizard.mjs';
+import { BossLavaball, BossMonster, EventLightningEntity } from './entity/monster/Boss.mjs';
+import OldOneMonster from './entity/monster/OldOne.mjs';
 import GameStats from './helper/GameStats.mjs';
 import EntityRegistry from './helper/Registry.mjs';
 
@@ -148,6 +150,10 @@ export const entityClasses = [
   FishMonsterEntity,
   WizardMonsterEntity,
   WizardMissile,
+  BossMonster,
+  BossLavaball,
+  EventLightningEntity,
+  OldOneMonster,
 
   door.DoorEntity,
   door.SecretDoorEntity,

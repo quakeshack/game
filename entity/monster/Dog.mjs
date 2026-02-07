@@ -222,7 +222,6 @@ $frame walk1 walk2 walk3 walk4 walk5 walk6 walk7 walk8
   /**
    * Testing command to perform a leap.
    * @param {BaseEntity} userEntity entity invoking the use
-   * @returns {void}
    */
   // eslint-disable-next-line no-unused-vars
   use(userEntity) {

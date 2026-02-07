@@ -2,6 +2,7 @@ import { attn, channel, damage, flags, moveType, solid } from '../Defs.mjs';
 import BaseEntity from './BaseEntity.mjs';
 import { TeleportEffectEntity } from './Misc.mjs';
 import { PlayerEntity, TelefragTriggerEntity } from './Player.mjs';
+import { TeleportTrainEntity } from './props/Platforms.mjs';
 import { Sub } from './Subs.mjs';
 import { DamageHandler } from './Weapons.mjs';
 
@@ -370,8 +371,8 @@ export class TeleportTriggerEntity extends BaseTriggerEntity {
     // put a tfog where the player was
     this.engine.SpawnEntity(TeleportEffectEntity.classname, { origin: touchedByEntity.origin });
 
-    const target = /** @type {InfoTeleportDestination} */(this.findFirstEntityByFieldAndValue('targetname', this.target));
-    console.assert(target instanceof InfoTeleportDestination, 'Target must be an InfoTeleportDestination');
+    const target = /** @type {InfoTeleportDestination|TeleportTrainEntity} */(this.findFirstEntityByFieldAndValue('targetname', this.target));
+    console.assert(target instanceof InfoTeleportDestination || target instanceof TeleportTrainEntity, 'Target must be an InfoTeleportDestination or TeleportTrainEntity');
 
     const { forward } = target.angles.angleVectors();
 

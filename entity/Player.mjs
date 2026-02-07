@@ -1932,19 +1932,130 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     this.game.intermission_exittime = this.game.time + 1.0;
     this.game.intermission_running++;
 
-    // TODO: run some text if at the end of an episode
+    // run some text if at the end of an episode
+    if (this.game.intermission_running === 2) {
+      const finaleText = this._getEpisodeFinaleText();
+      if (finaleText) {
+        this.engine.PlayTrack(2); // episode completion track
+        this.centerPrint(finaleText);
+        return;
+      }
+    }
 
     if (this.game.intermission_running === 3) {
       if (!this.engine.registered) {
-        // TODO: shareware mode, sell screen
+        // shareware episode completed - show sell screen
+        this.engine.ShowSellScreen();
+        return;
       }
 
       if ((this.game.serverflags & 15) === 15) {
-        // TODO: all runes screen
+        // all runes collected - show final message
+        const allRunesText = 'Now, you have all four Runes. You sense\n' +
+          'tremendous invisible forces moving to\n' +
+          'unseal ancient barriers. Shub-Niggurath\n' +
+          'had hoped to use the Runes Herself to\n' +
+          'clear off the Earth, but now instead,\n' +
+          'you will use them to enter her home and\n' +
+          'confront her as an avatar of avenging\n' +
+          'Earth-life. If you defeat her, you will\n' +
+          'be remembered forever as the savior of\n' +
+          'the planet. If she conquers, it will be\n' +
+          'as if you had never been born.';
+        this.centerPrint(allRunesText);
+        return;
       }
     }
 
     this.game.loadNextMap();
+  }
+
+  /**
+   * Returns the episode finale text based on the current map.
+   * @returns {?string} finale text or null if not an episode ending map
+   */
+  _getEpisodeFinaleText() {
+    const mapname = this.game.mapname;
+
+    if (mapname === 'e1m7') {
+      if (this.engine.registered) {
+        return 'As the corpse of the monstrous entity\n' +
+          'Chthon sinks back into the lava whence\n' +
+          'it rose, you grip the Rune of Earth\n' +
+          'Magic tightly. Now that you have\n' +
+          'conquered the Dimension of the Doomed,\n' +
+          'realm of Earth Magic, you are ready to\n' +
+          'complete your task. A Rune of magic\n' +
+          'power lies at the end of each haunted\n' +
+          'land of Quake. Go forth, seek the\n' +
+          'totality of the four Runes!';
+      } else {
+        return 'As the corpse of the monstrous entity\n' +
+          'Chthon sinks back into the lava whence\n' +
+          'it rose, you grip the Rune of Earth\n' +
+          'Magic tightly. Now that you have\n' +
+          'conquered the Dimension of the Doomed,\n' +
+          'realm of Earth Magic, you are ready to\n' +
+          'complete your task in the other three\n' +
+          'haunted lands of Quake. Or are you? If\n' +
+          'you don\'t register Quake, you\'ll never\n' +
+          'know what awaits you in the Realm of\n' +
+          'Black Magic, the Netherworld, and the\n' +
+          'Elder World!';
+      }
+    }
+
+    if (mapname === 'e2m6') {
+      return 'The Rune of Black Magic throbs evilly in\n' +
+        'your hand and whispers dark thoughts\n' +
+        'into your brain. You learn the inmost\n' +
+        'lore of the Hell-Mother; Shub-Niggurath!\n' +
+        'You now know that she is behind all the\n' +
+        'terrible plotting which has led to so\n' +
+        'much death and horror. But she is not\n' +
+        'inviolate! Armed with this Rune, you\n' +
+        'realize that once all four Runes are\n' +
+        'combined, the gate to Shub-Niggurath\'s\n' +
+        'Pit will open, and you can face the\n' +
+        'Witch-Goddess herself in her frightful\n' +
+        'otherworld cathedral.';
+    }
+
+    if (mapname === 'e3m6') {
+      return 'The charred viscera of diabolic horrors\n' +
+        'bubble viscously as you seize the Rune\n' +
+        'of Hell Magic. Its heat scorches your\n' +
+        'hand, and its terrible secrets blight\n' +
+        'your mind. Gathering the shreds of your\n' +
+        'courage, you shake the devil\'s shackles\n' +
+        'from your soul, and become ever more\n' +
+        'hard and determined to destroy the\n' +
+        'hideous creatures whose mere existence\n' +
+        'threatens the souls and psyches of all\n' +
+        'the population of Earth.';
+    }
+
+    if (mapname === 'e4m7') {
+      return 'Despite the awful might of the Elder\n' +
+        'World, you have achieved the Rune of\n' +
+        'Elder Magic, capstone of all types of\n' +
+        'arcane wisdom. Beyond good and evil,\n' +
+        'beyond life and death, the Rune\n' +
+        'pulsates, heavy with import. Patient and\n' +
+        'potent, the Elder Being Shub-Niggurath\n' +
+        'weaves her dire plans to clear off all\n' +
+        'life from the Earth, and bring her own\n' +
+        'foul offspring to our world! For all the\n' +
+        'dwellers in these nightmare dimensions\n' +
+        'are her descendants! Once all Runes of\n' +
+        'magic power are united, the energy\n' +
+        'behind them will blast open the Gateway\n' +
+        'to Shub-Niggurath, and you can travel\n' +
+        'there to foil the Hell-Mother\'s plots\n' +
+        'in person.';
+    }
+
+    return null;
   }
 
   startIntermission() {

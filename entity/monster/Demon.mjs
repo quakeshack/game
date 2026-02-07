@@ -262,9 +262,6 @@ $frame attacka9 attacka10 attacka11 attacka12 attacka13 attacka14 attacka15
     return true;
   }
 
-  /**
-   * @returns {void}
-   */
   _leap() {
     this._isLeaping = true;
     const { forward } = this.angles.angleVectors();
