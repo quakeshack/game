@@ -56,8 +56,8 @@ export default class BasePropEntity extends BaseEntity {
 
     /** @type {number} @see {state} */
     this.state = state.STATE_TOP;
-    /** @type {number} lip size in units */
-    this.lip = 0;
+    /** @type {number|null} lip size in units, default 8 in most cases */
+    this.lip = null;
     /** @type {number} height in units */
     this.height = 0;
 

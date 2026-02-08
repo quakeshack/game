@@ -566,6 +566,29 @@ export class QuakeEntityAI extends EntityAI {
     return target.equals(trace.entity); // used to be `trace.fraction === 1.0`
   }
 
+  /**
+   * @param {BaseEntity} target target entity
+   * @returns {boolean} target is visible
+   */
+  _isHearable(target) {
+    const phs = this._engine.GetPHS(target.origin);
+
+    // quick check if we are in the same PHS, if not, we are not hearable
+    if (!this._entity.edict.isInPXS(phs)) {
+      return false;
+    }
+
+    const leaf1 = this._engine.GetAreaForPoint(this._entity.origin);
+    const leaf2 = this._engine.GetAreaForPoint(target.origin);
+
+    // check if areas are connected, if not, we are not hearable
+    if (!this._engine.AreasConnected(leaf1, leaf2)) {
+      return false;
+    }
+
+    return true;
+  }
+
   _isInFront(target) { // QuakeC: ai.qc/infront
     const { forward } = this._entity.angles.angleVectors();
 

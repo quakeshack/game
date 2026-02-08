@@ -34,10 +34,13 @@ export class BaseDoorEntity extends BasePropEntity {
 
     this.max_health = 0; // max health, can also be used for doors
 
+    /** @type {number} area portal index (-1 = no portal). Set via "portal" key in map entity. */
+    this.portal = -1;
+
     this._serializer.endFields();
 
-    /** used during linking doors for crossing entity classes @private */
-    this._doormarker = 'door';
+    /** used during linking doors, must match per concrete class @private */
+    this._doormarker = /** @type {typeof BaseDoorEntity} */(this.constructor).classname;
   }
 
   /**
@@ -107,7 +110,7 @@ export class BaseDoorEntity extends BasePropEntity {
       }
 
       if (self.isTouching(t)) {
-        console.assert(!this._linkedDoor, 'no cross connected doors');
+        console.assert(!t._linkedDoor, 'no cross connected doors');
 
         self._linkedDoor = t;
         self = t;
@@ -188,6 +191,11 @@ export class BaseDoorEntity extends BasePropEntity {
       return; // already going up
     }
 
+    // Close area portal when door starts closing
+    if (this.portal >= 0) {
+      this.engine.SetAreaPortalState(this.portal, false);
+    }
+
     this.startSound(channel.CHAN_VOICE, this.noise2);
     this.state = state.STATE_DOWN;
 
@@ -217,6 +225,11 @@ export class BaseDoorEntity extends BasePropEntity {
       // reset top wait time
       this.nextthink = this.ltime + this.wait;
       return;
+    }
+
+    // Open area portal when door starts opening
+    if (this.portal >= 0) {
+      this.engine.SetAreaPortalState(this.portal, true);
     }
 
     this.startSound(channel.CHAN_VOICE, this.noise2);
@@ -403,7 +416,7 @@ export class DoorEntity extends BaseDoorEntity {
       this.wait = 3;
     }
 
-    if (!this.lip) {
+    if (this.lip === null) {
       this.lip = 8;
     }
 
@@ -431,6 +444,16 @@ export class DoorEntity extends BaseDoorEntity {
 
     if (this.items) {
       this.wait = -1.0;
+    }
+
+    // Look up auto-assigned portal if none was set explicitly
+    if (this.portal < 0) {
+      this.portal = this.engine.GetModelPortal(this.model);
+    }
+
+    // Make sure area portal is in correct state at spawn
+    if (this.portal >= 0) {
+      this.engine.SetAreaPortalState(this.portal, (this.spawnflags & flag.DOOR_START_OPEN) !== 0);
     }
 
     // LinkDoors can't be done until all of the doors have been spawned, so
@@ -604,6 +627,13 @@ export class SecretDoorEntity extends BaseDoorEntity {
     if (!this.wait) {
       this.wait = 5.0;
     }
+
+    // Look up auto-assigned portal if none was set explicitly
+    if (this.portal < 0) {
+      this.portal = this.engine.GetModelPortal(this.model);
+    }
+
+    this.engine.SetAreaPortalState(this.portal, false);
   }
 
   thinkDie(attackerEntity) {
@@ -688,6 +718,11 @@ export class SecretDoorEntity extends BaseDoorEntity {
 
     this._sub.calcMove(this._dest1, this.speed, () => this._stepMove(1));
     this.startSound(channel.CHAN_VOICE, this.noise2);
+
+    // Open area portal when secret door starts opening
+    if (this.portal >= 0) {
+      this.engine.SetAreaPortalState(this.portal, true);
+    }
   }
 
   /**
@@ -734,6 +769,10 @@ export class SecretDoorEntity extends BaseDoorEntity {
           this.takedamage = damage.DAMAGE_YES;
         }
         this.startSound(channel.CHAN_VOICE, this.noise3);
+        // Close area portal when secret door returns to closed position
+        if (this.portal >= 0) {
+          this.engine.SetAreaPortalState(this.portal, false);
+        }
         break;
     }
   }

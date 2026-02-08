@@ -77,6 +77,9 @@ export class WorldspawnEntity extends BaseEntity {
     /** @type {number} cdtrack */
     this.sounds = 0;
 
+    /** @type {string} name for simple skybox mode (QS extension) */
+    this.skyname = null;
+
     this._serializer.endFields();
   }
 
