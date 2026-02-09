@@ -191,11 +191,6 @@ export class BaseDoorEntity extends BasePropEntity {
       return; // already going up
     }
 
-    // Close area portal when door starts closing
-    if (this.portal >= 0) {
-      this.engine.SetAreaPortalState(this.portal, false);
-    }
-
     this.startSound(channel.CHAN_VOICE, this.noise2);
     this.state = state.STATE_DOWN;
 
@@ -212,6 +207,11 @@ export class BaseDoorEntity extends BasePropEntity {
     this.startSound(channel.CHAN_VOICE, this.noise1);
     this.state = state.STATE_BOTTOM;
     this._sub.reset();
+
+    // Close area portal when door starts closing
+    if (this.portal >= 0) {
+      this.engine.SetAreaPortalState(this.portal, false);
+    }
   }
 
   _doorGoUp(usedByEntity) {
