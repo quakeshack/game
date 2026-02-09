@@ -59,14 +59,14 @@ $frame shake15 shake16 shake17 shake18 shake19 shake20
     this._serializer.endFields();
   }
 
-  static _precache(engineAPI) {
-    engineAPI.PrecacheModel('progs/oldone.mdl');
-    engineAPI.PrecacheModel('progs/player.mdl');
-    engineAPI.PrecacheSound('boss2/death.wav');
-    engineAPI.PrecacheSound('boss2/idle.wav');
-    engineAPI.PrecacheSound('boss2/sight.wav');
-    engineAPI.PrecacheSound('boss2/pop2.wav');
-    engineAPI.PrecacheSound('misc/r_tele1.wav');
+  _precache() {
+    this.engine.PrecacheModel('progs/oldone.mdl');
+    this.engine.PrecacheModel('progs/player.mdl');
+    this.engine.PrecacheSound('boss2/death.wav');
+    this.engine.PrecacheSound('boss2/idle.wav');
+    this.engine.PrecacheSound('boss2/sight.wav');
+    this.engine.PrecacheSound('boss2/pop2.wav');
+    this.engine.PrecacheSound('misc/r_tele1.wav');
   }
 
   /** Light level map for thrash frames. */

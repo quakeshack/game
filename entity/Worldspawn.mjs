@@ -95,7 +95,6 @@ export class WorldspawnEntity extends BaseEntity {
     this.engine.PrecacheSound('misc/talk.wav');			// talk
 
     // TODO: move these to monster_boss:
-    this.engine.PrecacheSound('misc/power.wav');			//lightning for boss
     this.engine.PrecacheModel('progs/bolt3.mdl');		// for boss shock
   }
 

@@ -7,7 +7,6 @@ import BasePropEntity, { state } from '../props/BasePropEntity.mjs';
 import { Sub } from '../Subs.mjs';
 import { Missile } from '../Weapons.mjs';
 import { PlayerEntity } from '../Player.mjs';
-import { BaseDoorEntity } from '../props/Doors.mjs';
 
 /**
  * Lava ball projectile fired by Chthon.
@@ -91,17 +90,16 @@ $frame shockc9 shockc10
     this._sub = new Sub(this);
   }
 
-  static _precache(engineAPI) {
-    engineAPI.PrecacheModel('progs/boss.mdl');
-    engineAPI.PrecacheModel('progs/lavaball.mdl');
-
-    engineAPI.PrecacheSound('weapons/rocket1i.wav');
-    engineAPI.PrecacheSound('boss1/out1.wav');
-    engineAPI.PrecacheSound('boss1/sight1.wav');
-    engineAPI.PrecacheSound('misc/power.wav');
-    engineAPI.PrecacheSound('boss1/throw.wav');
-    engineAPI.PrecacheSound('boss1/pain.wav');
-    engineAPI.PrecacheSound('boss1/death.wav');
+  _precache() {
+    this.engine.PrecacheModel('progs/boss.mdl');
+    this.engine.PrecacheModel('progs/lavaball.mdl');
+    this.engine.PrecacheSound('weapons/rocket1i.wav');
+    this.engine.PrecacheSound('boss1/out1.wav');
+    this.engine.PrecacheSound('boss1/sight1.wav');
+    this.engine.PrecacheSound('misc/power.wav');
+    this.engine.PrecacheSound('boss1/throw.wav');
+    this.engine.PrecacheSound('boss1/pain.wav');
+    this.engine.PrecacheSound('boss1/death.wav');
   }
 
   /** Selects a player target, possibly switching in multiplayer. */
