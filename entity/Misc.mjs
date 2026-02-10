@@ -503,6 +503,7 @@ export class BaseWallEntity extends BaseEntity {
     this.movetype = moveType.MOVETYPE_PUSH; // so it doesn't get pushed by anything
     this.solid = solid.SOLID_BSP;
     this.setModel(this.model);
+    this.setOrigin(this.origin);
   }
 };
 

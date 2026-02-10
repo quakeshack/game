@@ -114,6 +114,8 @@ export default class BaseEntity {
     this.skin = 0;
     /** @type {number} @see {effect} */
     this.effects = effect.EF_NONE;
+    /** @type {number} alpha value for rendering */
+    this.alpha = 1.0;
 
     // QuakeJS model related
     /** @type {?number} @deprecated needs rework */
