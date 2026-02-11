@@ -925,6 +925,11 @@ export class PlayerWeapons extends EntityWrapper {
       return;
     }
 
+    if (this._engine.DeterminePointContents(trace.point) === content.CONTENT_SKY) {
+      // CR: smashing a sky face, ignoring
+      return;
+    }
+
     const origin = trace.point.copy().subtract(forward.copy().multiply(4.0));
 
     if (trace.entity.takedamage !== damage.DAMAGE_NO) {
