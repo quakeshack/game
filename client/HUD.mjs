@@ -242,6 +242,8 @@ export class MessageBag {
       color,
       endtime: this._engine.CL.gametime + duration,
     });
+
+    this._engine.ConsolePrint('\x03' + message + '\n', color); // TODO: have a better system for this
   }
 
   /**
@@ -258,7 +260,8 @@ export class MessageBag {
 
     for (let i = this._messages.length - 1; i >= 0; i--) {
       const msg = this._messages[i];
-      this._gfx.drawString(-160 + this._offset[0], (this._messages.length - i + 2) * -16 + this._offset[1], msg.message.trim(), 2.0, msg.color);
+      const offset = 1; // Math.min(1, (msg.endtime - now) / 1.0); // fade out in the last second
+      this._gfx.drawString(-160 + this._offset[0], (this._messages.length - i + 1 + offset) * -16 + this._offset[1], msg.message.trim(), 2.0, msg.color);
     }
   }
 };
@@ -385,11 +388,11 @@ export class Q1HUD {
     // eslint-disable-next-line no-unused-vars
     this.engine.eventBus.subscribe(clientEventName(clientEvent.ITEM_PICKED), (itemEntity, itemNames, netname, items) => {
       if (netname !== null) {
-        this.messageBag.addMessage(`You got ${netname}.\n`);
+        this.messageBag.addMessage(`You got ${netname}.`);
       } else if (itemNames.length > 0) {
-        this.messageBag.addMessage(`You got ${itemNames.join(', ')}.\n`);
+        this.messageBag.addMessage(`You got ${itemNames.join(', ')}.`);
       } else {
-        this.messageBag.addMessage('You found an empty item.\n');
+        this.messageBag.addMessage('You found an empty item.');
       }
 
       // TODO: do the picked up animation effect
@@ -425,7 +428,7 @@ export class Q1HUD {
     this.engine.eventBus.subscribe('client.chat.message', (name, message, isDirect) => {
       const color = isDirect ? new Vector(0.5, 1.0, 0.5) : new Vector(1.0, 1.0, 1.0);
 
-      this.messageBag.addMessage(`${name}: ${message}\n`, 10.0, color);
+      this.messageBag.addMessage(`${name}: ${message}`, 10.0, color);
 
       this.engine.LoadSound('misc/talk.wav').play();
     });
