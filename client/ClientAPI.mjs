@@ -175,6 +175,10 @@ export class ClientGameAPI {
     this.hud.draw();
   }
 
+  drawLoading() {
+    // allows drawing stuff on the loading screen like tips or objectives
+  }
+
   /**
    * @param {RefDef} refdef current refresh definition
    */
