@@ -29,6 +29,7 @@ import { BossLavaball, BossMonster, EventLightningEntity } from './entity/monste
 import OldOneMonster from './entity/monster/OldOne.mjs';
 import GameStats from './helper/GameStats.mjs';
 import EntityRegistry from './helper/Registry.mjs';
+import * as miscProps from './entity/props/Misc.mjs';
 
 /** @typedef {import('../../shared/GameInterfaces').ServerGameInterface} ServerGameInterface */
 /** @typedef {import('../../shared/GameInterfaces').EdictData} EdictData */
@@ -197,6 +198,7 @@ export const entityClasses = [
   item.WeaponThunderbolt,
 
   misc.MiscModelEntity,
+  miscProps.FogEntity,
 ];
 
 /** @augments ServerGameInterface */

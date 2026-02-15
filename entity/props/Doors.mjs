@@ -39,8 +39,7 @@ export class BaseDoorEntity extends BasePropEntity {
 
     this._serializer.endFields();
 
-    /** used during linking doors, must match per concrete class @private */
-    this._doormarker = /** @type {typeof BaseDoorEntity} */(this.constructor).classname;
+    this._doormarker = 'door';
   }
 
   /**
@@ -71,7 +70,7 @@ export class BaseDoorEntity extends BasePropEntity {
       return; // don't want to link this door
     }
 
-    const cmins = this.mins, cmaxs = this.maxs;
+    const cmins = this.mins.copy(), cmaxs = this.maxs.copy();
 
     // eslint-disable-next-line consistent-this
     let t = /** @type {BaseDoorEntity} */(this), self = /** @type {BaseDoorEntity} */(this);
@@ -87,7 +86,7 @@ export class BaseDoorEntity extends BasePropEntity {
         this.targetname = self.targetname;
       }
 
-      if (self.message) {
+      if (self.message !== '') {
         this.message = self.message;
       }
 

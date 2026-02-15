@@ -915,6 +915,12 @@ export class BubbleEntity extends BaseEntity {
   }
 }
 
+/**
+ * QUAKED misc_model (0 .5 .8) (-8 -8 -8) (8 8 8)
+ * Use this entity to place a model in the world that doesn't do anything.
+ * Set the "model" field to the path of the model to use.
+ * Its mesh will be used for collision.
+ */
 export class MiscModelEntity extends BaseEntity {
   static classname = 'misc_model';
 
