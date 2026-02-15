@@ -1,6 +1,6 @@
 import Vector, { DirectionalVectors } from '../../../shared/Vector.mjs';
 
-import { attn, channel, clientEvent, colors, content, damage, decals, flags, items, moveType, solid, tentType, waterlevel } from '../Defs.mjs';
+import { attn, channel, clientEvent, colors, content, damage, decals, effect, flags, items, moveType, solid, tentType, waterlevel } from '../Defs.mjs';
 import { featureFlags } from '../GameAPI.mjs';
 import { crandom, EntityWrapper } from '../helper/MiscHelpers.mjs';
 import BaseEntity from './BaseEntity.mjs';
@@ -64,6 +64,11 @@ export class Backpack {
   weapon = 0;
 };
 
+/**
+ * EntityAI interface.
+ * @template {BaseEntity} T
+ * @augments EntityWrapper<T>
+ */
 export class Explosions extends EntityWrapper {
   /**
    *
@@ -83,12 +88,16 @@ export class Explosions extends EntityWrapper {
   }
 
   becomeExplosion() {
+    // TODO: actually a client side job, the complete state machine for this
+
     this._engine.DispatchTempEntityEvent(tentType.TE_EXPLOSION, this._entity.origin);
 
     this._entity.movetype = moveType.MOVETYPE_NONE;
     this._entity.solid = solid.SOLID_NOT; // disables touch handling
     this._entity.takedamage = damage.DAMAGE_NO; // disables receiving damage
     this._entity.velocity.clear();
+
+    this._entity.effects |= effect.EF_DIMLIGHT;
 
     this._entity.setModel('progs/s_explod.spr');
 
