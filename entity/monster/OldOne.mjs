@@ -3,7 +3,7 @@
 
 import Vector from '../../../../shared/Vector.mjs';
 
-import { attn, channel, damage, moveType, solid, tentType } from '../../Defs.mjs';
+import { attn, channel, damage, flags, moveType, solid, tentType } from '../../Defs.mjs';
 import BaseEntity from '../BaseEntity.mjs';
 import BaseMonster from './BaseMonster.mjs';
 import { GibEntity, PlayerEntity } from '../Player.mjs';
@@ -45,10 +45,6 @@ $frame shake15 shake16 shake17 shake18 shake19 shake20
     // Skip BaseMonster.think() which calls _ai.think()
     // Call BaseEntity.think() directly for scheduled thinks
     BaseEntity.prototype.think.call(this);
-  }
-
-  thinkPain() {
-    // Shub-Niggurath is immune to normal damage, no pain reaction
   }
 
   _declareFields() {
@@ -133,17 +129,19 @@ $frame shake15 shake16 shake17 shake18 shake19 shake20
 
   /**
    * Pain callback - Shub-Niggurath is immune to normal damage.
+   * Resets health so only a one-shot telefrag (50000 dmg) can kill her.
    */
-  takeDamage() {
-    // Shub is immune to normal damage, only telefragging works
+  thinkPain() {
     this.health = 40000;
   }
 
   /**
    * Death callback - triggers the finale sequence.
    * This is called when the player telefrag-touches Shub.
+   * @param {BaseEntity} attackerEntity attacker entity
    */
-  die() {
+  // eslint-disable-next-line no-unused-vars
+  thinkDie(attackerEntity) {
     this._finale1();
   }
 
@@ -170,7 +168,7 @@ $frame shake15 shake16 shake17 shake18 shake19 shake20
     }
 
     // Move all players to intermission
-    let pl = this.findFirstEntityByFieldAndValue('classname', 'player');
+    let pl = /** @type {PlayerEntity} */ (this.findFirstEntityByFieldAndValue('classname', 'player'));
     while (pl) {
       pl.view_ofs.clear();
       if (pos) {
@@ -182,11 +180,12 @@ $frame shake15 shake16 shake17 shake18 shake19 shake20
       pl.takedamage = damage.DAMAGE_NO;
       pl.solid = solid.SOLID_NOT;
       pl.movetype = moveType.MOVETYPE_NONE;
+      pl.weapon = 0;
       pl.unsetModel();
       if (pos) {
         pl.setOrigin(pos.origin);
       }
-      pl = this.findNextEntityByFieldAndValue('classname', 'player', pl);
+      pl = /** @type {PlayerEntity} */ (this.findNextEntityByFieldAndValue('classname', 'player', pl));
     }
 
     // Wait 1 second then go to finale_2

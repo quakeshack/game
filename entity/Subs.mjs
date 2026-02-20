@@ -234,7 +234,7 @@ export class Sub extends EntityWrapper {
     // check if we are already in place
     if (this._entity.origin.equals(tdest)) {
       this._entity.velocity.clear();
-      this._entity._scheduleThink(this._entity.ltime + 0.1, function () { this._sub._think(); });
+      this._entity._scheduleThink(this._entity.ltime + 0.1, function () { this._sub._think(); }, 'sub-calcmove');
       return;
     }
 
@@ -249,12 +249,12 @@ export class Sub extends EntityWrapper {
     if (traveltime < 0.1) {
       // too soon
       this._entity.velocity.clear();
-      this._entity._scheduleThink(this._entity.ltime + 0.1, function () { this._sub._think(); });
+      this._entity._scheduleThink(this._entity.ltime + 0.1, function () { this._sub._think(); }, 'sub-calcmove');
       return;
     }
 
     // schedule a think to trigger a think when dest is reached
-    this._entity._scheduleThink(this._entity.ltime + traveltime, function () { this._sub._think(); });
+    this._entity._scheduleThink(this._entity.ltime + traveltime, function () { this._sub._think(); }, 'sub-calcmove');
 
     // scale the destdelta vector by the time spent traveling to get velocity
     this._entity.velocity = vdestdelta.multiply(1.0 / traveltime);

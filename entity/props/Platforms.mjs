@@ -101,16 +101,19 @@ export class PlatformEntity extends BasePropEntity {
 
   // eslint-disable-next-line no-unused-vars
   use(usedByEntity) {
-    if (!this.targetname) { // plat_trigger_use path
+    if (!this.targetname) {
+      // plat_trigger_use: only activate if not already in motion
+      if (this.state === state.STATE_UP || this.state === state.STATE_DOWN) {
+        return;
+      }
       this._goDown();
       return;
     }
 
-    // already thinking
-    if (this.nextthink > this.game.time) {
+    // plat_use: targeted plat, one-shot activation from STATE_UP
+    if (this.state !== state.STATE_UP) {
       return;
     }
-
     this._goDown();
   }
 

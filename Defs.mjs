@@ -85,6 +85,9 @@ export const items = Object.freeze({
   IT_SIGIL4: (1 << 29),
 });
 
+/** All items combined into a single bitmask @readonly */
+export const allItems = Object.values(items).reduce((acc, val) => acc | val, 0);
+
 /**
  * @readonly
  * @enum {?string}

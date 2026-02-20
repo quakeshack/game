@@ -62,21 +62,9 @@ A couple of things I spotted or I’m unhappy with
 
 ### Entities
 
-A few NPCs and features from the original game are still missing and yet to be implemented:
-
-* [X] player: Finale screen
-* [X] monster_fish
-* [X] monster_oldone
-* [X] monster_tarbaby
-* [X] monster_wizard
-* [X] monster_boss
-* [X] monster_boss: event_lightning
-
 #### Bugs
 
-* [ ] telefragging moster_oldone does not work? might be a bug over at the engine
-
-**Note:** Most monsters are now implemented! Only the final bosses (`monster_oldone` and `monster_boss`) remain.
+* [ ] fix bobbing and moving around when boss monster is killed
 
 ### Client-side
 

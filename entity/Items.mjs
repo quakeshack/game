@@ -47,6 +47,8 @@ export class BaseItemEntity extends BaseEntity {
     this.origin[2] += 6.0;
     // this.effects |= effect.EF_MINLIGHT;
     // this.dropToFloor();
+
+    console.assert(!this.weapon || Object.values(items).includes(this.weapon), 'weapon must be a valid item flag');
   }
 
   static _precache(engineAPI) {
@@ -239,7 +241,7 @@ export class BaseAmmoEntity extends BaseItemEntity {
   static _ammo = 0;
   /** @type {number} ammo given, when WEAPON_BIG2 is set */
   static _ammoBig = 0;
-  /** @type {number} preferred weapon slot */
+  /** @type {number} preferred weapon item flag, 0 means no preference */
   static _weapon = 0;
 
   _precache() {
@@ -291,10 +293,23 @@ export class ItemShellsEntity extends BaseAmmoEntity {
   static _ammoBig = 40;
   static _model = 'maps/b_shell0.bsp';
   static _modelBig = 'maps/b_shell1.bsp';
-  static _weapon = 1;
+  static _weapon = items.IT_SHOTGUN;
 
   _setAmmo(ammo) {
     this.ammo_shells = ammo;
+  }
+
+  /**
+   * Prefer the super shotgun when the player has it and enough shells.
+   * @param {PlayerEntity} playerEntity user
+   * @returns {boolean} whether it's okay to pick it up
+   */
+  _pickup(playerEntity) {
+    if ((playerEntity.items & items.IT_SUPER_SHOTGUN) && playerEntity.ammo_shells + this.ammo_shells > 1) {
+      this.weapon = items.IT_SUPER_SHOTGUN;
+    }
+
+    return super._pickup(playerEntity);
   }
 
   _collectItems(playerEntity) {
@@ -318,7 +333,19 @@ export class ItemSpikesEntity extends BaseAmmoEntity {
   static _ammoBig = 50;
   static _model = 'maps/b_nail0.bsp';
   static _modelBig = 'maps/b_nail1.bsp';
-  static _weapon = 2;
+  static _weapon = items.IT_NAILGUN;
+
+  /**
+   * Prefer the super nailgun when the player has it and enough nails.
+   * @param {PlayerEntity} playerEntity user
+   * @returns {boolean} whether it's okay to pick it up
+   */
+  _pickup(playerEntity) {
+    if ((playerEntity.items & items.IT_SUPER_NAILGUN) && playerEntity.ammo_nails + this.ammo_nails > 1) {
+      this.weapon = items.IT_SUPER_NAILGUN;
+    }
+    return super._pickup(playerEntity);
+  }
 
   _setAmmo(ammo) {
     this.ammo_nails = ammo;
@@ -345,7 +372,7 @@ export class ItemRocketsEntity extends BaseAmmoEntity {
   static _ammoBig = 10;
   static _model = 'maps/b_rock0.bsp';
   static _modelBig = 'maps/b_rock1.bsp';
-  static _weapon = 3;
+  static _weapon = items.IT_ROCKET_LAUNCHER;
 
   _setAmmo(ammo) {
     this.ammo_rockets = ammo;
@@ -372,7 +399,7 @@ export class ItemCellsEntity extends BaseAmmoEntity {
   static _ammoBig = 12;
   static _model = 'maps/b_batt0.bsp';
   static _modelBig = 'maps/b_batt1.bsp';
-  static _weapon = 4;
+  static _weapon = items.IT_LIGHTNING;
 
   _setAmmo(ammo) {
     this.ammo_cells = ammo;

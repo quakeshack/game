@@ -1,7 +1,7 @@
 import { BaseClientEdictHandler } from '../../../shared/ClientEdict.mjs';
 import Vector from '../../../shared/Vector.mjs';
 
-import { attn, channel, clientEvent, colors, content, damage, dead, deathType, effect, flags, hull, items, moveType, solid, waterlevel } from '../Defs.mjs';
+import { allItems, attn, channel, clientEvent, colors, content, damage, dead, deathType, effect, flags, hull, items, moveType, solid, waterlevel } from '../Defs.mjs';
 import { featureFlags } from '../GameAPI.mjs';
 import { crandom, Flag, Serializer } from '../helper/MiscHelpers.mjs';
 import BaseEntity from './BaseEntity.mjs';
@@ -904,9 +904,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
    * @param {number} weapon (must be in Defs.items)
    */
   setWeapon(weapon = this.weapon) {
-    if (!Object.values(items).includes(weapon)) {
-      throw new RangeError('Weapon not defined in items');
-    }
+    console.assert(weaponConfig.has(/** @type {WeaponConfigKey} */(weapon)), `PlayerEntity.setWeapon: invalid weapon ${weapon}`);
 
     this.weapon = weapon;
     this.items &= ~(this.items & (items.IT_SHELLS | items.IT_NAILS | items.IT_ROCKETS | items.IT_CELLS));
@@ -934,7 +932,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
    * QuakeC: W_BestWeapon
    * @returns {number} weapon number
    */
-  chooseBestWeapon() { // FIXME: this seems to be off, constantly picks a different weapon than anticipated
+  chooseBestWeapon() {
     const it = this.items;
     /** @type {WeaponConfigKey} */
     let bestWeapon = items.IT_AXE; // Default weapon
@@ -968,7 +966,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
    * @returns {boolean} true, if any out of that backpack was taken
    */
   applyBackpack(backpack) {
-    let backpackUsed = false, ammoUsed = false;
+    let backpackUsed = false; //, ammoUsed = false;
 
     const thisClass = /** @type {typeof PlayerEntity} */(this.constructor);
 
@@ -980,39 +978,51 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     if (ammo_nails !== this.ammo_nails) {
       this.ammo_nails = ammo_nails;
       backpackUsed = true;
-      ammoUsed = true;
+      // ammoUsed = true;
     }
 
     if (ammo_cells !== this.ammo_cells) {
       this.ammo_cells = ammo_cells;
       backpackUsed = true;
-      ammoUsed = true;
+      // ammoUsed = true;
     }
 
     if (ammo_rockets !== this.ammo_rockets) {
       this.ammo_rockets = ammo_rockets;
       backpackUsed = true;
-      ammoUsed = true;
+      // ammoUsed = true;
     }
 
     if (ammo_shells !== this.ammo_shells) {
       this.ammo_shells = ammo_shells;
       backpackUsed = true;
-      ammoUsed = true;
+      // ammoUsed = true;
     }
+
+    // const oldItems = this.items;
 
     if ((this.items & backpack.items) !== backpack.items) {
       this.items |= backpack.items;
       backpackUsed = true;
     }
 
-    if (ammoUsed && (backpack.items & (
-      items.IT_SHOTGUN | items.IT_SUPER_SHOTGUN |
-      items.IT_NAILGUN | items.IT_SUPER_NAILGUN |
-      items.IT_GRENADE_LAUNCHER | items.IT_ROCKET_LAUNCHER |
-      items.IT_LIGHTNING
-    ))) {
-      this.setWeapon(this.chooseBestWeapon());
+    // QuakeC: weapon_touch / BackpackTouch weapon switching logic
+    // Determine which weapon was picked up
+    const newWeapon = backpack.weapon || this.weapon;
+
+    if (newWeapon && backpackUsed) {
+      if (!this.game.deathmatch) {
+        // Singleplayer/coop: always switch to the picked up weapon
+        this.setWeapon(newWeapon);
+      } else {
+        // Deathmatch: only switch if the new weapon ranks higher than current
+        const currentConfig = weaponConfig.get(/** @type {WeaponConfigKey} */(this.weapon));
+        const newConfig = weaponConfig.get(/** @type {WeaponConfigKey} */(newWeapon));
+
+        if (currentConfig && newConfig && newConfig.priority > currentConfig.priority) {
+          this.setWeapon(newWeapon);
+        }
+      }
     }
 
     return backpackUsed;
