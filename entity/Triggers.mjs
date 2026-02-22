@@ -394,6 +394,7 @@ export class TeleportTriggerEntity extends BaseTriggerEntity {
 
     touchedByEntity.setOrigin(target.origin);
     touchedByEntity.angles.set(target.angles);
+    touchedByEntity.angles[2] = 0.0; // do not apply roll (fixes END map)
 
     if (touchedByEntity instanceof PlayerEntity) {
       touchedByEntity.fixangle = true;
