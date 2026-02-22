@@ -906,6 +906,10 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
   setWeapon(weapon = this.weapon) {
     console.assert(weaponConfig.has(/** @type {WeaponConfigKey} */(weapon)), `PlayerEntity.setWeapon: invalid weapon ${weapon}`);
 
+    if (!(this.items & weapon)) {
+      return; // player doesn’t have that weapon, ignore
+    }
+
     this.weapon = weapon;
     this.items &= ~(this.items & (items.IT_SHELLS | items.IT_NAILS | items.IT_ROCKETS | items.IT_CELLS));
 
