@@ -724,7 +724,7 @@ export class Missile extends BaseProjectile {
 
     const damage = 100 + Math.random() * 20;
 
-    if ((touchedByEntity instanceof BaseMonster || touchedByEntity instanceof PlayerEntity) && touchedByEntity.health > 0) {
+    if (touchedByEntity.takedamage && touchedByEntity.health > 0) { // FIXME: would be nice if there was an interface for this
       this.damage(touchedByEntity, damage, this.owner, this.origin); // FIXME: better hitpoint
     }
 
@@ -781,7 +781,7 @@ export class BaseSpike extends BaseProjectile {
 
     const ctor = /** @type {typeof BaseSpike} */(this.constructor);
 
-    if ((touchedByEntity instanceof BaseMonster || touchedByEntity instanceof PlayerEntity) && touchedByEntity.health > 0) {
+    if (touchedByEntity.takedamage && touchedByEntity.health > 0) { // FIXME: would be nice if there was an interface for this
       this.damage(touchedByEntity, ctor._damage, this.owner, this.origin);
     }
 
