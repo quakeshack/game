@@ -234,6 +234,7 @@ export class ServerGameAPI {
     return /** @type {CvarMap} */({
       teamplay: this.engine.GetCvar('teamplay'),
       gravity: this.engine.GetCvar('sv_gravity'),
+      nextmap: this.engine.GetCvar('sv_nextmap'),
     });
   }
 
@@ -308,6 +309,9 @@ export class ServerGameAPI {
     // FIXME: I’m not happy about this structure, especially with the getters down below
     /** cvar cache @protected */
     this._cvars = this._lookupCvars();
+
+    /** @type {(() => void)[]} functions to be called when shutting down the game @protected */
+    this._shutdownHooks = [];
   }
 
   get skill() {
@@ -418,6 +422,22 @@ export class ServerGameAPI {
       this.loadNextMap();
       return;
     }
+  }
+
+  _initNextMap() {
+    const setNextmap = () => {
+      if (this.engine.maxplayers === 1) {
+        return; // no nextmap in single player
+      }
+
+      this.nextmap = this._cvars.nextmap?.string || null;
+    };
+
+    this.engine.eventBus.subscribe('cvar.changed.sv_nextmap', () => {
+      setNextmap();
+    });
+
+    setNextmap();
   }
 
   /**
@@ -634,6 +654,9 @@ export class ServerGameAPI {
 
     // precache all resources
     this._precacheResources();
+
+    // setup nextmap handling
+    this._initNextMap();
   }
 
   // eslint-disable-next-line no-unused-vars
@@ -641,6 +664,12 @@ export class ServerGameAPI {
     this.bodyque_head = null;
     this.worldspawn = null;
     this.lastspawn = null;
+
+    while (this._shutdownHooks.length > 0) {
+      const shutdown = this._shutdownHooks.pop();
+      console.assert(typeof shutdown === 'function', 'shutdown hook must be a function');
+      shutdown();
+    }
   }
 
   /** @param {ServerEngineAPI} ServerEngineAPI engine API for server game code */
