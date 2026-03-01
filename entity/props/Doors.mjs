@@ -359,6 +359,11 @@ export class DoorEntity extends BaseDoorEntity {
 
     const ctor = /** @type {typeof DoorEntity} */(this.constructor);
 
+    if (this.sounds <= 0 || this.sounds >= ctor._sounds.length) {
+      // TODO: emit warning if invalid sounds value is set
+      this.sounds = 1;
+    }
+
     sounds.push(...ctor._lockSounds[this.game.worldspawn.worldtype]);
     sounds.push(...ctor._sounds[this.sounds]);
 

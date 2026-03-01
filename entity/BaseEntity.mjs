@@ -474,6 +474,13 @@ export default class BaseEntity {
         continue;
       }
 
+      // CR: some custom maps love to overwrite functions (such as use etc.), let’s ignore them for now
+      // TODO: think of an infrastructure for allowing maps to set certain functions (e.g. dm6rmx and OgreGrenadeExplode)
+      if (this[key] instanceof Function) {
+        console.warn(`BaseEntity.assignInitialData: trying to write into member function (${this})`, key, value);
+        continue;
+      }
+
       switch (true) {
         case this[key] instanceof Vector:
           this[key] = value instanceof Vector ? value.copy() : new Vector(...value.split(' ').map((n) => Q.atof(n)));

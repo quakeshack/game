@@ -620,7 +620,7 @@ $frame magicc9 magicc10 magicc11
   }
 
   _checkForCharge() { // QuakeC: hknight.qc/CheckForCharge
-    console.log('check for charge', this);
+    console.debug('check for charge', this);
 
     if (!this._ai.enemyIsVisible) {
       return;
@@ -648,7 +648,7 @@ $frame magicc9 magicc10 magicc11
   }
 
   _checkContinueCharge() { // QuakeC: hknight.qc/CheckContinueCharge
-    console.log('check continue charge', this);
+    console.debug('check continue charge', this);
 
     if (this.game.time > this.attack_finished) {
       this.attackFinished(3.0);

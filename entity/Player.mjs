@@ -1099,7 +1099,8 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
         `nextthink (rel) = ${tracedEntity.nextthink - this.game.time}\n` +
         // @ts-ignore: debugging purposes only
         `_stateCurrent = ${tracedEntity._stateCurrent}\n`);
-      console.log('tracedEntity:', tracedEntity);
+      console.debug('tracedEntity:', tracedEntity);
+      console.debug('trace:', trace);
     }
   }
 

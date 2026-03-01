@@ -549,7 +549,7 @@ export class QuakeEntityAI extends EntityAI {
 
     this._entity.attackFinished(1.0); // wait a while before first attack
 
-    // console.log('_huntTarget', this._entity);
+    // console.debug('_huntTarget', this._entity);
   }
 
   /**
@@ -685,7 +685,7 @@ export class QuakeEntityAI extends EntityAI {
       return;
     }
 
-    // console.log('AI run', this._entity.toString(), dist);
+    // console.debug('AI run', this._entity.toString(), dist);
 
     this._moveDistance = dist;
 

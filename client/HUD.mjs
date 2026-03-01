@@ -435,7 +435,7 @@ export class Q1HUD {
 
     // obituary event
     this.engine.eventBus.subscribe(clientEventName(clientEvent.OBITUARY), (...args) => {
-      console.log('OBITUARY event received', args);
+      console.info('OBITUARY event received, not implemented yet', args);
     });
   }
 

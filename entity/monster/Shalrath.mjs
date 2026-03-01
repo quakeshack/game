@@ -161,8 +161,6 @@ $frame walk11 walk12
   }
 
   launchMissile() { // QuakeC: shalrath.qc/ShalMissile
-    console.log('launchMissile not implemented for ShalrathMonsterEntity', this);
-
     if (!this.enemy) {
       return;
     }
