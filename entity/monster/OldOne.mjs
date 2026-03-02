@@ -200,7 +200,7 @@ $frame shake15 shake16 shake17 shake18 shake19 shake20
     o[1] -= 100;
 
     this.engine.DispatchTempEntityEvent(tentType.TE_TELEPORT, o);
-    this.startSound(channel.CHAN_VOICE, 'misc/r_tele1.wav', 1.0, attn.ATTN_NORM);
+    this.startSound(channel.CHAN_VOICE, 'misc/r_tele1.wav');
 
     this._scheduleThink(this.game.time + 2, () => this._finale3());
   }
@@ -209,7 +209,7 @@ $frame shake15 shake16 shake17 shake18 shake19 shake20
    * Finale stage 3: Start Shub thrashing.
    */
   _finale3() {
-    this.startSound(channel.CHAN_VOICE, 'boss2/death.wav', 1.0, attn.ATTN_NORM);
+    this.startSound(channel.CHAN_VOICE, 'boss2/death.wav');
     this.engine.Lightstyle(0, 'abcdefghijklmlkjihgfedcb');
     this.cnt = 0;
     this._runState('old_thrash1');
@@ -219,7 +219,7 @@ $frame shake15 shake16 shake17 shake18 shake19 shake20
    * Finale stage 4: Gib Shub and show victory message.
    */
   _finale4() {
-    this.startSound(channel.CHAN_VOICE, 'boss2/pop2.wav', 1.0, attn.ATTN_NORM);
+    this.startSound(channel.CHAN_VOICE, 'boss2/pop2.wav');
 
     const oldo = this.origin.copy();
 

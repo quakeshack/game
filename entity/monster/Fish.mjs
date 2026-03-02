@@ -93,7 +93,7 @@ $frame pain9
     this._defineState('f_walk18', 'swim18', 'f_walk1', function () { this._ai.walk(8); });
 
       // run (use odd swim frames as in original qc)
-    this._defineState('f_run1', 'swim1', 'f_run2', function () { this._ai.run(12); if (Math.random() < 0.5) { this.startSound(channel.CHAN_VOICE, 'fish/idle.wav', 1.0, attn.ATTN_NORM); } });
+    this._defineState('f_run1', 'swim1', 'f_run2', function () { this._ai.run(12); if (Math.random() < 0.5) { this.startSound(channel.CHAN_VOICE, 'fish/idle.wav'); } });
     this._defineState('f_run2', 'swim3', 'f_run3', function () { this._ai.run(12); });
     this._defineState('f_run3', 'swim5', 'f_run4', function () { this._ai.run(12); });
     this._defineState('f_run4', 'swim7', 'f_run5', function () { this._ai.run(12); });

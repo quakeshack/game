@@ -645,12 +645,12 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
   _deathSound() {
     // under water death sound
     if (this.waterlevel === waterlevel.WATERLEVEL_HEAD) {
-      this.startSound(channel.CHAN_VOICE, 'player/h2odeath.wav', 1.0, attn.ATTN_NONE);
+      this.startSound(channel.CHAN_VOICE, 'player/h2odeath.wav');
       return;
     }
 
     // regular death sound
-    this.startSound(channel.CHAN_VOICE, `player/death${Math.floor(Math.random() * 5) + 1}.wav`, 1.0, attn.ATTN_NONE);
+    this.startSound(channel.CHAN_VOICE, `player/death${Math.floor(Math.random() * 5) + 1}.wav`);
   }
 
   /**
@@ -1500,7 +1500,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
   _superDamageSound() {
     if (this.super_damage_finished > this.game.time && this.super_sound < this.game.time) {
       this.super_sound = this.game.time + 1.0;
-      this.startSound(channel.CHAN_BODY, 'items/damage3.wav', 1, attn.ATTN_NORM);
+      this.startSound(channel.CHAN_BODY, 'items/damage3.wav');
     }
   }
 
@@ -2492,7 +2492,7 @@ export class GibEntity extends BaseEntity {
     GibEntity.throwGibs(entity, damagePoints, impact);
 
     if (playSound) {
-      entity.startSound(channel.CHAN_VOICE, Math.random() < 0.5 ? 'player/gib.wav' : 'player/udeath.wav', 1.0, attn.ATTN_NONE);
+      entity.startSound(channel.CHAN_VOICE, Math.random() < 0.5 ? 'player/gib.wav' : 'player/udeath.wav');
     }
   }
 };
