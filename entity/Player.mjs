@@ -211,7 +211,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
 
     // interaction states
     this.button0 = false; // fire
-    this.button1 = false; // use
+    this.button1 = false; // interact (use)
     this.button2 = false; // jump
 
     // backpack and health
@@ -1611,12 +1611,20 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
   }
 
   /** @protected */
-  _useThink() {
+  _interactThink() {
     if (!this.button1) {
       return;
     }
 
-    // CR: we can add some Half-Life like logic here (pull/push objects, use buttons etc.)
+    // CR: some Half-Life like logic here (pull/push objects, use buttons etc.) but with traceline fix
+    for (const { entity } of this.engine.FindInRadius(this.origin, 64.0, (serverEdict) => (serverEdict.entity.flags & flags.FL_USEABLE) !== 0)) {
+      // TODO: do a line of sight check
+      // TODO: make sure player is facing the entity, not just behind it
+
+      entity.interact(this);
+    }
+
+    this.button1 = false; // release use button until next press
   }
 
   /**
@@ -1646,7 +1654,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
 
     // clear incoming commands
     this.button0 = false; // attack
-    this.button1 = false; // use
+    this.button1 = false; // interact (use)
     this.button2 = false; // jump
     this.impulse = 0; // impulse command
 
@@ -2157,7 +2165,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     }
 
     // QuakeShack: handle use requests
-    this._useThink();
+    this._interactThink();
 
     // do weapon stuff
     this._weaponFrame();

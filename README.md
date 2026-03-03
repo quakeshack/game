@@ -46,6 +46,19 @@ It might not be perfect though, some idiosyncrasis will be sorted out as part of
 
 During the reimplementation I noticed some bugs/issues within the original Quake game logic that I sorted out. Always trying to keep the actual game play unaffected.
 
+### New Features & Extensions (vs Original QuakeC)
+
+Beyond bugfixes and modernizing the architecture, this port introduces several new gameplay capabilities and modding enhancements out of the box, pushing beyond the limits of vanilla QuakeC:
+
+* **Player Interaction (`+use`)**: Built-in support for a dedicated `+use` (interact) button. Entities can be flagged with `FL_USEABLE`, enabling a Half-Life-style direct player interaction mechanism instead of just relying on proximity triggers (`touch`) or shooting.
+* **Custom Blood Colors**: Entities that take damage (`takedamage`) can define custom color indices for their "blood" particles or spray via the `bloodcolor` field (e.g., buttons and doors use `colors.DUST` instead of red blood).
+* **Client-Side Game Code Capabilities**: Unlike QuakeC, this port has an entire client-side framework (`ClientGameAPI`) that handles logic like drawing dynamic HUD elements, managing intermission screens, and rendering effects (e.g., screen flashes, decals, or gibbing models) independently of the server.
+* **Complex Serialization (`Serializer`)**: The game state management supports more detailed object serialization beyond QuakeC’s simple `parm0...15` spawn parameters and allows fully preserving complex object types.
+* **Feature Flags**: Built-in toggles (`featureFlags` array in `GameAPI.mjs`) to enable modernized physics and gameplay behaviors that alter standard Quake conventions:
+  * `improved-gib-physics`: Instead of a simple upward throw, gibs and player heads properly calculate momentum from the incoming impact, resulting in realistic physical forces applied correctly during explosions or deaths. Additionally applies blast momentum realistically to all entities (not just those walking).
+  * `correct-ballistic-grenades`: Replaces hard-coded trajectories for Ogre grenades and Zombie gibs. It uses actual physics equations, gravity settings, and travel-time formulas to calculate perfect parabolic arcs towards the target limits.
+  * `draw-bullet-hole-decals`: Enables a robust client-side event listener that automatically maps decal sprites (like `gfx/bhole1.png`) to surfaces hit by player bullet/hitscan attacks.
+
 ## Client-side Game
 
 Originally, Quake did not support client-side game code. In this project we also move game related logic from the engine to the game code. However, this APIs are not fully specified yet and change as the client-side game code is being ported over from the engine.

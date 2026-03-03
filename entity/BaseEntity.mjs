@@ -771,6 +771,16 @@ export default class BaseEntity {
   }
 
   /**
+   * This object is interacted with, invoked by the game code, usually by a player.
+   * This is only called with interacted with by using +use, it is not called when touching an entity with a touch function.
+   * To make this work, the entity needs to be flagged as FL_USEABLE, and the player needs to be within a certain distance and looking at the entity.
+   * @param {BaseEntity} interactingEntity usually a player
+   */
+  // eslint-disable-next-line no-unused-vars
+  interact(interactingEntity) {
+  }
+
+  /**
    * Based on QuakeC’s EntitiesTouching(this, otherEntity), compares mins and maxs to see if they intersect.
    * @param {BaseEntity} otherEntity other entity
    * @returns {boolean} true if this is touching the other entity
