@@ -160,6 +160,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     'weapon',
     'weaponframe',
     'health',
+    'effects',
   ];
 
   static clientEntityFields = [
@@ -189,6 +190,20 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
         dl.origin = this.clientEdict.origin.copy();
         dl.radius = 295 + Math.random() * 5;
         dl.die = this.engine.CL.time + 0.1;
+      }
+
+      if ((this.clientEdict.effects & effect.EF_MUZZLEFLASH) !== 0) {
+        const dl = this.engine.AllocDlight(this.clientEdict.num);
+        const fv = this.clientEdict.angles.angleVectors().forward;
+        dl.origin = new Vector(
+          this.clientEdict.origin[0] + 20.0 * fv[0],
+          this.clientEdict.origin[1] + 20.0 * fv[1],
+          this.clientEdict.origin[2] + 16.0 + 20.0 * fv[2],
+        );
+        dl.radius = 200.0 + Math.random() * 32.0;
+        dl.minlight = 32.0;
+        dl.die = this.engine.CL.time + 0.2;
+        dl.color = new Vector(1.0, 0.95, 0.85);
       }
     }
   };

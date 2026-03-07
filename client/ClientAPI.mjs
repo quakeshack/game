@@ -1,4 +1,5 @@
-import { clientEvent, clientEventName, decals, items } from '../Defs.mjs';
+import Vector from '../../../shared/Vector.mjs';
+import { clientEvent, clientEventName, decals, effect, items } from '../Defs.mjs';
 import { weaponConfig } from '../entity/Weapons.mjs';
 import { featureFlags, ServerGameAPI } from '../GameAPI.mjs';
 import { Q1HUD } from './HUD.mjs';
@@ -30,6 +31,8 @@ export class ClientGameAPI {
 
     weapon: 0,
     weaponframe: 0,
+
+    effects: 0,
   };
 
   /** @type {ServerInfo} */
@@ -165,8 +168,27 @@ export class ClientGameAPI {
     }
   }
 
+  /** @protected */
+  _updateEffects() { // CR: PlayerClientEntity has a similar logic regarding muzzleflash!
+    if (this.clientdata.effects & effect.EF_MUZZLEFLASH) {
+      const dl = this.engine.AllocDlight(this.engine.CL.entityNum);
+      const fv = this.engine.CL.viewangles.angleVectors().forward;
+      const origin = this.engine.CL.vieworigin;
+      dl.origin = new Vector(
+        origin[0] + 20.0 * fv[0],
+        origin[1] + 20.0 * fv[1],
+        origin[2] + 32.0 + 20.0 * fv[2],
+      );
+      dl.radius = 200.0 + Math.random() * 32.0;
+      dl.minlight = 32.0;
+      dl.die = this.engine.CL.time + 0.2;
+      dl.color = new Vector(1.0, 0.95, 0.85);
+    }
+  }
+
   startFrame() {
     this._updateViewModel();
+    this._updateEffects();
 
     this.hud.startFrame();
   }

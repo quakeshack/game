@@ -1,12 +1,13 @@
 import Vector from '../../../../shared/Vector.mjs';
 
-import { channel, damage, moveType, solid, tentType } from '../../Defs.mjs';
+import { channel, damage, effect, moveType, solid, tentType } from '../../Defs.mjs';
 import BaseEntity from '../BaseEntity.mjs';
 import BaseMonster from './BaseMonster.mjs';
 import BasePropEntity, { state } from '../props/BasePropEntity.mjs';
 import { Sub } from '../Subs.mjs';
 import { Missile } from '../Weapons.mjs';
 import { PlayerEntity } from '../Player.mjs';
+import { FireballEntity } from '../Misc.mjs';
 
 /**
  * Lava ball projectile fired by Chthon.
@@ -19,6 +20,8 @@ export class BossLavaball extends Missile {
     engineAPI.PrecacheModel('progs/lavaball.mdl');
   }
 
+  static clientEdictHandler = FireballEntity.clientEdictHandler; // simply use the fireball client-side behavior for effects
+
   spawn() {
     this.setModel('progs/lavaball.mdl');
     this.avelocity.setTo(200.0, 100.0, 300.0);
@@ -26,6 +29,7 @@ export class BossLavaball extends Missile {
     this.velocity.set(this.movedir.copy().multiply(300.0));
     this.movetype = moveType.MOVETYPE_FLYMISSILE;
     this.solid = solid.SOLID_BBOX;
+    this.effects |= effect.EF_FULLBRIGHT; // always lit
 
     this._scheduleThink(this.game.time + 6.0, () => this.remove());
   }
