@@ -162,6 +162,7 @@ export const entityClasses = [
   platform.PlatformEntity,
   platform.PlatformTriggerEntity,
   platform.TrainEntity,
+  platform.RotatingEntity,
   platform.TeleportTrainEntity,
 
   ButtonEntity,

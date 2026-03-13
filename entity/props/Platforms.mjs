@@ -342,6 +342,121 @@ export class TrainEntity extends BasePropEntity { // CR: this beauty is written 
 }
 
 /**
+ * QUAKED func_rotating (0 .5 .8) ? START_ON REVERSE X_AXIS Y_AXIS TOUCH_PAIN STOP
+ * Continuous rotating brush entity inspired by Quake 2 / GoldSrc.
+ *
+ * "speed"  override the default angular speed of 100 degrees per second
+ * "dmg"    damage inflicted while spinning or when blocking, default 2
+ *
+ * Axis selection follows the Q2 / HL convention:
+ * X_AXIS rotates around world X, Y_AXIS rotates around world Y, otherwise world Z.
+ */
+export class RotatingEntity extends BasePropEntity {
+  static classname = 'func_rotating';
+
+  static START_ON = 1;
+  static REVERSE = 2;
+  static X_AXIS = 4;
+  static Y_AXIS = 8;
+  static TOUCH_PAIN = 16;
+  static STOP = 32;
+
+  _declareFields() {
+    super._declareFields();
+
+    this._serializer.startFields();
+
+    /** @type {boolean} @private */
+    this._isRotating = false;
+
+    this._serializer.endFields();
+  }
+
+  _getAngularVelocity() {
+    const signedSpeed = this.speed * ((this.spawnflags & RotatingEntity.REVERSE) ? -1.0 : 1.0);
+
+    if (this.spawnflags & RotatingEntity.X_AXIS) {
+      return new Vector(0.0, 0.0, signedSpeed);
+    }
+
+    if (this.spawnflags & RotatingEntity.Y_AXIS) {
+      return new Vector(signedSpeed, 0.0, 0.0);
+    }
+
+    return new Vector(0.0, signedSpeed, 0.0);
+  }
+
+  _startRotating() {
+    this.avelocity.set(this._getAngularVelocity());
+    this._isRotating = !this.avelocity.isOrigin();
+  }
+
+  _stopRotating() {
+    this.avelocity.clear();
+    this._isRotating = false;
+  }
+
+  _toggleRotating() {
+    if (this._isRotating) {
+      this._stopRotating();
+      return;
+    }
+
+    this._startRotating();
+  }
+
+  spawn() {
+    if (!this.speed) {
+      this.speed = 100.0;
+    }
+
+    if (!this.dmg) {
+      this.dmg = 2.0;
+    }
+
+    this.movetype = moveType.MOVETYPE_PUSH;
+    this.solid = solid.SOLID_BSP;
+
+    this.setModel(this.model);
+    this.setSize(this.mins, this.maxs);
+    this.setOrigin(this.origin);
+
+    this._stopRotating();
+
+    if (this.spawnflags & RotatingEntity.START_ON) {
+      this._startRotating();
+    }
+  }
+
+  // eslint-disable-next-line no-unused-vars
+  use(_usedByEntity) {
+    this._toggleRotating();
+  }
+
+  blocked(blockedByEntity) {
+    if (this.dmg > 0) {
+      this.damage(blockedByEntity, this.dmg, null, blockedByEntity.centerPoint);
+    }
+
+    if (this.spawnflags & RotatingEntity.STOP) {
+      this._stopRotating();
+    }
+  }
+
+  touch(touchedByEntity) {
+    if (!this._isRotating || !(this.spawnflags & RotatingEntity.TOUCH_PAIN) || this.dmg <= 0) {
+      return;
+    }
+
+    if (!touchedByEntity._damageHandler) {
+      return;
+    }
+
+    this.damage(touchedByEntity, this.dmg, null, touchedByEntity.centerPoint);
+  }
+}
+
+/**
  * QUAKED misc_teleporttrain (0 .5 .8) (-8 -8 -8) (8 8 8)
  * This is used for the final boss
  */
