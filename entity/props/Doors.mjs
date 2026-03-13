@@ -8,6 +8,8 @@ import { TriggerFieldEntity } from '../Subs.mjs';
 import { DamageHandler } from '../Weapons.mjs';
 import BasePropEntity, { state } from './BasePropEntity.mjs';
 
+const DOOR_GO_DOWN_THINK = 'door-go-down';
+
 /**
  * door flags (used in spawnflags)
  */
@@ -221,8 +223,7 @@ export class BaseDoorEntity extends BasePropEntity {
     }
 
     if (this.state === state.STATE_TOP) {
-      // reset top wait time
-      this.nextthink = this.ltime + this.wait;
+      this._scheduleThink(this.ltime + this.wait, () => this._doorGoDown(), DOOR_GO_DOWN_THINK);
       return;
     }
 
@@ -247,7 +248,7 @@ export class BaseDoorEntity extends BasePropEntity {
     }
 
     this._sub.reset();
-    this._scheduleThink(this.ltime + this.wait, () => this._doorGoDown());
+    this._scheduleThink(this.ltime + this.wait, () => this._doorGoDown(), DOOR_GO_DOWN_THINK);
   }
 
   _doorKilled(attackerEntity) {

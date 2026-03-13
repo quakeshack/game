@@ -6,6 +6,8 @@ import { PathCornerEntity } from '../Misc.mjs';
 import { PlayerEntity } from '../Player.mjs';
 import BasePropEntity, { state } from './BasePropEntity.mjs';
 
+const PLATFORM_GO_DOWN_THINK = 'plat-go-down';
+
 /**
  * QUAKED func_plat (0 .5 .8) ? PLAT_LOW_TRIGGER
  * speed	default 150
@@ -67,7 +69,7 @@ export class PlatformEntity extends BasePropEntity {
   _hitTop() {
     this.state = state.STATE_TOP;
     this.startSound(channel.CHAN_VOICE, this.noise1);
-    this._scheduleThink(this.ltime + 3.0, () => this._goDown());
+    this._scheduleThink(this.ltime + 3.0, () => this._goDown(), PLATFORM_GO_DOWN_THINK);
   }
 
   _goDown() {
@@ -83,8 +85,7 @@ export class PlatformEntity extends BasePropEntity {
   }
 
   _keepUp() {
-    // CR: this is a hack, we are prolonging the time the platform is up by tinkering around with nextthink
-    this.nextthink = this.ltime + 1.0;
+    this._scheduleThink(this.ltime + 1.0, () => this._goDown(), PLATFORM_GO_DOWN_THINK);
   }
 
   blocked(blockedByEntity) {
