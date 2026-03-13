@@ -322,11 +322,12 @@ export class TrainEntity extends BasePropEntity { // CR: this beauty is written 
   }
 
   blocked(blockingEntity) {
-    this.damage(blockingEntity, this.dmg);
-    // impose a short cooldown of 0.5 seconds to avoid repeated blockage processing
-    if (this.nextthink < this.ltime + 0.5) {
-      this.nextthink = this.ltime + 0.5;
+    if (this.game.time < this.attack_finished) {
+      return;
     }
+
+    this.attack_finished = this.game.time + 0.5;
+    this.damage(blockingEntity, this.dmg);
   }
 
   // eslint-disable-next-line no-unused-vars
