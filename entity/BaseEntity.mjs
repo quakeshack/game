@@ -873,6 +873,7 @@ export default class BaseEntity {
    * @param {Vector} origin starting point
    * @param {Vector} target ending point
    * @param {boolean} ignoreMonsters whether to pass through monsters
+   * @returns {*} trace information
    */
   traceline(origin, target, ignoreMonsters) {
     return this.engine.Traceline(origin, target, ignoreMonsters, this.edict);

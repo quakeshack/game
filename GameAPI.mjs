@@ -622,6 +622,25 @@ export class ServerGameAPI {
     ];
   }
 
+  static GetStartServerList() {
+    return [
+      { label: 'Start deathmatch', callback: (engineAPI) => engineAPI.AppendConsoleText(`
+          hostname "Quake Deathmatch"
+          deathmatch 1
+          coop 0
+          maxplayers 8
+          map e1m1
+        `) },
+      { label: 'Start co-op game', callback: (engineAPI) => engineAPI.AppendConsoleText(`
+          hostname "Quake Cooperative"
+          deathmatch 0
+          coop 1
+          maxplayers 8
+          map e1m1
+        `) },
+    ];
+  }
+
   getClientEntityFields() {
     return /** @type {typeof ServerGameAPI} */(this.constructor)._entityRegistry.getClientEntityFields();
   }

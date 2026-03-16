@@ -3,7 +3,7 @@
 
 import Vector from '../../../../shared/Vector.mjs';
 
-import { attn, channel, damage, flags, moveType, solid, tentType } from '../../Defs.mjs';
+import { channel, damage, moveType, solid, tentType } from '../../Defs.mjs';
 import BaseEntity from '../BaseEntity.mjs';
 import BaseMonster from './BaseMonster.mjs';
 import { GibEntity, PlayerEntity } from '../Player.mjs';
