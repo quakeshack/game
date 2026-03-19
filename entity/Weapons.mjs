@@ -97,7 +97,7 @@ export class Explosions extends EntityWrapper {
     this._entity.takedamage = damage.DAMAGE_NO; // disables receiving damage
     this._entity.velocity.clear();
 
-    this._entity.effects |= effect.EF_DIMLIGHT | effect.EF_NOSHADOW;
+    this._entity.effects |= effect.EF_DIMLIGHT | effect.EF_NOSHADOW | effect.EF_FULLBRIGHT;
 
     this._entity.setModel('progs/s_explod.spr');
 
