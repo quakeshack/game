@@ -4,7 +4,7 @@ import { attn, channel, damage, moveType, solid } from '../../Defs.mjs';
 import { QuakeEntityAI } from '../../helper/AI.mjs';
 import BaseEntity from '../BaseEntity.mjs';
 import { DamageInflictor } from '../Weapons.mjs';
-import { WalkMonster } from './BaseMonster.mjs';
+import { WalkMonster } from './BaseMonster.ts';
 
 /**
  * QUAKED monster_zombie (1 0 0) (-16 -16 -24) (16 16 32) Crucified ambush

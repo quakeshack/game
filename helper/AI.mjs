@@ -3,7 +3,7 @@ import Vector from '../../../shared/Vector.ts';
 import { damage, effect, flags, items, range } from '../Defs.mjs';
 import BaseEntity from '../entity/BaseEntity.mjs';
 import { PathCornerEntity } from '../entity/Misc.mjs';
-import BaseMonster from '../entity/monster/BaseMonster.mjs';
+import BaseMonster from '../entity/monster/BaseMonster.ts';
 import { PlayerEntity } from '../entity/Player.mjs';
 import { ServerGameAPI } from '../GameAPI.mjs';
 import { EntityWrapper, Serializer } from './MiscHelpers.mjs';

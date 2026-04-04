@@ -3,7 +3,7 @@ import Vector from '../../../../shared/Vector.ts';
 import { channel, solid, tentType } from '../../Defs.mjs';
 import { QuakeEntityAI } from '../../helper/AI.mjs';
 import { BaseSpike } from '../Weapons.mjs';
-import { WalkMonster } from './BaseMonster.mjs';
+import { WalkMonster } from './BaseMonster.ts';
 
 /**
  * QUAKED monster_knight (1 0 0) (-16 -16 -24) (16 16 40) Ambush

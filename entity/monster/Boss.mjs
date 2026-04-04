@@ -2,7 +2,7 @@ import Vector from '../../../../shared/Vector.ts';
 
 import { channel, damage, effect, moveType, solid, tentType } from '../../Defs.mjs';
 import BaseEntity from '../BaseEntity.mjs';
-import BaseMonster from './BaseMonster.mjs';
+import BaseMonster from './BaseMonster.ts';
 import BasePropEntity, { state } from '../props/BasePropEntity.mjs';
 import { Sub } from '../Subs.mjs';
 import { Missile } from '../Weapons.mjs';

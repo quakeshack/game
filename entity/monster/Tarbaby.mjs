@@ -3,7 +3,7 @@ import Vector from '../../../../shared/Vector.ts';
 import { channel, damage, flags, moveType } from '../../Defs.mjs';
 import { QuakeEntityAI } from '../../helper/AI.mjs';
 import { DamageInflictor } from '../Weapons.mjs';
-import { WalkMonster } from './BaseMonster.mjs';
+import { WalkMonster } from './BaseMonster.ts';
 
 export default class TarbabyMonsterEntity extends WalkMonster {
   static classname = 'monster_tarbaby';

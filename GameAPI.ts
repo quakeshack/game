@@ -26,7 +26,7 @@ import * as weapon from './entity/Weapons.mjs';
 import DogMonsterEntity from './entity/monster/Dog.mjs';
 import { Serializer } from './helper/MiscHelpers.mjs';
 import DemonMonster from './entity/monster/Demon.mjs';
-import { MeatSprayEntity } from './entity/monster/BaseMonster.mjs';
+import { MeatSprayEntity } from './entity/monster/BaseMonster.ts';
 import ZombieMonster, { ZombieGibGrenade } from './entity/monster/Zombie.mjs';
 import { KnightMonster, HellKnightMonster, KnightSpike } from './entity/monster/Knights.mjs';
 import OgreMonsterEntity from './entity/monster/Ogre.mjs';

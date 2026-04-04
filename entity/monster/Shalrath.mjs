@@ -4,7 +4,7 @@ import { channel, moveType, solid } from '../../Defs.mjs';
 import { QuakeEntityAI } from '../../helper/AI.mjs';
 import BaseEntity from '../BaseEntity.mjs';
 import { BaseProjectile } from '../Weapons.mjs';
-import { WalkMonster } from './BaseMonster.mjs';
+import { WalkMonster } from './BaseMonster.ts';
 import ZombieMonster from './Zombie.mjs';
 
 /**

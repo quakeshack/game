@@ -3,7 +3,7 @@ import Vector from '../../../../shared/Vector.ts';
 import { attn, channel, flags, range, solid } from '../../Defs.mjs';
 import { ATTACK_STATE, QuakeEntityAI } from '../../helper/AI.mjs';
 import BaseEntity from '../BaseEntity.mjs';
-import { WalkMonster } from './BaseMonster.mjs';
+import { WalkMonster } from './BaseMonster.ts';
 
 export default class DogMonsterEntity extends WalkMonster {
   static classname = 'monster_dog';

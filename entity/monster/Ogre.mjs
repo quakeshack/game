@@ -4,7 +4,7 @@ import { attn, channel, solid } from '../../Defs.mjs';
 import { QuakeEntityAI } from '../../helper/AI.mjs';
 import { GibEntity } from '../Player.mjs';
 import { Grenade } from '../Weapons.mjs';
-import { WalkMonster } from './BaseMonster.mjs';
+import { WalkMonster } from './BaseMonster.ts';
 
 /**
  * QUAKED monster_ogre (1 0 0) (-32 -32 -24) (32 32 64) Ambush

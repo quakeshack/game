@@ -4,7 +4,7 @@ import Vector from '../../../shared/Vector.ts';
 import { attn, channel, colors, content, damage, effect, moveType, solid, tentType, waterlevel } from '../Defs.mjs';
 import { crandom } from '../helper/MiscHelpers.mjs';
 import BaseEntity from './BaseEntity.mjs';
-import BaseMonster from './monster/BaseMonster.mjs';
+import BaseMonster from './monster/BaseMonster.ts';
 import { PlayerEntity } from './Player.mjs';
 import { Sub } from './Subs.mjs';
 import { DamageHandler, DamageInflictor, Explosions, Laser, Spike, Superspike } from './Weapons.mjs';

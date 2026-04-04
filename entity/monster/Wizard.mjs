@@ -1,7 +1,7 @@
 import Vector from '../../../../shared/Vector.ts';
 import { QuakeEntityAI, ATTACK_STATE } from '../../helper/AI.mjs';
 import { BaseSpike } from '../Weapons.mjs';
-import BaseMonster, { FlyMonster } from './BaseMonster.mjs';
+import BaseMonster, { FlyMonster } from './BaseMonster.ts';
 import { attn, channel, effect, flags, range, solid, tentType } from '../../Defs.mjs';
 import { PlayerEntity } from '../Player.mjs';
 

@@ -5,7 +5,7 @@ import Vector from '../../../../shared/Vector.ts';
 
 import { channel, damage, moveType, solid, tentType } from '../../Defs.mjs';
 import BaseEntity from '../BaseEntity.mjs';
-import BaseMonster from './BaseMonster.mjs';
+import BaseMonster from './BaseMonster.ts';
 import { GibEntity, PlayerEntity } from '../Player.mjs';
 import { IntermissionCameraEntity } from '../Misc.mjs';
 

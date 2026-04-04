@@ -7,7 +7,7 @@ import { crandom, Flag, Serializer } from '../helper/MiscHelpers.mjs';
 import BaseEntity from './BaseEntity.mjs';
 import { BackpackEntity } from './Items.mjs';
 import { BubbleSpawnerEntity, InfoNotNullEntity, IntermissionCameraEntity, TeleportEffectEntity } from './Misc.mjs';
-import BaseMonster, { MeatSprayEntity } from './monster/BaseMonster.mjs';
+import BaseMonster, { MeatSprayEntity } from './monster/BaseMonster.ts';
 import { Backpack, DamageHandler, PlayerWeapons, weaponConfig } from './Weapons.mjs';
 import { CopyToBodyQue } from './Worldspawn.mjs';
 

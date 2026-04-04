@@ -4,7 +4,7 @@ import { attn, channel, clientEvent, colors, content, damage, decals, effect, fl
 import { featureFlags } from '../GameAPI.mjs';
 import { crandom, EntityWrapper } from '../helper/MiscHelpers.mjs';
 import BaseEntity from './BaseEntity.mjs';
-import BaseMonster from './monster/BaseMonster.mjs';
+import BaseMonster from './monster/BaseMonster.ts';
 import { PlayerEntity } from './Player.mjs';
 
 /** @typedef {2 | 4096 | 1 | 4 | 8 | 16 | 32 | 64} WeaponConfigKey */

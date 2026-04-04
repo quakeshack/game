@@ -2,7 +2,7 @@ import Vector from '../../../../shared/Vector.ts';
 
 import { attn, channel, range, solid } from '../../Defs.mjs';
 import { ATTACK_STATE, QuakeEntityAI } from '../../helper/AI.mjs';
-import { SwimMonster } from './BaseMonster.mjs';
+import { SwimMonster } from './BaseMonster.ts';
 
 export default class FishMonsterEntity extends SwimMonster {
   static classname = 'monster_fish';

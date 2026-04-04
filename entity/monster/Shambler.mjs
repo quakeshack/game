@@ -4,7 +4,7 @@ import { channel, effect, solid, tentType } from '../../Defs.mjs';
 import { QuakeEntityAI } from '../../helper/AI.mjs';
 import { LightGlobeDynamicEntity } from '../Misc.mjs';
 import { DamageInflictor } from '../Weapons.mjs';
-import { MeatSprayEntity, WalkMonster } from './BaseMonster.mjs';
+import { MeatSprayEntity, WalkMonster } from './BaseMonster.ts';
 
 /**
  * QUAKED monster_shambler (1 0 0) (-32 -32 -24) (32 32 64) Ambush
