@@ -780,10 +780,10 @@ export class ServerGameAPI {
   }
 
   serialize(): SerializedData {
-    return this._serializer.serialize() as SerializedData;
+    return this._serializer.serialize() as unknown as SerializedData;
   }
 
   deserialize(data: SerializedData): void {
-    this._serializer.deserialize(data);
+    this._serializer.deserialize(data as unknown as Record<string, ['X']>);
   }
 }
