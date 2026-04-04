@@ -309,14 +309,16 @@ export default class BaseMonster extends BaseEntity {
   }
 
   _dropBackpack(backpackParameters: Record<string, unknown>): void {
-    const backpack = this.engine.SpawnEntity(BackpackEntity.classname, {
+    const backpack = this.engine.SpawnEntity<BackpackEntity>(BackpackEntity.classname, {
       origin: this.origin.copy(),
       regeneration_time: 0,
       remove_after: 120,
       ...backpackParameters,
-    })?.entity as BackpackEntity | undefined;
+    })?.entity!;
 
-    backpack?.toss();
+    console.assert(backpack instanceof BackpackEntity);
+
+    backpack.toss();
   }
 
   /**
@@ -444,10 +446,12 @@ export class MeatSprayEntity extends BaseEntity {
       }
     }
 
-    entity.engine.SpawnEntity(MeatSprayEntity.classname, {
+    const meatSpray = entity.engine.SpawnEntity<MeatSprayEntity>(MeatSprayEntity.classname, {
       owner: entity,
       velocity,
       origin,
-    });
+    })?.entity!;
+
+    console.assert(meatSpray instanceof MeatSprayEntity);
   }
 }

@@ -63,26 +63,31 @@ class ScheduledThink {
  */
 @entity
 export default class BaseEntity {
-  static classname: string | null = null;
+  public static classname: string | null = null;
 
   /** Optional client-side handler of this entity. */
-  static clientEdictHandler: typeof BaseClientEdictHandler | null = null;
+  public static clientEdictHandler: typeof BaseClientEdictHandler | null = null;
 
   /**
    * Fields that are exposed to the client.
    * Do not mutate the array contents during runtime.
    */
-  static clientEntityFields: string[] = [];
+  public static clientEntityFields: string[] = [];
 
-  static _modelData: Readonly<ParsedQC> | null = null;
-  static _modelQC: string | null = null;
-  static _states: Record<string, EntityStateDefinition<BaseEntity>> | null = null;
+  // state machine and model meta data
+  private static _modelData: Readonly<ParsedQC> | null = null;
+  private static _states: Record<string, EntityStateDefinition<BaseEntity>> = {};
+  protected static _modelQC: string | null = null;
 
+  // infrastructure
+  public engine: ServerEngineAPI;
+  public game: ServerGameAPI;
   protected _edictRef: WeakRef<ServerEdict> | null;
+  protected _serializer: Serializer<BaseEntity>;
 
-  engine: ServerEngineAPI;
-  game: ServerGameAPI;
-  _serializer: Serializer<BaseEntity>;
+  // helper objects
+  protected _damageHandler: DamageHandler | null = null;
+  protected _sub: Sub | null = null;
 
   /** Local entity time used by pushers and related movement code. */
   @serializable ltime = 0.0;
@@ -140,11 +145,10 @@ export default class BaseEntity {
   @serializable pain_finished = 0;
   @serializable message: string | null = null;
 
-  _sub: Sub | null = null;
-  @serializable _stateNext: string | null = null;
-  @serializable _stateCurrent: string | null = null;
-  @serializable _scheduledThinks: ScheduledThink[] = [];
-  _damageHandler: DamageHandler | null = null;
+  // state machine, needs to be serialized as well, but remains private
+  @serializable private _stateNext: string | null = null;
+  @serializable private _stateCurrent: string | null = null;
+  @serializable private _scheduledThinks: ScheduledThink[] = [];
 
   /**
    * Return the entity classname.
@@ -156,11 +160,7 @@ export default class BaseEntity {
   }
 
   get edict(): ServerEdict | null {
-    if (this._edictRef === null) {
-      return null;
-    }
-
-    return this._edictRef.deref() ?? null;
+    return this._edictRef?.deref() ?? null;
   }
 
   /**
@@ -248,7 +248,7 @@ export default class BaseEntity {
     handler: ScheduledThinkCallback<T> | null = null,
   ): void {
     console.assert(this._states !== null, 'state storage must be initialized in _initStates()');
-    this._states![state] = { keyframe, nextState, handler: handler as ScheduledThinkCallback };
+    this._states[state] = { keyframe, nextState, handler: handler as ScheduledThinkCallback };
   }
 
   /**
@@ -556,7 +556,7 @@ export default class BaseEntity {
    * Return a readable debug label for the entity.
    */
   toString(): string {
-    return `${this.classname} (num: ${this.edictId}, origin: ${this.origin})`;
+    return `${this.classname} (num: ${this.edictId}, origin: ${this.origin}, state: ${this._stateCurrent})`;
   }
 
   /**

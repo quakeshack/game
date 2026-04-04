@@ -1105,15 +1105,15 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
       const tracedEntity = trace.entity;
       this.startSound(channel.CHAN_BODY, 'misc/talk.wav');
       this.centerPrint(`${tracedEntity}`);
-      this.consolePrint(
-        `movetype = ${Object.entries(moveType).find(([, val]) => val === tracedEntity.movetype)[0] || 'unknown'}\n` +
-        `solid = ${Object.entries(solid).find(([, val]) => val === tracedEntity.solid)[0] || 'unknown'}\n` +
-        `flags = ${new Flag(flags, tracedEntity.flags)}\n` +
-        `frame = ${tracedEntity.frame}\n` +
-        `nextthink (abs) = ${tracedEntity.nextthink}\n` +
-        `nextthink (rel) = ${tracedEntity.nextthink - this.game.time}\n` +
-        // @ts-ignore: debugging purposes only
-        `_stateCurrent = ${tracedEntity._stateCurrent}\n`);
+      // this.consolePrint(
+      //   `movetype = ${Object.entries(moveType).find(([, val]) => val === tracedEntity.movetype)[0] || 'unknown'}\n` +
+      //   `solid = ${Object.entries(solid).find(([, val]) => val === tracedEntity.solid)[0] || 'unknown'}\n` +
+      //   `flags = ${new Flag(flags, tracedEntity.flags)}\n` +
+      //   `frame = ${tracedEntity.frame}\n` +
+      //   `nextthink (abs) = ${tracedEntity.nextthink}\n` +
+      //   `nextthink (rel) = ${tracedEntity.nextthink - this.game.time}\n` +
+      //   // @ts-ignore: debugging purposes only
+      //   `_stateCurrent = ${tracedEntity._stateCurrent}\n`);
       console.debug('tracedEntity:', tracedEntity);
       console.debug('trace:', trace);
     }

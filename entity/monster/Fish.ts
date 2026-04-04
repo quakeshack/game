@@ -57,8 +57,6 @@ $frame pain9
   }
 
   static override _initStates(): void {
-    this._states = {};
-
     const swimFrames = Array.from({ length: 18 }, (_, i) => `swim${i + 1}`);
     const oddSwimFrames = swimFrames.filter((_, i) => i % 2 === 0);
 
