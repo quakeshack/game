@@ -1,5 +1,5 @@
-import Q from '../../../shared/Q.mjs';
-import Vector from '../../../shared/Vector.mjs';
+import Q from '../../../shared/Q.ts';
+import Vector from '../../../shared/Vector.ts';
 import { clientEvent, clientEventName, colors, contentShift, items } from '../Defs.mjs';
 import { weaponConfig } from '../entity/Weapons.mjs';
 import { ClientGameAPI } from './ClientAPI.mjs';
@@ -398,18 +398,18 @@ export class Q1HUD {
       // TODO: do the picked up animation effect
       // console.debug(`Picked up item: ${itemEntity.classname} (items = ${items})`);
 
-      this.engine.ContentShift(contentShift.bonus, this.engine.IndexToRGB(colors.HUD_CSHIFT_BONUSFLASH), 0.2);
+      this.engine.ContentShift(contentShift.bonus, new Vector(...this.engine.IndexToRGB(colors.HUD_CSHIFT_BONUSFLASH)), 0.2);
     });
 
     // still used for some fading item effects
     this.engine.eventBus.subscribe(clientEventName(clientEvent.BONUS_FLASH), () => {
-      this.engine.ContentShift(contentShift.bonus, this.engine.IndexToRGB(colors.HUD_CSHIFT_BONUSFLASH), 0.2);
+      this.engine.ContentShift(contentShift.bonus, new Vector(...this.engine.IndexToRGB(colors.HUD_CSHIFT_BONUSFLASH)), 0.2);
     });
 
     // game stats updates during game play
     this.engine.eventBus.subscribe(clientEventName(clientEvent.STATS_UPDATED), (slot) => {
       if (slot === 'secrets_found') {
-        this.engine.ContentShift(contentShift.info, this.engine.IndexToRGB(colors.HUD_CSHIFT_SECRET), 0.2);
+        this.engine.ContentShift(contentShift.info, new Vector(...this.engine.IndexToRGB(colors.HUD_CSHIFT_SECRET)), 0.2);
       }
     });
 

@@ -1,4 +1,4 @@
-import Vector from '../../../shared/Vector.mjs';
+import Vector from '../../../shared/Vector.ts';
 
 import { damage, effect, flags, items, range } from '../Defs.mjs';
 import BaseEntity from '../entity/BaseEntity.mjs';
@@ -303,7 +303,7 @@ export class QuakeEntityAI extends EntityAI {
       // do a 2D check if we reached the waypoint
       const a = this._entity.origin.copy(); a[2] = 0.0;
       const b = this._path[0].copy(); b[2] = 0.0;
-      if (a.distanceTo(b) < 16.0) { // assume half a hull width
+      if (a.distanceTo(b) < 32 * 1.41) { // assume half a hull width
         const waypoint = this._path.shift(); // reached the waypoint
         console.debug(`${this._entity} reached waypoint ${waypoint}, ${this._path.length} waypoints left`);
       }
@@ -563,7 +563,7 @@ export class QuakeEntityAI extends EntityAI {
       return false; // sight line crossed contents
     }
 
-    return target.equals(trace.entity); // used to be `trace.fraction === 1.0`
+    return trace.fraction === 1.0 || target.equals(trace.entity);
   }
 
   /**

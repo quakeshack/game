@@ -1,4 +1,4 @@
-import Vector from '../../../../shared/Vector.mjs';
+import Vector from '../../../../shared/Vector.ts';
 
 import { channel, moveType, solid } from '../../Defs.mjs';
 import BaseEntity from '../BaseEntity.mjs';
@@ -264,7 +264,7 @@ export class TrainEntity extends BasePropEntity { // CR: this beauty is written 
       this.speed = 100;
     }
 
-    console.assert(this.target, 'func_train requires a target');
+    console.assert(!!this.target, 'func_train requires a target');
 
     if (!this.dmg) {
       this.dmg = 2;
@@ -294,7 +294,7 @@ export class TrainEntity extends BasePropEntity { // CR: this beauty is written 
   _trainFind() {
     // position the train at the first target's origin (minus our mins for alignment)
     const targetEntity = this.findFirstEntityByFieldAndValue('targetname', this.target);
-    console.assert(targetEntity, 'func_train: target not found');
+    console.assert(!!targetEntity, 'func_train: target not found');
     this.setOrigin(targetEntity.origin.copy().subtract(this.mins));
     // if not triggered by a use.
     if (!this.targetname) {
@@ -304,7 +304,7 @@ export class TrainEntity extends BasePropEntity { // CR: this beauty is written 
 
   _trainNext() {
     const targetEntity = this.findFirstEntityByFieldAndValue('targetname', this.target);
-    console.assert(targetEntity.target, 'func_train: no next target');
+    console.assert(!!targetEntity.target, 'func_train: no next target');
     this.target = targetEntity.target; // update to point to the next target
     this.wait = targetEntity instanceof PathCornerEntity ? targetEntity.wait : 0; // CR: in QuakeC it would simply be "targetEntity.wait"
     this.startSound(channel.CHAN_VOICE, this.noise1);
@@ -475,7 +475,7 @@ export class TeleportTrainEntity extends TrainEntity {
       this.speed = 100;
     }
 
-    console.assert(this.target, 'func_train requires a target');
+    console.assert(!!this.target, 'func_train requires a target');
 
     this.solid = solid.SOLID_NOT;
     this.movetype = moveType.MOVETYPE_PUSH;

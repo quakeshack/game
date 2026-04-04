@@ -1,4 +1,4 @@
-import Vector, { DirectionalVectors } from '../../../shared/Vector.mjs';
+import Vector, { DirectionalVectors } from '../../../shared/Vector.ts';
 
 import { attn, channel, clientEvent, colors, content, damage, decals, effect, flags, items, moveType, solid, tentType, waterlevel } from '../Defs.mjs';
 import { featureFlags } from '../GameAPI.mjs';
@@ -242,7 +242,7 @@ export class DamageInflictor extends EntityWrapper {
     // attackerEntity = missile’s owner (e.g. player)
 
     for (const victimEdict of this._engine.FindInRadius(this._entity.origin, damage + 40)) {
-      const victim = victimEdict.entity;
+      const victim = /** @type {BaseEntity} */(/** @type {unknown} */(victimEdict.entity));
 
       if (!victim.takedamage) {
         continue;
@@ -261,8 +261,8 @@ export class DamageInflictor extends EntityWrapper {
         points *= 0.5;
       }
 
-      if (points > 0 && victim._damageHandler && victim._damageHandler.canReceiveDamage(this._entity)) {
-        this._entity.damage(victim, points * victim._damageHandler.receiveDamageFactor.blast, attackerEntity);
+        if (points > 0 && victim._damageHandler && victim._damageHandler.canReceiveDamage(this._entity)) {
+          this._entity.damage(/** @type {BaseEntity} */(/** @type {unknown} */(victim)), points * victim._damageHandler.receiveDamageFactor.blast, attackerEntity);
       }
     }
   }
@@ -273,7 +273,7 @@ export class DamageInflictor extends EntityWrapper {
    */
   beamDamage(damage, hitPoint) { // QuakeC: combat.qc/T_BeamDamage
     for (const victimEdict of this._engine.FindInRadius(this._entity.origin, damage + 40)) {
-      const victim = victimEdict.entity;
+      const victim = /** @type {BaseEntity} */(/** @type {unknown} */(victimEdict.entity));
 
       if (!victim.takedamage) {
         continue;
@@ -288,7 +288,7 @@ export class DamageInflictor extends EntityWrapper {
       }
 
       if (points > 0 && victim._damageHandler && victim._damageHandler.canReceiveDamage(this._entity)) {
-        this._entity.damage(victim, points * victim._damageHandler.receiveDamageFactor.beam, null, hitPoint);
+        this._entity.damage(/** @type {BaseEntity} */(/** @type {unknown} */(victim)), points * victim._damageHandler.receiveDamageFactor.beam, null, hitPoint);
       }
     }
   }
@@ -724,8 +724,10 @@ export class Missile extends BaseProjectile {
 
     const damage = 100 + Math.random() * 20;
 
-    if (touchedByEntity.takedamage && touchedByEntity.health > 0) { // FIXME: would be nice if there was an interface for this
-      this.damage(touchedByEntity, damage, this.owner, this.origin); // FIXME: better hitpoint
+    const damageableEntity = /** @type {BaseEntity & { health: number }} */(/** @type {unknown} */(touchedByEntity));
+
+    if (damageableEntity.takedamage && damageableEntity.health > 0) { // FIXME: would be nice if there was an interface for this
+      this.damage(damageableEntity, damage, this.owner, this.origin); // FIXME: better hitpoint
     }
 
     // don't do radius damage to the other, because all the damage
@@ -783,8 +785,10 @@ export class BaseSpike extends BaseProjectile {
 
     const ctor = /** @type {typeof BaseSpike} */(this.constructor);
 
-    if (touchedByEntity.takedamage && touchedByEntity.health > 0) { // FIXME: would be nice if there was an interface for this
-      this.damage(touchedByEntity, ctor._damage, this.owner, this.origin);
+    const damageableEntity = /** @type {BaseEntity & { health: number }} */(/** @type {unknown} */(touchedByEntity));
+
+    if (damageableEntity.takedamage && damageableEntity.health > 0) { // FIXME: would be nice if there was an interface for this
+      this.damage(damageableEntity, ctor._damage, this.owner, this.origin);
     }
 
     this.engine.DispatchTempEntityEvent(ctor._tentType, this.origin);
@@ -999,7 +1003,7 @@ export class PlayerWeapons extends EntityWrapper {
 
     this._player._scheduleThink(this._game.time + 0.1, function () { if (this.button0) { this._weapons.fireNailgun(); } });
 
-    this._engine.SpawnEntity(Spike.classname, { owner: this._player });
+    this._engine.SpawnEntity(Spike.classname, { owner: this._player.edict });
   }
 
   fireSuperNailgun() {
@@ -1014,9 +1018,9 @@ export class PlayerWeapons extends EntityWrapper {
     if (this._player.currentammo >= 0) {
       this._player._scheduleThink(this._game.time + 0.1, function () { if (this.button0) { this._weapons.fireSuperNailgun(); } });
 
-      this._engine.SpawnEntity(Superspike.classname, { owner: this._player });
+        this._engine.SpawnEntity(Superspike.classname, { owner: this._player.edict });
     } else {
-      this._engine.SpawnEntity(Spike.classname, { owner: this._player });
+        this._engine.SpawnEntity(Spike.classname, { owner: this._player.edict });
     }
   }
 
@@ -1029,7 +1033,7 @@ export class PlayerWeapons extends EntityWrapper {
     this._player.currentammo = this._player.ammo_rockets = this._player.ammo_rockets - 1;
     this._player.punchangle[0] = -2;
 
-    this._engine.SpawnEntity(Missile.classname, { owner: this._player });
+    this._engine.SpawnEntity(Missile.classname, { owner: this._player.edict });
   }
 
   fireGrenade() {
@@ -1054,7 +1058,7 @@ export class PlayerWeapons extends EntityWrapper {
       velocity[2] = 200.0;
     }
 
-    this._engine.SpawnEntity(Grenade.classname, { owner: this._player, velocity });
+    this._engine.SpawnEntity(Grenade.classname, { owner: this._player.edict, velocity });
   }
 
   fireLightning(attackContinuation = false) {

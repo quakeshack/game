@@ -1,4 +1,4 @@
-import Vector from '../../../../shared/Vector.mjs';
+import Vector from '../../../../shared/Vector.ts';
 
 import { MeatSprayEntity, WalkMonster } from './BaseMonster.mjs';
 import { attn, channel, flags, range, solid } from '../../Defs.mjs';

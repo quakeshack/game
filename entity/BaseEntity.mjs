@@ -1,6 +1,6 @@
-import { BaseClientEdictHandler } from '../../../shared/ClientEdict.mjs';
-import Q from '../../../shared/Q.mjs';
-import Vector from '../../../shared/Vector.mjs';
+import { BaseClientEdictHandler } from '../../../shared/ClientEdict.ts';
+import Q from '../../../shared/Q.ts';
+import Vector from '../../../shared/Vector.ts';
 
 import { damage, dead, flags, moveType, solid, content, attn, waterlevel, effect } from '../Defs.mjs';
 import { ServerGameAPI } from '../GameAPI.mjs';

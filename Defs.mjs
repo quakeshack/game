@@ -1,4 +1,4 @@
-import * as engine from '../../shared/Defs.mjs';
+import * as engine from '../../shared/Defs.ts';
 
 export const solid = engine.solid;
 export const moveType = engine.moveType;

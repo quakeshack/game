@@ -1,4 +1,4 @@
-import Vector from '../../../../shared/Vector.mjs';
+import Vector from '../../../../shared/Vector.ts';
 
 import BaseEntity from '../BaseEntity.mjs';
 import { Sub } from '../Subs.mjs';

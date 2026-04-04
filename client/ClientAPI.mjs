@@ -1,4 +1,4 @@
-import Vector from '../../../shared/Vector.mjs';
+import Vector from '../../../shared/Vector.ts';
 import { clientEvent, clientEventName, decals, effect, items } from '../Defs.mjs';
 import { weaponConfig } from '../entity/Weapons.mjs';
 import { featureFlags, ServerGameAPI } from '../GameAPI.mjs';

@@ -1,5 +1,5 @@
-import { BaseClientEdictHandler } from '../../../shared/ClientEdict.mjs';
-import Vector from '../../../shared/Vector.mjs';
+import { BaseClientEdictHandler } from '../../../shared/ClientEdict.ts';
+import Vector from '../../../shared/Vector.ts';
 
 import { attn, channel, clientEvent, colors, content, damage, dead, deathType, effect, flags, hull, items, moveType, solid, waterlevel } from '../Defs.mjs';
 import { featureFlags } from '../GameAPI.mjs';

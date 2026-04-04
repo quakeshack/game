@@ -1,4 +1,4 @@
-import Vector from '../../../shared/Vector.mjs';
+import Vector from '../../../shared/Vector.ts';
 
 import { channel, moveType, solid } from '../Defs.mjs';
 import { EntityWrapper, Serializer } from '../helper/MiscHelpers.mjs';

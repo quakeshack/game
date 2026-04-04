@@ -1,8 +1,8 @@
-import { gameCapabilities } from '../../shared/Defs.mjs';
+import { gameCapabilities } from '../../shared/Defs.ts';
 import { ServerGameAPI } from './GameAPI.mjs';
 import { ClientGameAPI } from './client/ClientAPI.mjs';
 
-/** @type {import('source/engine/server/GameLoader').GameModuleIdentification} */
+/** @type {import('../../engine/server/GameLoader').GameModuleIdentification} */
 const identification = {
   name: 'Quake',
   author: 'chrisnew',
@@ -19,7 +19,7 @@ const identification = {
   ],
 };
 
-/** @type {import('source/engine/server/GameLoader').GameModuleInterface} */
+/** @type {import('../../engine/server/GameLoader').GameModuleInterface} */
 export {
   identification,
   ServerGameAPI,

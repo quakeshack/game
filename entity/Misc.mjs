@@ -1,5 +1,5 @@
-import { BaseClientEdictHandler } from '../../../shared/ClientEdict.mjs';
-import Vector from '../../../shared/Vector.mjs';
+import { BaseClientEdictHandler } from '../../../shared/ClientEdict.ts';
+import Vector from '../../../shared/Vector.ts';
 
 import { attn, channel, colors, content, damage, effect, moveType, solid, tentType, waterlevel } from '../Defs.mjs';
 import { crandom } from '../helper/MiscHelpers.mjs';
@@ -285,7 +285,7 @@ export class FireballEntity extends BaseEntity {
     emit() {
       const dl = this.engine.AllocDlight(this.clientEdict.num);
 
-      dl.color = this.engine.IndexToRGB(colors.FIRE);
+      dl.color = new Vector(...this.engine.IndexToRGB(colors.FIRE));
       dl.origin = this.clientEdict.origin.copy();
       dl.radius = 285 + Math.random() * 15;
       dl.die = this.engine.CL.time + 0.1;

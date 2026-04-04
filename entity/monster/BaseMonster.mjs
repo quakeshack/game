@@ -1,4 +1,4 @@
-import Vector from '../../../../shared/Vector.mjs';
+import Vector from '../../../../shared/Vector.ts';
 
 import { damage, moveType, solid, range, colors, flags } from '../../Defs.mjs';
 import { EntityAI, ATTACK_STATE } from '../../helper/AI.mjs';

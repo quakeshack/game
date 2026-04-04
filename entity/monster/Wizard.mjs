@@ -1,4 +1,4 @@
-import Vector from '../../../../shared/Vector.mjs';
+import Vector from '../../../../shared/Vector.ts';
 import { QuakeEntityAI, ATTACK_STATE } from '../../helper/AI.mjs';
 import { BaseSpike } from '../Weapons.mjs';
 import BaseMonster, { FlyMonster } from './BaseMonster.mjs';

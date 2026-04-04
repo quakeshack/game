@@ -1,4 +1,4 @@
-import Vector from '../../../shared/Vector.mjs';
+import Vector from '../../../shared/Vector.ts';
 
 import { channel, clientEvent, flags, items, moveType, solid, tentType, worldType } from '../Defs.mjs';
 import BaseEntity from './BaseEntity.mjs';

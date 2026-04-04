@@ -1,4 +1,4 @@
-import Vector from '../../../../shared/Vector.mjs';
+import Vector from '../../../../shared/Vector.ts';
 
 import { channel, effect, solid, tentType } from '../../Defs.mjs';
 import { QuakeEntityAI } from '../../helper/AI.mjs';

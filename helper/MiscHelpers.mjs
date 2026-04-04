@@ -1,4 +1,4 @@
-import Vector from '../../../shared/Vector.mjs';
+import Vector from '../../../shared/Vector.ts';
 
 /** @typedef {import('../../../shared/GameInterfaces').ServerEngineAPI} ServerEngineAPI */
 /** @typedef {import('../GameAPI.mjs').ServerGameAPI} ServerGameAPI */
