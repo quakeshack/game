@@ -33,7 +33,7 @@ import OgreMonsterEntity from './entity/monster/Ogre.mjs';
 import ShalrathMonsterEntity, { ShalrathMissileEntity } from './entity/monster/Shalrath.mjs';
 import ShamblerMonsterEntity from './entity/monster/Shambler.mjs';
 import TarbabyMonsterEntity from './entity/monster/Tarbaby.mjs';
-import FishMonsterEntity from './entity/monster/Fish.mjs';
+import FishMonsterEntity from './entity/monster/Fish.ts';
 import WizardMonsterEntity, { WizardMissile } from './entity/monster/Wizard.mjs';
 import { BossLavaball, BossMonster, EventLightningEntity } from './entity/monster/Boss.mjs';
 import OldOneMonster from './entity/monster/OldOne.mjs';

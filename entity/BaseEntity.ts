@@ -12,15 +12,15 @@ import Vector from '../../../shared/Vector.ts';
 import { attn, content, damage, dead, effect, flags, moveType, solid, waterlevel } from '../Defs.ts';
 import { entity, serializable, Serializer } from '../helper/MiscHelpers.ts';
 
-type ScheduledThinkCallback = (this: BaseEntity, entity: BaseEntity) => void;
+type ScheduledThinkCallback<T extends BaseEntity = BaseEntity> = (this: T, entity: T) => void;
 type TraceResult = ReturnType<ServerEngineAPI['Traceline']>;
 
 export type { ScheduledThinkCallback, TraceResult };
 
-export interface EntityStateDefinition {
+export interface EntityStateDefinition<T extends BaseEntity = BaseEntity> {
   readonly keyframe: string | number | null;
   readonly nextState: string | null;
-  readonly handler: ScheduledThinkCallback | null;
+  readonly handler: ScheduledThinkCallback<T> | null;
 }
 
 /**
@@ -76,7 +76,7 @@ export default class BaseEntity {
 
   static _modelData: Readonly<ParsedQC> | null = null;
   static _modelQC: string | null = null;
-  static _states: Record<string, EntityStateDefinition> | null = null;
+  static _states: Record<string, EntityStateDefinition<BaseEntity>> | null = null;
 
   protected _edictRef: WeakRef<ServerEdict> | null;
 
@@ -241,14 +241,14 @@ export default class BaseEntity {
   /**
    * Define a state machine entry.
    */
-  static _defineState(
+  static _defineState<T extends BaseEntity>(
     state: string,
     keyframe: string | number | null,
     nextState: string | null = null,
-    handler: ScheduledThinkCallback | null = null,
+    handler: ScheduledThinkCallback<T> | null = null,
   ): void {
     console.assert(this._states !== null, 'state storage must be initialized in _initStates()');
-    this._states![state] = { keyframe, nextState, handler };
+    this._states![state] = { keyframe, nextState, handler: handler as ScheduledThinkCallback };
   }
 
   /**
@@ -260,10 +260,10 @@ export default class BaseEntity {
    * @param handler - Callback invoked on each frame, receives the 0-based frame index.
    * @param loop - Whether the last frame loops back to the first (default: true).
    */
-  static _defineSequence(
+  static _defineSequence<T extends BaseEntity>(
     prefix: string,
     frames: readonly (string | number)[],
-    handler: ((this: BaseEntity, frameIndex: number) => void) | null = null,
+    handler: ((this: T, frameIndex: number) => void) | null = null,
     loop = true,
   ): void {
     for (let i = 0; i < frames.length; i++) {
@@ -273,7 +273,7 @@ export default class BaseEntity {
         : (loop ? `${prefix}1` : null);
       const frameIndex = i;
       this._defineState(state, frames[i], nextState, handler !== null
-        ? function (this: BaseEntity): void { handler.call(this, frameIndex); }
+        ? function (this: T): void { handler.call(this, frameIndex); }
         : null);
     }
   }
@@ -369,6 +369,7 @@ export default class BaseEntity {
     if (this.movetype !== moveType.MOVETYPE_PUSH) {
       while (this._scheduledThinks.length > 0 && this.game.time > this._scheduledThinks[0].nextThink) {
         const scheduledThink = this._scheduledThinks.shift()!;
+
         if (scheduledThink.isRequired) {
           scheduledThink.callback.call(this, this);
         }
