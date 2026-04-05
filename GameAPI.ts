@@ -23,7 +23,7 @@ import { ButtonEntity } from './entity/props/Buttons.mjs';
 import * as item from './entity/Items.mjs';
 import BaseEntity from './entity/BaseEntity.mjs';
 import * as weapon from './entity/Weapons.mjs';
-import DogMonsterEntity from './entity/monster/Dog.mjs';
+import DogMonsterEntity from './entity/monster/Dog.ts';
 import { Serializer } from './helper/MiscHelpers.mjs';
 import DemonMonster from './entity/monster/Demon.mjs';
 import { MeatSprayEntity } from './entity/monster/BaseMonster.ts';

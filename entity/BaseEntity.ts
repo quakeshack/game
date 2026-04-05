@@ -668,7 +668,9 @@ export default abstract class BaseEntity {
   /**
    * Spawn the entity into the world.
    */
-  abstract spawn(): void;
+  spawn(): void {
+    // no default spawn logic
+  }
 
   /**
    * Run scheduled thinks and clear references to freed entities.
