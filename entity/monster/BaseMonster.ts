@@ -14,7 +14,7 @@ import { DamageHandler } from '../Weapons.mjs';
 import type { ServerEdict, ServerEngineAPI } from '../../../../shared/GameInterfaces.ts';
 
 @entity
-export default class BaseMonster extends BaseEntity {
+export default abstract class BaseMonster extends BaseEntity {
   /** Health points for this monster class. */
   static _health = 0;
 
@@ -372,14 +372,14 @@ export default class BaseMonster extends BaseEntity {
 }
 
 @entity
-export class WalkMonster extends BaseMonster {
+export abstract class WalkMonster extends BaseMonster {
   spawn(): void {
     super.spawn();
   }
 }
 
 @entity
-export class FlyMonster extends BaseMonster {
+export abstract class FlyMonster extends BaseMonster {
   spawn(): void {
     super.spawn();
     this.flags |= flags.FL_FLY;
@@ -391,7 +391,7 @@ export class FlyMonster extends BaseMonster {
 }
 
 @entity
-export class SwimMonster extends BaseMonster {
+export abstract class SwimMonster extends BaseMonster {
   spawn(): void {
     super.spawn();
     this.flags |= flags.FL_SWIM;

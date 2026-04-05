@@ -62,8 +62,9 @@ class ScheduledThink {
  * Legacy JS subclasses can still add fields in _declareFields() while the port is in flight.
  */
 @entity
-export default class BaseEntity {
-  public static classname: string | null = null;
+export default abstract class BaseEntity {
+  /** The classname of the entity referenced by maps. Must be set. */
+  public static classname: string;
 
   /** Optional client-side handler of this entity. */
   public static clientEdictHandler: typeof BaseClientEdictHandler | null = null;
@@ -234,6 +235,7 @@ export default class BaseEntity {
 
   /**
    * Configure the state machine.
+   * Accessed by the entity Registry during initialization.
    */
   static _initStates(): void {
   }
@@ -241,7 +243,7 @@ export default class BaseEntity {
   /**
    * Define a state machine entry.
    */
-  static _defineState<T extends BaseEntity>(
+  protected static _defineState<T extends BaseEntity>(
     state: string,
     keyframe: string | number | null,
     nextState: string | null = null,
@@ -260,7 +262,7 @@ export default class BaseEntity {
    * @param handler - Callback invoked on each frame, receives the 0-based frame index.
    * @param loop - Whether the last frame loops back to the first (default: true).
    */
-  static _defineSequence<T extends BaseEntity>(
+  protected static _defineSequence<T extends BaseEntity>(
     prefix: string,
     frames: readonly (string | number)[],
     handler: ((this: T, frameIndex: number) => void) | null = null,
@@ -282,7 +284,7 @@ export default class BaseEntity {
    * Start or continue the animation state machine.
    * @returns True when the requested state existed.
    */
-  _runState(state: string | null = null): boolean {
+  protected _runState(state: string | null = null): boolean {
     let nextState = state;
     if (nextState === null) {
       nextState = this._stateNext;
@@ -326,6 +328,7 @@ export default class BaseEntity {
 
   /**
    * Schedule a think callback.
+   * Accessed by Subs.
    */
   _scheduleThink(
     nextThink: number,
@@ -665,8 +668,7 @@ export default class BaseEntity {
   /**
    * Spawn the entity into the world.
    */
-  spawn(): void {
-  }
+  abstract spawn(): void;
 
   /**
    * Run scheduled thinks and clear references to freed entities.
@@ -674,6 +676,7 @@ export default class BaseEntity {
   think(): void {
     const entityRecord = this as Record<string, unknown>;
 
+    // remove all references to freed entities before running thinks
     for (const key of Object.keys(entityRecord)) {
       const value = entityRecord[key];
       if (value instanceof BaseEntity && value.edict === null) {
