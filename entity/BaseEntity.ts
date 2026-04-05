@@ -241,6 +241,13 @@ export default abstract class BaseEntity {
   }
 
   /**
+   * Build an ordered list of numbered frame names.
+   */
+  protected static _createFrameNames(prefix: string, count: number): string[] {
+    return Array.from({ length: count }, (_, i) => `${prefix}${i + 1}`);
+  }
+
+  /**
    * Define a state machine entry.
    */
   protected static _defineState<T extends BaseEntity>(
