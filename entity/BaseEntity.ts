@@ -17,21 +17,21 @@ type TraceResult = ReturnType<ServerEngineAPI['Traceline']>;
 
 export type { ScheduledThinkCallback, TraceResult };
 
+export interface EntityClass<T extends BaseEntity = BaseEntity> {
+  readonly classname: string;
+  readonly clientEntityFields: string[];
+
+  new (edict: ServerEdict | null, gameAPI: ServerGameAPI): T;
+
+  _precache(engineAPI: ServerEngineAPI): void;
+  _parseModelData(engineAPI: ServerEngineAPI): void;
+  _initStates(): void;
+}
+
 export interface EntityStateDefinition<T extends BaseEntity = BaseEntity> {
   readonly keyframe: string | number | null;
   readonly nextState: string | null;
   readonly handler: ScheduledThinkCallback<T> | null;
-}
-
-/**
- * Convert a shared edict reference into the game-side entity type.
- */
-function getGameEntity(edict: ServerEdict | null): BaseEntity | null {
-  if (edict === null || edict.entity === null) {
-    return null;
-  }
-
-  return edict.entity as unknown as BaseEntity;
 }
 
 /**
@@ -529,7 +529,13 @@ export default abstract class BaseEntity {
     if (otherEntity instanceof BaseEntity) {
       candidate = otherEntity;
     } else if (otherEntity !== null) {
-      candidate = getGameEntity(otherEntity);
+      if (otherEntity.entity === null) {
+        return false;
+      }
+
+      const entity = otherEntity.entity!;
+      console.assert(entity instanceof BaseEntity, 'ServerEdict.entity must reference a BaseEntity instance');
+      candidate = entity as unknown as BaseEntity;
     }
 
     if (candidate === null || candidate.edict === null) {
@@ -734,15 +740,27 @@ export default abstract class BaseEntity {
   findNextEntityByFieldAndValue(field: string, value: string, lastEntity: BaseEntity | null = this, loopSearch = false): BaseEntity | null {
     const lastEntityId = lastEntity?.edictId;
     const edict = this.engine.FindByFieldAndValue(field, value, lastEntityId !== undefined ? lastEntityId + 1 : 0);
-    const entity = getGameEntity(edict);
-    return entity ?? (loopSearch ? this.findFirstEntityByFieldAndValue(field, value) : null);
+    if (edict === null || edict.entity === null) {
+      return loopSearch ? this.findFirstEntityByFieldAndValue(field, value) : null;
+    }
+
+    const entity = edict.entity!;
+    console.assert(entity instanceof BaseEntity, 'FindByFieldAndValue must return BaseEntity-backed edicts');
+    return entity as unknown as BaseEntity;
   }
 
   /**
    * Find the first entity matching a field/value pair.
    */
   findFirstEntityByFieldAndValue(field: string, value: string): BaseEntity | null {
-    return getGameEntity(this.engine.FindByFieldAndValue(field, value));
+    const edict = this.engine.FindByFieldAndValue(field, value);
+    if (edict === null || edict.entity === null) {
+      return null;
+    }
+
+    const entity = edict.entity!;
+    console.assert(entity instanceof BaseEntity, 'FindByFieldAndValue must return BaseEntity-backed edicts');
+    return entity as unknown as BaseEntity;
   }
 
   /**
@@ -750,10 +768,13 @@ export default abstract class BaseEntity {
    */
   *findAllEntitiesByFieldAndValue(field: string, value: string): IterableIterator<BaseEntity> {
     for (const edict of this.engine.FindAllByFieldAndValue(field, value)) {
-      const entity = getGameEntity(edict);
-      if (entity !== null) {
-        yield entity;
+      if (edict.entity === null) {
+        continue;
       }
+
+      const entity = edict.entity!;
+      console.assert(entity instanceof BaseEntity, 'FindAllByFieldAndValue must return BaseEntity-backed edicts');
+      yield entity as unknown as BaseEntity;
     }
   }
 

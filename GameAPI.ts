@@ -37,8 +37,9 @@ import FishMonsterEntity from './entity/monster/Fish.ts';
 import WizardMonsterEntity, { WizardMissile } from './entity/monster/Wizard.mjs';
 import { BossLavaball, BossMonster, EventLightningEntity } from './entity/monster/Boss.mjs';
 import OldOneMonster from './entity/monster/OldOne.mjs';
-import GameStats from './helper/GameStats.mjs';
-import EntityRegistry from './helper/Registry.mjs';
+import GameStats from './helper/GameStats.ts';
+import EntityRegistry from './helper/Registry.ts';
+import type { EntityClass } from './entity/BaseEntity.ts';
 import * as miscProps from './entity/props/Misc.mjs';
 
 type FeatureFlag = 'correct-ballistic-grenades' | 'draw-bullet-hole-decals' | 'improved-gib-physics';
@@ -70,7 +71,7 @@ export const featureFlags: FeatureFlag[] = [
   // 'draw-bullet-hole-decals', // enables handling decal events upon bullet impacts
 ];
 
-export const entityClasses: Array<typeof BaseEntity> = [
+export const entityClasses: EntityClass[] = [
   WorldspawnEntity,
   BodyqueEntity,
   PlayerEntity,
