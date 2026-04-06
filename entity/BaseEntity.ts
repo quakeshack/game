@@ -196,15 +196,6 @@ export default abstract class BaseEntity {
     this._precache();
   }
 
-  protected _getRuntimeEdict(): RuntimeServerEdict {
-    const edict = this.edict;
-    if (edict === null) {
-      throw new Error(`${this.classname} does not have a live edict.`);
-    }
-
-    return edict as unknown as RuntimeServerEdict;
-  }
-
   /**
    * Legacy JS hook for declaring subclass fields before spawn.
    * New TS subclasses should prefer typed class fields and static serializableFields.
@@ -486,7 +477,7 @@ export default abstract class BaseEntity {
    * Set the world origin and relink through the engine.
    */
   setOrigin(origin: Vector): void {
-    this._getRuntimeEdict().setOrigin(origin);
+    this.edict!.setOrigin(origin);
   }
 
   /**
@@ -503,7 +494,7 @@ export default abstract class BaseEntity {
       this.engine.PrecacheModel(modelname);
     }
 
-    this._getRuntimeEdict().setModel(modelname);
+    this.edict!.setModel(modelname);
   }
 
   /**
@@ -522,7 +513,7 @@ export default abstract class BaseEntity {
    * Set the bounding box size.
    */
   setSize(mins: Vector, maxs: Vector): void {
-    this._getRuntimeEdict().setMinMaxSize(mins, maxs);
+    this.edict!.setMinMaxSize(mins, maxs);
   }
 
   /**
@@ -545,7 +536,7 @@ export default abstract class BaseEntity {
       return false;
     }
 
-    return this._getRuntimeEdict().equals(candidate.edict as unknown as RuntimeServerEdict);
+    return this.edict!.equals(candidate.edict! as RuntimeServerEdict);
   }
 
   /**
@@ -573,42 +564,42 @@ export default abstract class BaseEntity {
    * Return an aim direction using the engine helper.
    */
   aim(direction: Vector): Vector {
-    return this._getRuntimeEdict().aim(direction);
+    return this.edict!.aim(direction);
   }
 
   /**
    * Try to walk-move this entity.
    */
   walkMove(yaw: number, dist: number): boolean {
-    return this._getRuntimeEdict().walkMove(yaw, dist);
+    return this.edict!.walkMove(yaw, dist);
   }
 
   /**
    * Change the current yaw toward ideal_yaw.
    */
   changeYaw(): number {
-    return this._getRuntimeEdict().changeYaw();
+    return this.edict!.changeYaw();
   }
 
   /**
    * Drop the entity toward the floor.
    */
   dropToFloor(z = -2048.0): boolean {
-    return this._getRuntimeEdict().dropToFloor(z);
+    return this.edict!.dropToFloor(z);
   }
 
   /**
    * Return whether the entity is on the floor.
    */
   isOnTheFloor(): boolean {
-    return this._getRuntimeEdict().isOnTheFloor();
+    return this.edict!.isOnTheFloor();
   }
 
   /**
    * Turn this entity into a static world object.
    */
   makeStatic(): void {
-    this._getRuntimeEdict().makeStatic();
+    this.edict!.makeStatic();
   }
 
   /**
@@ -624,14 +615,14 @@ export default abstract class BaseEntity {
    */
   startSound(soundChannel: number, sfxName: string, volume = 1.0, attenuation = attn.ATTN_NORM): void {
     this.engine.PrecacheSound(sfxName);
-    this.engine.StartSound(this._getRuntimeEdict(), soundChannel, sfxName, volume, attenuation);
+    this.engine.StartSound(this.edict! as RuntimeServerEdict, soundChannel, sfxName, volume, attenuation);
   }
 
   /**
    * Remove this entity immediately.
    */
   remove(): void {
-    this._getRuntimeEdict().freeEdict();
+    this.edict!.freeEdict();
   }
 
   /**
@@ -770,7 +761,9 @@ export default abstract class BaseEntity {
    * Return the next best client target from the engine helper.
    */
   getNextBestClient(): BaseEntity | null {
-    return getGameEntity(this._getRuntimeEdict().getNextBestClient() as unknown as ServerEdict | null);
+    const nextClient = this.edict!.getNextBestClient()?.entity as BaseEntity | null;
+
+    return nextClient;
   }
 
   /**
@@ -779,7 +772,7 @@ export default abstract class BaseEntity {
   tracelineToEntity(target: BaseEntity, ignoreMonsters: boolean): TraceResult {
     const start = this.origin.copy().add(this.view_ofs);
     const end = target.origin.copy().add(target.view_ofs);
-    return this.engine.Traceline(start, end, ignoreMonsters, this._getRuntimeEdict());
+    return this.engine.Traceline(start, end, ignoreMonsters, this.edict! as RuntimeServerEdict);
   }
 
   /**
@@ -787,21 +780,21 @@ export default abstract class BaseEntity {
    */
   tracelineToVector(target: Vector, ignoreMonsters: boolean): TraceResult {
     const start = this.origin.copy().add(this.view_ofs);
-    return this.engine.Traceline(start, target, ignoreMonsters, this._getRuntimeEdict());
+    return this.engine.Traceline(start, target, ignoreMonsters, this.edict! as RuntimeServerEdict);
   }
 
   /**
    * Trace between two world-space points.
    */
   traceline(origin: Vector, target: Vector, ignoreMonsters: boolean): TraceResult {
-    return this.engine.Traceline(origin, target, ignoreMonsters, this._getRuntimeEdict());
+    return this.engine.Traceline(origin, target, ignoreMonsters, this.edict! as RuntimeServerEdict);
   }
 
   /**
    * Move this entity toward its goal.
    */
   moveToGoal(distance: number, target: Vector | null = null): boolean {
-    return this._getRuntimeEdict().moveToGoal(distance, target);
+    return this.edict!.moveToGoal(distance, target);
   }
 
   serialize(): SerializedData {

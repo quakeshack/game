@@ -149,7 +149,7 @@ export default abstract class BaseMonster extends BaseEntity {
     }
 
     const trace = this.tracelineToEntity(target, false);
-    if ((trace.entity as object) !== (target as object)) {
+    if (!target.equals(trace.entity as unknown as BaseEntity | null)) {
       return null;
     }
     if (trace.contents.inOpen && trace.contents.inWater) {

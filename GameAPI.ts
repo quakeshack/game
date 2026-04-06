@@ -64,18 +64,6 @@ type MutableServerEdict = Omit<ServerEdict, 'entity'> & {
   entity: BaseEntity | null;
 };
 
-/**
- * Return a registered cvar or fail fast when the game API has not been initialized yet.
- * @returns The registered cvar.
- */
-function getRegisteredCvar(cvar: Cvar | null, name: string): Cvar {
-  if (cvar === null) {
-    throw new Error(`ServerGameAPI cvar ${name} has not been initialized.`);
-  }
-
-  return cvar;
-}
-
 export const featureFlags: FeatureFlag[] = [
   // 'correct-ballistic-grenades', // enables zombie gib and ogre grenade trajectory fix
   'improved-gib-physics',
@@ -350,50 +338,50 @@ export class ServerGameAPI {
 
   get skill(): number {
     const cvars = (this.constructor as typeof ServerGameAPI)._cvars;
-    return getRegisteredCvar(cvars.skill, 'skill').value;
+    return cvars.skill!.value;
   }
 
   get teamplay(): number {
-    return getRegisteredCvar(this._cvars.teamplay, 'teamplay').value;
+    return this._cvars.teamplay!.value;
   }
 
   get timelimit(): number {
     const cvars = (this.constructor as typeof ServerGameAPI)._cvars;
-    return getRegisteredCvar(cvars.timelimit, 'timelimit').value;
+    return cvars.timelimit!.value;
   }
 
   get fraglimit(): number {
     const cvars = (this.constructor as typeof ServerGameAPI)._cvars;
-    return getRegisteredCvar(cvars.fraglimit, 'fraglimit').value;
+    return cvars.fraglimit!.value;
   }
 
   get deathmatch(): number {
     const cvars = (this.constructor as typeof ServerGameAPI)._cvars;
-    return getRegisteredCvar(cvars.deathmatch, 'deathmatch').value;
+    return cvars.deathmatch!.value;
   }
 
   get coop(): number {
     const cvars = (this.constructor as typeof ServerGameAPI)._cvars;
-    return getRegisteredCvar(cvars.coop, 'coop').value;
+    return cvars.coop!.value;
   }
 
   get samelevel(): number {
     const cvars = (this.constructor as typeof ServerGameAPI)._cvars;
-    return getRegisteredCvar(cvars.samelevel, 'samelevel').value;
+    return cvars.samelevel!.value;
   }
 
   get noexit(): number {
     const cvars = (this.constructor as typeof ServerGameAPI)._cvars;
-    return getRegisteredCvar(cvars.noexit, 'noexit').value;
+    return cvars.noexit!.value;
   }
 
   get nomonsters(): number {
     const cvars = (this.constructor as typeof ServerGameAPI)._cvars;
-    return getRegisteredCvar(cvars.nomonster, 'nomonster').value;
+    return cvars.nomonster!.value;
   }
 
   get gravity(): number {
-    return getRegisteredCvar(this._cvars.gravity, 'sv_gravity').value;
+    return this._cvars.gravity!.value;
   }
 
   hasFeature(feature: FeatureFlag): boolean {
@@ -716,9 +704,9 @@ export class ServerGameAPI {
    */
   init(mapname: string, serverflags: number): void {
     const cvars = (this.constructor as typeof ServerGameAPI)._cvars;
-    const coop = getRegisteredCvar(cvars.coop, 'coop');
-    const deathmatch = getRegisteredCvar(cvars.deathmatch, 'deathmatch');
-    const skill = getRegisteredCvar(cvars.skill, 'skill');
+    const coop = cvars.coop!;
+    const deathmatch = cvars.deathmatch!;
+    const skill = cvars.skill!;
 
     this.mapname = mapname;
     this.serverflags = serverflags;

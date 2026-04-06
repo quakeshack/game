@@ -449,9 +449,9 @@ export class QuakeEntityAI extends EntityAI {
 
     // client got invisibility or has notarget set
     if ((client.flags & flags.FL_NOTARGET) || // no target set
-        (client.effects & effect.EF_NODRAW) || // completely invisible
-        (client instanceof PlayerEntity && (client.items & items.IT_INVISIBILITY))
-      ) {
+      (client.effects & effect.EF_NODRAW) || // completely invisible
+      (client instanceof PlayerEntity && (client.items & items.IT_INVISIBILITY))
+    ) {
       return false;
     }
 
@@ -481,8 +481,8 @@ export class QuakeEntityAI extends EntityAI {
       // @ts-ignore: enemy can have an enemy property
       self.enemy = self.enemy.enemy;
       if (!(self.enemy instanceof PlayerEntity)) {
-        self.enemy = this._game.worldspawn;
-        // self.enemy = null; // this._game.worldspawn; // CR: unsure about null or worldspawn
+        // self.enemy = this._game.worldspawn;
+        self.enemy = null; // this._game.worldspawn; // CR: unsure about null or worldspawn
         return false;
       }
     }
@@ -500,6 +500,12 @@ export class QuakeEntityAI extends EntityAI {
    */
   foundTarget(targetEntity, fromPain) { // QuakeC: ai.qc/FoundTarget
     if (!this._stillAlive()) {
+      return;
+    }
+
+    // do not get distracted by things like platform pushers, traps etc.
+    if (!(targetEntity instanceof PlayerEntity) && !(targetEntity instanceof BaseMonster)) {
+      // TODO: just make them running?
       return;
     }
 
@@ -544,7 +550,7 @@ export class QuakeEntityAI extends EntityAI {
 
     if (!fromPain) {
       // NOTE: keep it at 50 ms otherwise there will be a racy condition with the animation thinker causing dead monsters attacking the player
-      this._entity._scheduleThink(this._game.time + 0.05, this._entity.thinkRun);
+      this._entity._scheduleThink(this._game.time + 0.05, this._entity.thinkRun, 'animation-state-machine');
     }
 
     this._entity.attackFinished(1.0); // wait a while before first attack
@@ -642,7 +648,7 @@ export class QuakeEntityAI extends EntityAI {
     this._entity.walk(dist);
   }
 
-  runMelee(){ // QuakeC: ai.qc/ai_run_melee
+  runMelee() { // QuakeC: ai.qc/ai_run_melee
     if (!this._stillAlive()) {
       return;
     }
