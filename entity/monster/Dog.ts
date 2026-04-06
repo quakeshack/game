@@ -1,7 +1,7 @@
 import Vector from '../../../../shared/Vector.ts';
 
 import { attn, channel, flags, range, solid } from '../../Defs.ts';
-import { ATTACK_STATE, QuakeEntityAI } from '../../helper/AI.mjs';
+import { ATTACK_STATE, QuakeEntityAI } from '../../helper/AI.ts';
 import { entity, serializable } from '../../helper/MiscHelpers.ts';
 import BaseEntity from '../BaseEntity.ts';
 import { WalkMonster } from './BaseMonster.ts';
@@ -48,7 +48,7 @@ $frame walk1 walk2 walk3 walk4 walk5 walk6 walk7 walk8
     return 'a Rottweiler';
   }
 
-  protected override _newEntityAI(): QuakeEntityAI<DogMonsterEntity> {
+  protected override _newEntityAI(): ReturnType<WalkMonster['_newEntityAI']> {
     return new QuakeEntityAI(this);
   }
 

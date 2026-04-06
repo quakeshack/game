@@ -3,7 +3,7 @@ import type { ServerEngineAPI } from '../../../../shared/GameInterfaces.ts';
 import Vector from '../../../../shared/Vector.ts';
 
 import { channel, solid, tentType } from '../../Defs.ts';
-import { QuakeEntityAI } from '../../helper/AI.mjs';
+import { QuakeEntityAI } from '../../helper/AI.ts';
 import { entity } from '../../helper/MiscHelpers.ts';
 import type BaseEntity from '../BaseEntity.ts';
 import { BaseSpike } from '../Weapons.mjs';

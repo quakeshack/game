@@ -2,7 +2,7 @@ import Vector from '../../../../shared/Vector.ts';
 
 import { colors, damage, flags, moveType, range, solid } from '../../Defs.ts';
 import type { ServerGameAPI } from '../../GameAPI.ts';
-import { EntityAI, ATTACK_STATE } from '../../helper/AI.mjs';
+import { EntityAI, ATTACK_STATE } from '../../helper/AI.ts';
 import { entity, serializable } from '../../helper/MiscHelpers.ts';
 import BaseEntity from '../BaseEntity.ts';
 import { BackpackEntity } from '../Items.mjs';

@@ -1,7 +1,7 @@
 import Vector from '../../../../shared/Vector.ts';
 
 import { attn, channel, effect, solid } from '../../Defs.ts';
-import { QuakeEntityAI } from '../../helper/AI.mjs';
+import { QuakeEntityAI } from '../../helper/AI.ts';
 import { entity } from '../../helper/MiscHelpers.ts';
 import type BaseEntity from '../BaseEntity.ts';
 import { DamageInflictor, Laser } from '../Weapons.mjs';
@@ -69,7 +69,7 @@ $frame prowl_17 prowl_18 prowl_19 prowl_20 prowl_21 prowl_22 prowl_23 prowl_24
     this.engine.PrecacheSound('soldier/sight1.wav');
   }
 
-  protected override _newEntityAI(): QuakeEntityAI<ArmySoldierMonster> {
+  protected override _newEntityAI(): ReturnType<WalkMonster['_newEntityAI']> {
     return new QuakeEntityAI(this);
   }
 
@@ -345,7 +345,7 @@ $frame paind17 paind18 paind19
     return 'an Enforcer';
   }
 
-  protected override _newEntityAI(): QuakeEntityAI<ArmyEnforcerMonster> {
+  protected override _newEntityAI(): ReturnType<WalkMonster['_newEntityAI']> {
     return new QuakeEntityAI(this);
   }
 

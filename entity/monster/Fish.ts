@@ -1,7 +1,7 @@
 import Vector from '../../../../shared/Vector.ts';
 
 import { attn, channel, range, solid } from '../../Defs.ts';
-import { ATTACK_STATE, QuakeEntityAI } from '../../helper/AI.mjs';
+import { ATTACK_STATE, QuakeEntityAI } from '../../helper/AI.ts';
 import { entity } from '../../helper/MiscHelpers.ts';
 import BaseEntity from '../BaseEntity.ts';
 import { SwimMonster } from './BaseMonster.ts';
@@ -45,7 +45,7 @@ $frame pain9
     return 'a fish';
   }
 
-  protected override _newEntityAI(): QuakeEntityAI<FishMonsterEntity> {
+  protected override _newEntityAI(): ReturnType<SwimMonster['_newEntityAI']> {
     return new QuakeEntityAI(this);
   }
 
