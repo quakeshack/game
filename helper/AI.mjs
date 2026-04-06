@@ -540,7 +540,7 @@ export class QuakeEntityAI extends EntityAI {
     console.assert(this._entity.enemy, 'Missing enemy');
 
     this._entity.goalentity = this._entity.enemy;
-    // this._entity.ideal_yaw = this._entity.enemy.origin.copy().subtract(this._entity.origin).toYaw();
+    this._entity.ideal_yaw = this._entity.enemy.origin.copy().subtract(this._entity.origin).toYaw();
 
     if (!fromPain) {
       // NOTE: keep it at 50 ms otherwise there will be a racy condition with the animation thinker causing dead monsters attacking the player
@@ -725,11 +725,9 @@ export class QuakeEntityAI extends EntityAI {
       this._enemyMetadata.isVisible = isEnemyVisible;
       this._enemyMetadata.infront = this._isInFront(this._entity.enemy);
       this._enemyMetadata.range = this._determineRange(this._entity.enemy);
-      if (isEnemyVisible) {
-        this._enemyMetadata.yaw = this._entity.enemy.origin.copy().subtract(this._entity.origin).toYaw();
-      } else if (this._path?.length > 0) {
-        this._enemyMetadata.yaw = this._path[0].copy().subtract(this._entity.origin).toYaw();
-      }
+      // Always track the enemy direction for attack facing — nav waypoints only
+      // steer moveToGoal and must never redirect the attack yaw.
+      this._enemyMetadata.yaw = this._entity.enemy.origin.copy().subtract(this._entity.origin).toYaw();
     } else {
       this._enemyMetadata.isVisible = false;
     }
