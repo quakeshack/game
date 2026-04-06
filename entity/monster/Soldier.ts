@@ -258,7 +258,7 @@ $frame prowl_17 prowl_18 prowl_19 prowl_20 prowl_21 prowl_22 prowl_23 prowl_24
     this._damageInflictor.fireBullets(4, direction, new Vector(0.1, 0.1, 0));
   }
 
-  protected override _dropBackpack(): void {
+  override _dropBackpack(): void {
     super._dropBackpack({ ammo_shells: 5 });
   }
 

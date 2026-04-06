@@ -25,18 +25,18 @@ import BaseEntity from './entity/BaseEntity.mjs';
 import * as weapon from './entity/Weapons.mjs';
 import DogMonsterEntity from './entity/monster/Dog.ts';
 import { Serializer } from './helper/MiscHelpers.mjs';
-import DemonMonster from './entity/monster/Demon.mjs';
+import DemonMonster from './entity/monster/Demon.ts';
 import { MeatSprayEntity } from './entity/monster/BaseMonster.ts';
-import ZombieMonster, { ZombieGibGrenade } from './entity/monster/Zombie.mjs';
+import ZombieMonster, { ZombieGibGrenade } from './entity/monster/Zombie.ts';
 import { KnightMonster, HellKnightMonster, KnightSpike } from './entity/monster/Knights.ts';
 import OgreMonsterEntity from './entity/monster/Ogre.ts';
-import ShalrathMonsterEntity, { ShalrathMissileEntity } from './entity/monster/Shalrath.mjs';
-import ShamblerMonsterEntity from './entity/monster/Shambler.mjs';
-import TarbabyMonsterEntity from './entity/monster/Tarbaby.mjs';
+import ShalrathMonsterEntity, { ShalrathMissileEntity } from './entity/monster/Shalrath.ts';
+import ShamblerMonsterEntity from './entity/monster/Shambler.ts';
+import TarbabyMonsterEntity from './entity/monster/Tarbaby.ts';
 import FishMonsterEntity from './entity/monster/Fish.ts';
-import WizardMonsterEntity, { WizardMissile } from './entity/monster/Wizard.mjs';
-import { BossLavaball, BossMonster, EventLightningEntity } from './entity/monster/Boss.mjs';
-import OldOneMonster from './entity/monster/OldOne.mjs';
+import WizardMonsterEntity, { WizardMissile } from './entity/monster/Wizard.ts';
+import { BossLavaball, BossMonster, EventLightningEntity } from './entity/monster/Boss.ts';
+import OldOneMonster from './entity/monster/OldOne.ts';
 import GameStats from './helper/GameStats.ts';
 import EntityRegistry from './helper/Registry.ts';
 import type { EntityClass } from './entity/BaseEntity.ts';
@@ -77,6 +77,7 @@ export const entityClasses: EntityClass[] = [
   PlayerEntity,
   misc.NullEntity,
   misc.InfoNotNullEntity,
+  misc.MiscNullEntity,
   misc.IntermissionCameraEntity,
   InfoPlayerStart,
   InfoPlayerStart2,

@@ -4,12 +4,10 @@ import Vector from '../../../shared/Vector.ts';
 
 import { damage, effect, flags, items, range } from '../Defs.ts';
 import BaseEntity from '../entity/BaseEntity.ts';
-import { PathCornerEntity } from '../entity/Misc.mjs';
-import BaseMonster from '../entity/monster/BaseMonster.ts';
-import { PlayerEntity } from '../entity/Player.mjs';
+import type BaseMonster from '../entity/monster/BaseMonster.ts';
 import { entity, EntityWrapper, serializable, Serializer } from './MiscHelpers.ts';
 
-type CombatTarget = BaseMonster | PlayerEntity;
+type CombatTarget = MonsterActor | PlayerActor;
 
 /**
  * Game-wide AI state used to coordinate monster perception.
@@ -138,6 +136,123 @@ export class EntityAI<T extends BaseMonster = BaseMonster> extends EntityWrapper
   use(userEntity: BaseEntity): void {
     void userEntity;
     console.assert(false, 'implement this');
+  }
+}
+
+/**
+ * No-op AI implementation for scripted monsters that do not use the normal behavior system.
+ */
+export class NoopMonsterAI<T extends BaseMonster = BaseMonster> extends EntityAI<T> {
+  override clear(): void {
+  }
+
+  override think(): void {
+  }
+
+  override spawn(): void {
+  }
+
+  override stand(): void {
+  }
+
+  override walk(_dist: number): void {
+  }
+
+  override run(_dist: number): void {
+  }
+
+  override pain(_dist: number): void {
+  }
+
+  override charge(_dist = 0): void {
+  }
+
+  override painforward(_dist: number): void {
+  }
+
+  override face(): void {
+  }
+
+  override turn(): void {
+  }
+
+  override forward(_dist: number): void {
+  }
+
+  override back(_dist: number): void {
+  }
+
+  override chargeSide(): void {
+  }
+
+  override melee(): void {
+  }
+
+  override meleeSide(): void {
+  }
+
+  override findTarget(): boolean {
+    return false;
+  }
+
+  override foundTarget(_targetEntity: BaseEntity, _fromPain = false): void {
+  }
+
+  override use(_userEntity: BaseEntity): void {
+  }
+}
+
+/**
+ * Runtime marker for monster entities without importing BaseMonster at runtime.
+ */
+abstract class MonsterActor extends BaseEntity {
+  declare health: number;
+  declare enemy: BaseEntity | null;
+  declare _ai: EntityAI<BaseMonster>;
+
+  abstract thinkRun(): void;
+
+  static [Symbol.hasInstance](value: unknown): boolean {
+    if (!(value instanceof BaseEntity)) {
+      return false;
+    }
+
+    const candidate = value as {
+      health?: unknown;
+      enemy?: unknown;
+      thinkRun?: unknown;
+      _ai?: unknown;
+    };
+
+    return typeof candidate.health === 'number'
+      && 'enemy' in candidate
+      && typeof candidate.thinkRun === 'function'
+      && candidate._ai !== undefined;
+  }
+}
+
+/**
+ * Runtime marker for the player entity without importing Player.mjs at runtime.
+ */
+abstract class PlayerActor extends BaseEntity {
+  declare health: number;
+  declare items: number | undefined;
+
+  static [Symbol.hasInstance](value: unknown): boolean {
+    if (!(value instanceof BaseEntity)) {
+      return false;
+    }
+
+    return value.classname === 'player';
+  }
+}
+
+/**
+ * Runtime marker for path_corner entities without importing Misc.mjs at runtime.
+ */
+abstract class PathCornerMarker extends BaseEntity {
+  static [Symbol.hasInstance](value: unknown): boolean {
+    return value instanceof BaseEntity && value.classname === 'path_corner';
   }
 }
 
@@ -341,7 +456,7 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
         self.goalentity = self.movetarget = target;
         self.ideal_yaw = target.origin.copy().subtract(self.origin).toYaw();
 
-        if (target instanceof PathCornerEntity) {
+        if (target instanceof PathCornerMarker) {
           self.thinkWalk();
         } else {
           self.pausetime = Infinity;
@@ -402,7 +517,7 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
     if (this._gameAI._sightEntityTime >= this._game.time - 0.1 && !(self.spawnflags & 3)) {
       client = this._gameAI._sightEntity;
 
-      if (client instanceof BaseMonster && self.equals(client.enemy)) {
+      if (client instanceof MonsterActor && self.equals(client.enemy)) {
         return false;
       }
     } else {
@@ -419,7 +534,7 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
 
     if ((client.flags & flags.FL_NOTARGET)
       || (client.effects & effect.EF_NODRAW)
-      || (client instanceof PlayerEntity && ((client.items ?? 0) & items.IT_INVISIBILITY))
+      || (client instanceof PlayerActor && ((client.items ?? 0) & items.IT_INVISIBILITY))
     ) {
       return false;
     }
@@ -443,11 +558,11 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
       }
     }
 
-    if (client instanceof PlayerEntity) {
+    if (client instanceof PlayerActor) {
       self.enemy = client;
-    } else if (client instanceof BaseMonster) {
+    } else if (client instanceof MonsterActor) {
       const resolvedEnemy = client.enemy;
-      if (!(resolvedEnemy instanceof PlayerEntity)) {
+      if (!(resolvedEnemy instanceof PlayerActor)) {
         self.enemy = null;
         return false;
       }
@@ -468,12 +583,12 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
       return;
     }
 
-    if (!(targetEntity instanceof PlayerEntity) && !(targetEntity instanceof BaseMonster)) {
+    if (!(targetEntity instanceof PlayerActor) && !(targetEntity instanceof MonsterActor)) {
       return;
     }
 
     const previousEnemy = this._entity.enemy;
-    if (previousEnemy instanceof PlayerEntity || previousEnemy instanceof BaseMonster) {
+    if (previousEnemy instanceof PlayerActor || previousEnemy instanceof MonsterActor) {
       this._oldEnemy = previousEnemy;
     }
 
@@ -489,7 +604,7 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
 
     console.debug(`${this._entity} updated last seen and origin of ${this._entity.enemy}`);
 
-    if (this._entity.enemy instanceof PlayerEntity) {
+    if (this._entity.enemy instanceof PlayerActor) {
       this._gameAI._sightEntity = this._entity;
       this._gameAI._sightEntityTime = this._game.time;
     }
@@ -515,8 +630,8 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
 
     if (!fromPain) {
       this._entity._scheduleThink(this._game.time + 0.05, function (this: BaseEntity, entity: BaseEntity): void {
-        console.assert(entity instanceof BaseMonster, 'run-think callback requires a monster entity');
-        if (entity instanceof BaseMonster) {
+        console.assert(entity instanceof MonsterActor, 'run-think callback requires a monster entity');
+        if (entity instanceof MonsterActor) {
           entity.thinkRun();
         }
       }, 'animation-state-machine');
@@ -642,7 +757,7 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
     this._moveDistance = dist;
 
     const enemy = this._entity.enemy;
-    if (enemy instanceof PlayerEntity || enemy instanceof BaseMonster) {
+    if (enemy instanceof PlayerActor || enemy instanceof MonsterActor) {
       if ((enemy.health ?? 0) <= 0) {
         this._entity.enemy = null;
 
@@ -665,7 +780,7 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
     const currentEnemy = this._entity.enemy;
     const isEnemyVisible = currentEnemy !== null ? this._isVisible(currentEnemy) : false;
 
-    if (isEnemyVisible || (currentEnemy instanceof PlayerEntity && (currentEnemy.health ?? 0) > 0)) {
+    if (isEnemyVisible || (currentEnemy instanceof PlayerActor && (currentEnemy.health ?? 0) > 0)) {
       this._searchTime = this._game.time + 5.0;
     }
 
@@ -829,7 +944,7 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
       return;
     }
 
-    if (!(userEntity instanceof PlayerEntity)) {
+    if (!(userEntity instanceof PlayerActor)) {
       return;
     }
 
@@ -843,8 +958,8 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
 
     this._entity.enemy = userEntity;
     this._entity._scheduleThink(this._game.time + 0.1, function (this: BaseEntity, _entity: BaseEntity): void {
-      console.assert(this instanceof BaseMonster, 'monster think callback required');
-      if (!(this instanceof BaseMonster)) {
+      console.assert(this instanceof MonsterActor, 'monster think callback required');
+      if (!(this instanceof MonsterActor)) {
         return;
       }
 

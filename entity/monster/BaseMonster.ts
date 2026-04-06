@@ -308,7 +308,7 @@ export default abstract class BaseMonster extends BaseEntity {
     }
   }
 
-  _dropBackpack(backpackParameters: Record<string, unknown>): void {
+  _dropBackpack(backpackParameters: Record<string, unknown>): void { // FIXME: make protected again?
     const backpack = this.engine.SpawnEntity<BackpackEntity>(BackpackEntity.classname, {
       origin: this.origin.copy(),
       regeneration_time: 0,

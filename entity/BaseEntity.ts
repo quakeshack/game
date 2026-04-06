@@ -239,6 +239,13 @@ export default abstract class BaseEntity {
   }
 
   /**
+   * Reset static state-machine storage before registering a new state graph.
+   */
+  protected static _resetStates(): void {
+    this._states = {};
+  }
+
+  /**
    * Define a state machine entry.
    */
   protected static _defineState<T extends BaseEntity>(
