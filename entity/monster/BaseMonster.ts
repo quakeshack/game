@@ -217,7 +217,7 @@ export default abstract class BaseMonster extends BaseEntity {
   _postSpawn(): void {
     this.engine.eventBus.publish('game.monster.spawned', this);
     this._ai.spawn();
-    this._scheduleThink(this.nextthink + Math.random() * 0.5, () => this._ai.think());
+    this._scheduleThink(this.nextthink + Math.random() * 0.5, () => { this._ai.think(); });
   }
 
   spawn(): void {
@@ -314,11 +314,11 @@ export default abstract class BaseMonster extends BaseEntity {
       regeneration_time: 0,
       remove_after: 120,
       ...backpackParameters,
-    })?.entity!;
+    })?.entity;
 
     console.assert(backpack instanceof BackpackEntity);
 
-    backpack.toss();
+    backpack!.toss();
   }
 
   /**
@@ -423,7 +423,7 @@ export class MeatSprayEntity extends BaseEntity {
     this.setSize(Vector.origin, Vector.origin);
     this.setOrigin(this.origin);
 
-    this._scheduleThink(this.ltime + 1.0, () => this.remove());
+    this._scheduleThink(this.ltime + 1.0, () => { this.remove(); });
   }
 
   /**
@@ -450,7 +450,7 @@ export class MeatSprayEntity extends BaseEntity {
       owner: entity,
       velocity,
       origin,
-    })?.entity!;
+    })?.entity;
 
     console.assert(meatSpray instanceof MeatSprayEntity);
   }

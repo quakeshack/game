@@ -335,6 +335,7 @@ export class Serializer<T extends object> {
         let code = value[1];
 
         if (code.startsWith('function ')) {
+          // eslint-disable-next-line @typescript-eslint/no-implied-eval
           return (new Function(`return ${code}`))();
         }
 
@@ -344,6 +345,7 @@ export class Serializer<T extends object> {
           code = `function ${code}`;
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-implied-eval
         return (new Function(`return ${code}`))();
       }
 

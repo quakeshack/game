@@ -3,7 +3,7 @@ import Vector from '../../../shared/Vector.ts';
 
 import { attn, channel, clientEvent, colors, content, damage, dead, deathType, effect, flags, hull, items, moveType, solid, waterlevel } from '../Defs.mjs';
 import { featureFlags } from '../GameAPI.mjs';
-import { crandom, Flag, Serializer } from '../helper/MiscHelpers.mjs';
+import { crandom, Serializer } from '../helper/MiscHelpers.mjs';
 import BaseEntity from './BaseEntity.mjs';
 import { BackpackEntity } from './Items.mjs';
 import { BubbleSpawnerEntity, InfoNotNullEntity, IntermissionCameraEntity, TeleportEffectEntity } from './Misc.mjs';

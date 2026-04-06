@@ -492,8 +492,8 @@ export default abstract class BaseEntity {
   /**
    * Set the entity model and relink through the engine.
    */
-  setModel(modelname: string): void {
-    if (modelname.length === 0) {
+  setModel(modelname: string | null): void {
+    if (modelname === null || modelname.length === 0) {
       this.modelindex = 0;
       this.model = null;
       return;
