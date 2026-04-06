@@ -4,8 +4,8 @@ import { attn, channel, effect, solid, tentType } from '../../Defs.ts';
 import { QuakeEntityAI } from '../../helper/AI.ts';
 import { entity } from '../../helper/MiscHelpers.ts';
 import type BaseEntity from '../BaseEntity.ts';
-import { LightGlobeDynamicEntity } from '../Misc.mjs';
-import { DamageInflictor } from '../Weapons.mjs';
+import { LightGlobeDynamicEntity } from '../Misc.ts';
+import { DamageInflictor } from '../Weapons.ts';
 import { MeatSprayEntity, WalkMonster } from './BaseMonster.ts';
 
 @entity

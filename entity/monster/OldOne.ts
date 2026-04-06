@@ -4,10 +4,13 @@ import { channel, damage, moveType, solid, tentType } from '../../Defs.ts';
 import { EntityAI, NoopMonsterAI } from '../../helper/AI.ts';
 import { entity } from '../../helper/MiscHelpers.ts';
 import BaseEntity from '../BaseEntity.ts';
-import { IntermissionCameraEntity, MiscNullEntity } from '../Misc.mjs';
+import { IntermissionCameraEntity, MiscNullEntity } from '../Misc.ts';
 import { GibEntity, PlayerEntity } from '../Player.mjs';
 import BaseMonster from './BaseMonster.ts';
 
+/**
+ * QUAKED monster_oldone (1 0 0) (-16 -16 -24) (16 16 32)
+ */
 @entity
 export class OldOneMonster extends BaseMonster {
   static classname = 'monster_oldone';
@@ -106,6 +109,7 @@ $frame shake15 shake16 shake17 shake18 shake19 shake20
     this.game.intermission_exittime = this.game.time + 10000000;
     this.game.intermission_running = 1;
 
+    // Find the intermission spot.
     const camera = this.findFirstEntityByFieldAndValue('classname', 'info_intermission');
     console.assert(camera instanceof IntermissionCameraEntity, 'no info_intermission');
     const position = camera instanceof IntermissionCameraEntity ? camera : null;
@@ -133,6 +137,7 @@ $frame shake15 shake16 shake17 shake18 shake19 shake20
       player = this.findNextEntityByFieldAndValue('classname', 'player', player);
     }
 
+    // Wait for one second before the next finale step.
     this._scheduleThink(this.game.time + 1, () => {
       this._finale2();
     });
@@ -142,6 +147,7 @@ $frame shake15 shake16 shake17 shake18 shake19 shake20
     const origin = this.origin.copy();
     origin[1] -= 100;
 
+    // Start a teleport splash inside Shub.
     this.engine.DispatchTempEntityEvent(tentType.TE_TELEPORT, origin);
     this.startSound(channel.CHAN_VOICE, 'misc/r_tele1.wav');
 
@@ -151,6 +157,7 @@ $frame shake15 shake16 shake17 shake18 shake19 shake20
   }
 
   _finale3(): void {
+    // Start Shub thrashing wildly.
     this.startSound(channel.CHAN_VOICE, 'boss2/death.wav');
     this.engine.Lightstyle(0, 'abcdefghijklmlkjihgfedcb');
     this.cnt = 0;
@@ -162,6 +169,7 @@ $frame shake15 shake16 shake17 shake18 shake19 shake20
 
     const oldOrigin = this.origin.copy();
 
+    // Throw tons of meat chunks.
     for (let z = 16; z <= 144; z += 96) {
       for (let x = -64; x <= 64; x += 32) {
         for (let y = -64; y <= 64; y += 32) {
@@ -204,6 +212,7 @@ $frame shake15 shake16 shake17 shake18 shake19 shake20
       player = this.findNextEntityByFieldAndValue('classname', 'player', player);
     }
 
+    // Put a player model down as a finale stand-in.
     const standInOrigin = oldOrigin.copy().subtract(new Vector(32, 264, 0));
     const standInEntity = this.engine.SpawnEntity<MiscNullEntity>(MiscNullEntity.classname, {
       origin: standInOrigin,
@@ -215,6 +224,7 @@ $frame shake15 shake16 shake17 shake18 shake19 shake20
       standInEntity.frame = 1;
     }
 
+  // Switch CD track.
     this.engine.PlayTrack(3);
     this.engine.Lightstyle(0, 'm');
     this.remove();
@@ -232,6 +242,7 @@ $frame shake15 shake16 shake17 shake18 shake19 shake20
     this.setModel('progs/oldone.mdl');
     this.setSize(new Vector(-160, -128, -24), new Vector(160, 128, 256));
 
+    // The finale kills Shub via telefrag rather than normal combat damage.
     this.health = 40000;
     this.takedamage = damage.DAMAGE_YES;
     this._runState('old_idle1');

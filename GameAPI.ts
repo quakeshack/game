@@ -10,19 +10,19 @@ import type {
 } from '../../shared/GameInterfaces.ts';
 
 import { GibEntity, InfoPlayerStart, InfoPlayerStart2, InfoPlayerStartCoop, InfoPlayerStartDeathmatch, PlayerEntity, TelefragTriggerEntity } from './entity/Player.mjs';
-import { BodyqueEntity, WorldspawnEntity } from './entity/Worldspawn.mjs';
+import { BodyqueEntity, WorldspawnEntity } from './entity/Worldspawn.ts';
 import { spawnflags } from './Defs.ts';
-import * as misc from './entity/Misc.mjs';
-import * as door from './entity/props/Doors.mjs';
-import * as platform from './entity/props/Platforms.mjs';
-import * as trigger from './entity/Triggers.mjs';
+import * as misc from './entity/Misc.ts';
+import * as door from './entity/props/Doors.ts';
+import * as platform from './entity/props/Platforms.ts';
+import * as trigger from './entity/Triggers.ts';
+import { ButtonEntity } from './entity/props/Buttons.ts';
 import { ArmySoldierMonster, ArmyEnforcerMonster } from './entity/monster/Soldier.ts';
 import { GameAI } from './helper/AI.ts';
-import * as sub from './entity/Subs.mjs';
-import { ButtonEntity } from './entity/props/Buttons.mjs';
+import * as sub from './entity/Subs.ts';
 import * as item from './entity/Items.mjs';
 import BaseEntity from './entity/BaseEntity.mjs';
-import * as weapon from './entity/Weapons.mjs';
+import * as weapon from './entity/Weapons.ts';
 import DogMonsterEntity from './entity/monster/Dog.ts';
 import { Serializer } from './helper/MiscHelpers.mjs';
 import DemonMonster from './entity/monster/Demon.ts';
@@ -40,7 +40,7 @@ import OldOneMonster from './entity/monster/OldOne.ts';
 import GameStats from './helper/GameStats.ts';
 import EntityRegistry from './helper/Registry.ts';
 import type { EntityClass } from './entity/BaseEntity.ts';
-import * as miscProps from './entity/props/Misc.mjs';
+import * as miscProps from './entity/props/Misc.ts';
 
 type FeatureFlag = 'correct-ballistic-grenades' | 'draw-bullet-hole-decals' | 'improved-gib-physics';
 
@@ -591,10 +591,13 @@ export class ServerGameAPI {
       entity = new entityClass(edict, this);
     }
 
-    entity.assignInitialData(initialData);
-
     const runtimeEdict = edict as unknown as MutableServerEdict;
     runtimeEdict.entity = entity;
+
+    entity.initializeEntity();
+
+    entity.assignInitialData(initialData);
+    entity.precacheEntity();
 
     return true;
   }

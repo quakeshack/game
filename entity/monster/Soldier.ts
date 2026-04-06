@@ -4,7 +4,7 @@ import { attn, channel, effect, solid } from '../../Defs.ts';
 import { QuakeEntityAI } from '../../helper/AI.ts';
 import { entity } from '../../helper/MiscHelpers.ts';
 import type BaseEntity from '../BaseEntity.ts';
-import { DamageInflictor, Laser } from '../Weapons.mjs';
+import { DamageInflictor, Laser } from '../Weapons.ts';
 import { WalkMonster } from './BaseMonster.ts';
 
 /**

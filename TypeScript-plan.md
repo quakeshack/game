@@ -39,6 +39,7 @@ For each gameplay file or monster port, follow this order:
 	- Use local assertions, direct types, and clearer state/sequence data when that produces simpler code.
 	- For monsters, prefer the sequence-driven style used in Dog.ts, Soldier.ts, Ogre.ts, and Demon.ts over long manual `_defineState(...)` chains when practical.
 	- Replace legacy serializer reflection (`startFields`, `endFields`) with annotations when possible.
+  - Always port comments! Especially JSDoc comments and comments explaining some oddity or a deliberate design decision!
 
 6. Keep compatibility wiring intact while the migration is in progress.
 	- Keep `.mjs` compatibility shims that re-export the `.ts` implementation.

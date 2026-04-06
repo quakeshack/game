@@ -4,9 +4,9 @@ import { channel, damage, effect, moveType, solid, tentType } from '../../Defs.t
 import { EntityAI, NoopMonsterAI } from '../../helper/AI.ts';
 import { entity, serializable } from '../../helper/MiscHelpers.ts';
 import BaseEntity from '../BaseEntity.ts';
-import { FireballEntity } from '../Misc.mjs';
+import { FireballEntity } from '../Misc.ts';
 import { state } from '../props/BasePropEntity.mjs';
-import { Missile } from '../Weapons.mjs';
+import { Missile } from '../Weapons.ts';
 import BaseMonster from './BaseMonster.ts';
 
 interface Combatant extends BaseEntity {
@@ -49,6 +49,9 @@ export class BossLavaball extends Missile {
   }
 }
 
+/**
+ * QUAKED monster_boss (1 0 0) (-128 -128 -24) (128 128 256)
+ */
 @entity
 export class BossMonster extends BaseMonster {
   static classname = 'monster_boss';
@@ -109,6 +112,7 @@ $frame shockc9 shockc10
     const enemy = this.enemy as Combatant | null;
     const enemyHealth = enemy?.health ?? 0;
 
+    // Go for another player if multiplayer left the current enemy invalid.
     if (enemyHealth <= 0 || Math.random() < 0.02) {
       let nextEnemy = this.findNextEntityByFieldAndValue('classname', 'player', this.enemy);
       if (nextEnemy === null) {
@@ -162,6 +166,7 @@ $frame shockc9 shockc10
 
     let targetPosition = enemy.origin.copy();
     if (this.game.skill > 1) {
+      // Lead the player on hard and nightmare skill.
       const time = enemy.origin.distanceTo(origin) / 300;
       const velocity = enemy.velocity.copy();
       velocity[2] = 0;
@@ -179,6 +184,7 @@ $frame shockc9 shockc10
 
     this.startSound(channel.CHAN_WEAPON, 'boss1/throw.wav');
 
+    // Check for dead enemy and fall back to the idle loop.
     if (enemy.health <= 0) {
       this._runState('boss_idle1');
     }
@@ -288,12 +294,18 @@ $frame shockc9 shockc10
       false);
     this._defineState('boss_death10', 'death9', 'boss_death10', function (this: BossMonster): void {
       this.engine.eventBus.publish('game.monster.killed', this, this.enemy);
-      this._sub?.useTargets(this.enemy);
+      if (this.enemy !== null) {
+        this._sub?.useTargets(this.enemy);
+      }
       this.remove();
     });
   }
 }
 
+/**
+ * QUAKED event_lightning (0 1 1) (-16 -16 -16) (16 16 16)
+ * Just for boss level.
+ */
 @entity
 export class EventLightningEntity extends BaseEntity {
   static classname = 'event_lightning';
@@ -327,6 +339,7 @@ export class EventLightningEntity extends BaseEntity {
     const point2 = electrode2.mins.copy().add(electrode2.maxs).multiply(0.5);
     point2[2] = electrode2.absmin[2] - 16;
 
+    // Compensate for the bolt length so the beam terminates at the electrode.
     const direction = point2.copy().subtract(point1);
     direction.normalize();
     direction.multiply(100);
@@ -364,6 +377,7 @@ export class EventLightningEntity extends BaseEntity {
       return;
     }
 
+    // Do not let the electrodes go back up until the bolt is done.
     electrode1.nextthink = -1;
     electrode2.nextthink = -1;
     this.lightning_end = this.game.time + 1;
@@ -371,6 +385,7 @@ export class EventLightningEntity extends BaseEntity {
     this.startSound(channel.CHAN_VOICE, 'misc/power.wav');
     this._lightningFire();
 
+    // Advance the boss pain state if the electrodes are down.
     const boss = this.findFirstEntityByFieldAndValue('classname', BossMonster.classname);
     if (boss instanceof BossMonster && state1 === state.STATE_TOP && boss.health > 0) {
       boss.takeLightningDamage(activatorEntity);

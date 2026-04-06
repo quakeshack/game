@@ -3,8 +3,8 @@
 import type { ParsedQC, SerializedData, ServerEdict, ServerEngineAPI } from '../../../shared/GameInterfaces.ts';
 import type { ServerEdict as RuntimeServerEdict } from '../../../engine/server/Edict.ts';
 import type { ServerGameAPI } from '../GameAPI.ts';
-import type { Sub } from './Subs.mjs';
-import type { DamageHandler } from './Weapons.mjs';
+import type { Sub } from './Subs.ts';
+import type { DamageHandler } from './Weapons.ts';
 
 import { BaseClientEdictHandler } from '../../../shared/ClientEdict.ts';
 import Q from '../../../shared/Q.ts';
@@ -81,6 +81,7 @@ export default abstract class BaseEntity {
   protected static _modelQC: string | null = null;
 
   // infrastructure
+  #isInitialized = false;
   public engine: ServerEngineAPI;
   public game: ServerGameAPI;
   protected _edictRef: WeakRef<ServerEdict> | null;
@@ -191,9 +192,31 @@ export default abstract class BaseEntity {
     this.engine = gameAPI.engine;
     this.game = gameAPI;
     this._serializer = new Serializer(this, this.engine);
+  }
+
+  /**
+   * Complete entity setup after construction.
+   * This is separate from the constructor so subclass field initialization and
+   * constructor bodies have finished before virtual hooks run.
+   */
+  initializeEntity(): this {
+    if (this.#isInitialized) {
+      return this;
+    }
 
     this._declareFields();
+    this.#isInitialized = true;
+
+    return this;
+  }
+
+  /**
+   * Precache instance resources after declaration-time defaults and assigned spawn data exist.
+   */
+  precacheEntity(): this {
+    this.initializeEntity();
     this._precache();
+    return this;
   }
 
   /**
@@ -432,6 +455,8 @@ export default abstract class BaseEntity {
    * Assign initial entity data from map parsing or dynamic spawn calls.
    */
   assignInitialData(initialData: Record<string, unknown>): void {
+    this.initializeEntity();
+
     const entityRecord = this as Record<string, unknown>;
 
     for (const [key, value] of Object.entries(initialData)) {
@@ -475,9 +500,6 @@ export default abstract class BaseEntity {
       }
     }
 
-    if (this.engine.IsLoading()) {
-      this._precache();
-    }
   }
 
   /**

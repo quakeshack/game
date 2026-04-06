@@ -4,7 +4,7 @@ import { channel, damage, flags, moveType, tentType } from '../../Defs.ts';
 import { QuakeEntityAI } from '../../helper/AI.ts';
 import { entity, serializable } from '../../helper/MiscHelpers.ts';
 import type BaseEntity from '../BaseEntity.ts';
-import { DamageInflictor } from '../Weapons.mjs';
+import { DamageInflictor } from '../Weapons.ts';
 import { WalkMonster } from './BaseMonster.ts';
 
 type TarbabyTouchState = 'normal' | 'jumping';

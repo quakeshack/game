@@ -38,8 +38,12 @@ export function entity<T extends abstract new (...args: never[]) => object>(
   target: T,
   _context: ClassDecoratorContext,
 ): T {
+  const ownSerializableFields = Object.hasOwn(target, 'serializableFields')
+    ? ((Object.getOwnPropertyDescriptor(target, 'serializableFields')?.value as readonly string[] | undefined) ?? [])
+    : [];
+
   Object.defineProperty(target, 'serializableFields', {
-    value: Object.freeze([...pendingSerializableFields]),
+    value: Object.freeze([...ownSerializableFields, ...pendingSerializableFields]),
     writable: false,
     enumerable: true,
     configurable: false,

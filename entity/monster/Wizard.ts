@@ -4,7 +4,7 @@ import { attn, channel, effect, flags, range, solid, tentType } from '../../Defs
 import { ATTACK_STATE, QuakeEntityAI } from '../../helper/AI.ts';
 import { entity, serializable } from '../../helper/MiscHelpers.ts';
 import type BaseEntity from '../BaseEntity.ts';
-import { BaseSpike } from '../Weapons.mjs';
+import { BaseSpike } from '../Weapons.ts';
 import { FlyMonster } from './BaseMonster.ts';
 import { PlayerEntity } from '../Player.mjs';
 
@@ -15,6 +15,9 @@ export class WizardMissile extends BaseSpike {
   static _model = 'progs/w_spike.mdl';
 }
 
+/**
+ * QUAKED monster_wizard (1 0 0) (-16 -16 -24) (16 16 40) Ambush
+ */
 @entity
 export default class WizardMonsterEntity extends FlyMonster {
   static classname = 'monster_wizard';
@@ -154,6 +157,7 @@ $frame death1 death2 death3 death4 death5 death6 death7 death8
 
     this.effects |= effect.EF_MUZZLEFLASH;
 
+    // The fast attack fires from cached spawn points rather than re-leading the shot.
     const movedir = target.origin.copy().add(target.view_ofs).subtract(origin);
     movedir.normalize();
     this.movedir.set(movedir);
@@ -171,6 +175,7 @@ $frame death1 death2 death3 death4 death5 death6 death7 death8
     this.v_angle.set(this.angles);
     const { forward, right } = this.angles.angleVectors();
 
+    // Preserve the two delayed fast-attack helper shots from QuakeC.
     const baseOrigin = this.origin.copy().add(new Vector(0.0, 0.0, 30.0));
     const origin1 = baseOrigin.copy().add(forward.copy().multiply(14)).add(right.copy().multiply(14));
     this._scheduleThink(this.game.time + 0.8, () => { this._fastFireAt(origin1); });
@@ -199,6 +204,7 @@ $frame death1 death2 death3 death4 death5 death6 death7 death8
     this.startSound(channel.CHAN_VOICE, 'wizard/wpain.wav');
     this._ai.foundTarget(attackerEntity, true);
     if (Math.random() * 70 > damageAmount) {
+      // Did not flinch.
       return;
     }
 

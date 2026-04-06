@@ -6,10 +6,10 @@ import { EntityAI, ATTACK_STATE } from '../../helper/AI.ts';
 import { entity, serializable } from '../../helper/MiscHelpers.ts';
 import BaseEntity from '../BaseEntity.ts';
 import { BackpackEntity } from '../Items.mjs';
-import type { PathCornerEntity } from '../Misc.mjs';
+import type { PathCornerEntity } from '../Misc.ts';
 import { GibEntity } from '../Player.mjs';
-import { Sub } from '../Subs.mjs';
-import { DamageHandler } from '../Weapons.mjs';
+import { Sub } from '../Subs.ts';
+import { DamageHandler } from '../Weapons.ts';
 
 import type { ServerEdict, ServerEngineAPI } from '../../../../shared/GameInterfaces.ts';
 

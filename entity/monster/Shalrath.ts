@@ -4,7 +4,7 @@ import { channel, effect, moveType, solid } from '../../Defs.ts';
 import { QuakeEntityAI } from '../../helper/AI.ts';
 import { entity } from '../../helper/MiscHelpers.ts';
 import type BaseEntity from '../BaseEntity.ts';
-import { BaseProjectile } from '../Weapons.mjs';
+import { BaseProjectile } from '../Weapons.ts';
 import { WalkMonster } from './BaseMonster.ts';
 
 export class ShalrathMissileEntity extends BaseProjectile {
@@ -15,6 +15,7 @@ export class ShalrathMissileEntity extends BaseProjectile {
       return;
     }
 
+    // Zombies get special treatment because they are more resistant to damage.
     if (touchedByEntity.classname === 'monster_zombie') {
       this.damage(touchedByEntity, 110, this.owner, this.origin);
     }
@@ -70,6 +71,9 @@ export class ShalrathMissileEntity extends BaseProjectile {
   }
 }
 
+/**
+ * QUAKED monster_shalrath (1 0 0) (-32 -32 -24) (32 32 48) Ambush
+ */
 @entity
 export default class ShalrathMonsterEntity extends WalkMonster {
   static classname = 'monster_shalrath';
@@ -105,10 +109,12 @@ $frame walk11 walk12
   }
 
   static override _initStates(): void {
+    // Stand.
     this._defineState('shal_stand', 'walk1', 'shal_stand', function (this: ShalrathMonsterEntity): void {
       this._ai.stand();
     });
 
+    // Walk.
     const walkSpeeds = [6, 4, 0, 0, 0, 0, 5, 6, 5, 0, 4, 5];
     const walkFrames = ['walk2', 'walk3', 'walk4', 'walk5', 'walk6', 'walk7', 'walk8', 'walk9', 'walk10', 'walk11', 'walk12', 'walk1'];
     this._defineSequence('shal_walk', walkFrames,
@@ -120,6 +126,7 @@ $frame walk11 walk12
         this._ai.walk(walkSpeeds[frameIndex]);
       });
 
+    // Run.
     this._defineSequence('shal_run', walkFrames,
       function (this: ShalrathMonsterEntity, frameIndex: number): void {
         if (frameIndex === 0) {
@@ -129,6 +136,7 @@ $frame walk11 walk12
         this._ai.run(walkSpeeds[frameIndex]);
       });
 
+    // Attack.
     this._defineSequence('shal_attack', this._createFrameNames('attack', 11),
       function (this: ShalrathMonsterEntity, frameIndex: number): void {
         if (frameIndex === 0) {
@@ -149,9 +157,11 @@ $frame walk11 walk12
       false);
     this._defineState('shal_attack11', 'attack11', 'shal_run1');
 
+    // Pain.
     this._defineSequence('shal_pain', this._createFrameNames('pain', 5), null, false);
     this._defineState('shal_pain5', 'pain5', 'shal_run1');
 
+    // Death.
     this._defineSequence('shal_death', this._createFrameNames('death', 7), null, false);
   }
 
