@@ -24,7 +24,7 @@ import * as item from './entity/Items.ts';
 import BaseEntity from './entity/BaseEntity.ts';
 import * as weapon from './entity/Weapons.ts';
 import DogMonsterEntity from './entity/monster/Dog.ts';
-import { Serializer } from './helper/MiscHelpers.ts';
+import { entity, serializable, Serializer, type SerializableRecord } from './helper/MiscHelpers.ts';
 import DemonMonster from './entity/monster/Demon.ts';
 import { MeatSprayEntity } from './entity/monster/BaseMonster.ts';
 import ZombieMonster, { ZombieGibGrenade } from './entity/monster/Zombie.ts';
@@ -71,7 +71,7 @@ export const featureFlags: FeatureFlag[] = [
   // 'draw-bullet-hole-decals', // enables handling decal events upon bullet impacts
 ];
 
-export const entityClasses: EntityClass[] = [
+export const entityClasses: readonly EntityClass[] = [
   WorldspawnEntity,
   BodyqueEntity,
   PlayerEntity,
@@ -197,6 +197,7 @@ export const entityClasses: EntityClass[] = [
   miscProps.FogEntity,
 ];
 
+@entity
 export class ServerGameAPI {
   static _entityRegistry: EntityRegistry = new EntityRegistry(entityClasses);
 
@@ -216,45 +217,46 @@ export class ServerGameAPI {
 
   _serializer: Serializer<ServerGameAPI>;
   engine: ServerEngineAPI;
-  mapname: string | null;
-  force_retouch: number;
-  stats: GameStats;
-  parm1: number;
-  parm2: number;
-  parm3: number;
-  parm4: number;
-  parm5: number;
-  parm6: number;
-  parm7: number;
-  parm8: number;
-  parm9: number;
-  parm10: number;
-  parm11: number;
-  parm12: number;
-  parm13: number;
-  parm14: number;
-  parm15: number;
-  parm16: number;
-  serverflags: number;
-  time: number;
-  framecount: number;
-  frametime: number;
+
+  @serializable mapname: string | null;
+  @serializable force_retouch: number;
+  @serializable stats: GameStats;
+  @serializable parm1: number;
+  @serializable parm2: number;
+  @serializable parm3: number;
+  @serializable parm4: number;
+  @serializable parm5: number;
+  @serializable parm6: number;
+  @serializable parm7: number;
+  @serializable parm8: number;
+  @serializable parm9: number;
+  @serializable parm10: number;
+  @serializable parm11: number;
+  @serializable parm12: number;
+  @serializable parm13: number;
+  @serializable parm14: number;
+  @serializable parm15: number;
+  @serializable parm16: number;
+  @serializable serverflags: number;
+  @serializable time: number;
+  @serializable framecount: number;
+  @serializable frametime: number;
 
   /** QuakeC: world. */
-  worldspawn: WorldspawnEntity | null;
+  @serializable worldspawn: WorldspawnEntity | null;
 
   /** The last selected spawn point, used for cycling spawn spots. */
-  lastspawn: BaseEntity | null;
-  gameover: boolean;
+  @serializable lastspawn: BaseEntity | null;
+  @serializable gameover: boolean;
 
   /** Intermission state, 0 means disabled. */
-  intermission_running: number;
+  @serializable intermission_running: number;
 
   /** Time when the intermission can be exited. */
-  intermission_exittime: number;
+  @serializable intermission_exittime: number;
 
   /** Next map name selected for changelevel. */
-  nextmap: string | null;
+  @serializable nextmap: string | null;
   gameAI: GameAI;
 
   /** Holds the dead player body chain. */
@@ -272,10 +274,7 @@ export class ServerGameAPI {
    * Invoked by spawning a server or a changelevel. It will initialize the global game state.
    */
   constructor(engineAPI: ServerEngineAPI) {
-    this._serializer = new Serializer(this, engineAPI);
     this.engine = engineAPI;
-
-    this._serializer.startFields();
 
     this.mapname = null;
     this.force_retouch = 0;
@@ -313,7 +312,7 @@ export class ServerGameAPI {
     this.intermission_exittime = 0.0;
     this.nextmap = null;
 
-    this._serializer.endFields();
+    this._serializer = new Serializer(this, engineAPI);
 
     this.gameAI = this._newGameAI();
     this.bodyque_head = null;
@@ -773,10 +772,10 @@ export class ServerGameAPI {
   }
 
   serialize(): SerializedData {
-    return this._serializer.serialize() as unknown as SerializedData;
+    return this._serializer.serialize() as SerializedData;
   }
 
   deserialize(data: SerializedData): void {
-    this._serializer.deserialize(data as unknown as Record<string, ['X']>);
+    this._serializer.deserialize(data as SerializableRecord);
   }
 }
