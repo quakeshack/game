@@ -5,7 +5,7 @@ import { EntityAI, NoopMonsterAI } from '../../helper/AI.ts';
 import { entity, serializable } from '../../helper/MiscHelpers.ts';
 import BaseEntity from '../BaseEntity.ts';
 import { FireballEntity } from '../Misc.ts';
-import { state } from '../props/BasePropEntity.mjs';
+import { state } from '../props/BasePropEntity.ts';
 import { Missile } from '../Weapons.ts';
 import BaseMonster from './BaseMonster.ts';
 

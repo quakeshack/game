@@ -5,7 +5,7 @@ import Vector from '../../../shared/Vector.ts';
 import { channel, clientEvent, flags, items, moveType, solid, tentType, worldType } from '../Defs.ts';
 import { entity, serializable } from '../helper/MiscHelpers.ts';
 import BaseEntity from './BaseEntity.ts';
-import { PlayerEntity as RuntimePlayerEntity } from './Player.mjs';
+import { PlayerEntity as RuntimePlayerEntity } from './Player.ts';
 import type { PlayerEntity } from './Player.ts';
 import { Sub } from './Subs.ts';
 

@@ -10,7 +10,7 @@ import BaseEntity from './BaseEntity.ts';
 import { BackpackEntity } from './Items.ts';
 import { BubbleSpawnerEntity, InfoNotNullEntity, IntermissionCameraEntity, TeleportEffectEntity } from './Misc.ts';
 import BaseMonster, { MeatSprayEntity } from './monster/BaseMonster.ts';
-import { Backpack, DamageHandler, PlayerWeapons, weaponConfig, type WeaponConfigKey } from './Weapons.ts';
+import { DamageHandler, PlayerWeapons, weaponConfig, type BackpackPickup, type WeaponConfigKey } from './Weapons.ts';
 import { CopyToBodyQue } from './Worldspawn.ts';
 
 type ButtonState = boolean | number;
@@ -52,6 +52,14 @@ function getEntityDisplayName(entity: BaseEntity): string {
   }
 
   return entity.classname;
+}
+
+/**
+ * Check whether a numeric item bit maps to a weapon configuration entry.
+ * @returns True when the item is a weapon config key.
+ */
+function isWeaponConfigKey(value: number): value is WeaponConfigKey {
+  return weaponConfig.has(value as WeaponConfigKey);
 }
 
 /**
@@ -969,7 +977,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     this.setWeapon(this.chooseBestWeapon());
   }
 
-  applyBackpack(backpack: Backpack): boolean {
+  applyBackpack(backpack: BackpackPickup): boolean {
     let backpackUsed = false;
     const thisClass = this.constructor as typeof PlayerEntity;
 
@@ -1004,7 +1012,8 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     }
 
     // QuakeC weapon_touch / BackpackTouch weapon switching logic.
-    const newWeapon = (backpack.weapon || this.weapon) as WeaponConfigKey | 0;
+    const pickupWeapon = isWeaponConfigKey(backpack.weapon) ? backpack.weapon : 0;
+    const newWeapon = pickupWeapon || this.weapon;
     if (newWeapon !== 0 && backpackUsed) {
       if (!this.game.deathmatch) {
         // Singleplayer and coop always switch to the picked weapon.

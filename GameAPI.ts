@@ -21,10 +21,10 @@ import { ArmySoldierMonster, ArmyEnforcerMonster } from './entity/monster/Soldie
 import { GameAI } from './helper/AI.ts';
 import * as sub from './entity/Subs.ts';
 import * as item from './entity/Items.ts';
-import BaseEntity from './entity/BaseEntity.mjs';
+import BaseEntity from './entity/BaseEntity.ts';
 import * as weapon from './entity/Weapons.ts';
 import DogMonsterEntity from './entity/monster/Dog.ts';
-import { Serializer } from './helper/MiscHelpers.mjs';
+import { Serializer } from './helper/MiscHelpers.ts';
 import DemonMonster from './entity/monster/Demon.ts';
 import { MeatSprayEntity } from './entity/monster/BaseMonster.ts';
 import ZombieMonster, { ZombieGibGrenade } from './entity/monster/Zombie.ts';

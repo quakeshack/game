@@ -232,7 +232,7 @@ abstract class MonsterActor extends BaseEntity {
 }
 
 /**
- * Runtime marker for the player entity without importing Player.mjs at runtime.
+ * Runtime marker for the player entity without importing Player.ts at runtime.
  */
 abstract class PlayerActor extends BaseEntity {
   declare health: number;
@@ -248,7 +248,7 @@ abstract class PlayerActor extends BaseEntity {
 }
 
 /**
- * Runtime marker for path_corner entities without importing Misc.mjs at runtime.
+ * Runtime marker for path_corner entities without importing Misc.ts at runtime.
  */
 abstract class PathCornerMarker extends BaseEntity {
   static [Symbol.hasInstance](value: unknown): boolean {

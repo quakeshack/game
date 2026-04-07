@@ -45,6 +45,15 @@ interface DamageMultiplierSet {
   beam: number;
 }
 
+export interface BackpackPickup {
+  ammo_shells: number;
+  ammo_nails: number;
+  ammo_rockets: number;
+  ammo_cells: number;
+  items: number;
+  weapon: number;
+}
+
 interface DamageReceiverEntity extends BaseEntity {
   health: number;
   thinkDie(attackerEntity: BaseEntity): void;

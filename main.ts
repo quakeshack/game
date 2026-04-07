@@ -2,7 +2,7 @@ import type { GameModuleIdentification } from '../../engine/server/GameLoader.ts
 
 import { gameCapabilities } from '../../shared/Defs.ts';
 import { ServerGameAPI } from './GameAPI.ts';
-import { ClientGameAPI } from './client/ClientAPI.mjs';
+import { ClientGameAPI } from './client/ClientAPI.ts';
 
 export const identification = {
   name: 'Quake',

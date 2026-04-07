@@ -1,2 +1,0 @@
-export * from './Weapons.ts';
-

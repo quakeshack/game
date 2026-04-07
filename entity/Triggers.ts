@@ -5,7 +5,7 @@ import { entity, serializable } from '../helper/MiscHelpers.ts';
 import BaseEntity from './BaseEntity.ts';
 import { TeleportEffectEntity } from './Misc.ts';
 import { PlayerEntity, TelefragTriggerEntity } from './Player.ts';
-import { TeleportTrainEntity } from './props/Platforms.mjs';
+import { TeleportTrainEntity } from './props/Platforms.ts';
 import { Sub } from './Subs.ts';
 import { DamageHandler } from './Weapons.ts';
 

@@ -2,7 +2,7 @@ import Vector from '../../../../shared/Vector.ts';
 
 import { attn, channel, effect, solid } from '../../Defs.ts';
 import { QuakeEntityAI } from '../../helper/AI.ts';
-import { entity } from '../../helper/MiscHelpers.ts';
+import { entity, serializable } from '../../helper/MiscHelpers.ts';
 import type BaseEntity from '../BaseEntity.ts';
 import { DamageInflictor, Laser } from '../Weapons.ts';
 import { WalkMonster } from './BaseMonster.ts';
@@ -51,6 +51,9 @@ $frame prowl_1 prowl_2 prowl_3 prowl_4 prowl_5 prowl_6 prowl_7 prowl_8
 $frame prowl_9 prowl_10 prowl_11 prowl_12 prowl_13 prowl_14 prowl_15 prowl_16
 $frame prowl_17 prowl_18 prowl_19 prowl_20 prowl_21 prowl_22 prowl_23 prowl_24
 `;
+
+  /** Preserved legacy save field from the original JS monster implementation. */
+  @serializable protected _aiState: string | null = null;
 
   private readonly _damageInflictor = new DamageInflictor(this);
 
