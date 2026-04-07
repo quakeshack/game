@@ -6,7 +6,7 @@ import { entity, serializable } from '../../helper/MiscHelpers.ts';
 import type BaseEntity from '../BaseEntity.ts';
 import { BaseSpike } from '../Weapons.ts';
 import { FlyMonster } from './BaseMonster.ts';
-import { PlayerEntity } from '../Player.mjs';
+import { PlayerEntity } from '../Player.ts';
 
 export class WizardMissile extends BaseSpike {
   static classname = 'monster_wizard_missile';

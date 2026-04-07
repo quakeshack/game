@@ -4,7 +4,7 @@ import { attn, channel, damage, flags, moveType, solid } from '../Defs.ts';
 import { entity, serializable } from '../helper/MiscHelpers.ts';
 import BaseEntity from './BaseEntity.ts';
 import { TeleportEffectEntity } from './Misc.ts';
-import { PlayerEntity, TelefragTriggerEntity } from './Player.mjs';
+import { PlayerEntity, TelefragTriggerEntity } from './Player.ts';
 import { TeleportTrainEntity } from './props/Platforms.mjs';
 import { Sub } from './Subs.ts';
 import { DamageHandler } from './Weapons.ts';

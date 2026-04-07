@@ -6,8 +6,8 @@ import Vector from '../../../../shared/Vector.ts';
 
 import { attn, channel, colors, damage, items, moveType, solid, worldType } from '../../Defs.ts';
 import { entity, serializable } from '../../helper/MiscHelpers.ts';
-import { itemNames } from '../Items.mjs';
-import { PlayerEntity } from '../Player.mjs';
+import { itemNames } from '../Items.ts';
+import { PlayerEntity } from '../Player.ts';
 import { TriggerFieldEntity } from '../Subs.ts';
 import { DamageHandler } from '../Weapons.ts';
 import BasePropEntity, { state } from './BasePropEntity.ts';

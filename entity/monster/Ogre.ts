@@ -4,7 +4,7 @@ import { attn, channel, solid } from '../../Defs.ts';
 import { QuakeEntityAI } from '../../helper/AI.ts';
 import { entity } from '../../helper/MiscHelpers.ts';
 import type BaseEntity from '../BaseEntity.ts';
-import { GibEntity, PlayerEntity } from '../Player.mjs';
+import { GibEntity, PlayerEntity } from '../Player.ts';
 import { Grenade } from '../Weapons.ts';
 import BaseMonster, { WalkMonster } from './BaseMonster.ts';
 

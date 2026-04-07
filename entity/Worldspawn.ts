@@ -1,7 +1,7 @@
 import { entity, serializable } from '../helper/MiscHelpers.ts';
 import type { ServerGameAPI } from '../GameAPI.ts';
 import BaseEntity from './BaseEntity.ts';
-import type { PlayerEntity } from './Player.mjs';
+import type { PlayerEntity } from './Player.ts';
 
 import { Precache as WeaponsPrecache } from './Weapons.ts';
 

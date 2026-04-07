@@ -6,7 +6,7 @@ import { channel, colors, damage, moveType, solid } from '../../Defs.ts';
 import type { ServerGameAPI } from '../../GameAPI.ts';
 import { entity, serializable } from '../../helper/MiscHelpers.ts';
 import type BaseEntity from '../BaseEntity.ts';
-import { PlayerEntity } from '../Player.mjs';
+import { PlayerEntity } from '../Player.ts';
 import { DamageHandler } from '../Weapons.ts';
 import BasePropEntity, { state } from './BasePropEntity.ts';
 

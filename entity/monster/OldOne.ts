@@ -5,7 +5,7 @@ import { EntityAI, NoopMonsterAI } from '../../helper/AI.ts';
 import { entity } from '../../helper/MiscHelpers.ts';
 import BaseEntity from '../BaseEntity.ts';
 import { IntermissionCameraEntity, MiscNullEntity } from '../Misc.ts';
-import { GibEntity, PlayerEntity } from '../Player.mjs';
+import { GibEntity, PlayerEntity } from '../Player.ts';
 import BaseMonster from './BaseMonster.ts';
 
 /**

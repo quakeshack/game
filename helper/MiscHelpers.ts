@@ -230,6 +230,7 @@ export class EntityWrapper<T extends BaseEntity = BaseEntity> {
  * Serializes and deserializes game state objects.
  * It still supports the legacy startFields/endFields workflow for JS callers,
  * but TS classes can declare static serializableFields instead.
+ * @deprecated Use decoration-based serialization on entities directly instead of separate serializers where possible.
  */
 export class Serializer<T extends object> {
   static readonly TYPE_SKIPPED = 'X';

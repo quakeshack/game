@@ -7,7 +7,7 @@ import { attn, channel, colors, content, damage, effect, moveType, solid, tentTy
 import { crandom, entity, serializable } from '../helper/MiscHelpers.ts';
 import BaseEntity from './BaseEntity.ts';
 import BaseMonster from './monster/BaseMonster.ts';
-import { PlayerEntity } from './Player.mjs';
+import { PlayerEntity } from './Player.ts';
 import { Sub } from './Subs.ts';
 import { DamageHandler, DamageInflictor, Explosions, Laser, Spike, Superspike } from './Weapons.ts';
 

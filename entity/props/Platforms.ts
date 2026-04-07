@@ -5,7 +5,7 @@ import Vector from '../../../../shared/Vector.ts';
 import { channel, moveType, solid } from '../../Defs.ts';
 import { entity, serializable } from '../../helper/MiscHelpers.ts';
 import { PathCornerEntity } from '../Misc.ts';
-import { PlayerEntity } from '../Player.mjs';
+import { PlayerEntity } from '../Player.ts';
 import BaseEntityClass from '../BaseEntity.ts';
 import BasePropEntity, { state } from './BasePropEntity.ts';
 

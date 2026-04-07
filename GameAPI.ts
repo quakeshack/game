@@ -9,7 +9,7 @@ import type {
   StartServerListEntry,
 } from '../../shared/GameInterfaces.ts';
 
-import { GibEntity, InfoPlayerStart, InfoPlayerStart2, InfoPlayerStartCoop, InfoPlayerStartDeathmatch, PlayerEntity, TelefragTriggerEntity } from './entity/Player.mjs';
+import { GibEntity, InfoPlayerStart, InfoPlayerStart2, InfoPlayerStartCoop, InfoPlayerStartDeathmatch, PlayerEntity, TelefragTriggerEntity } from './entity/Player.ts';
 import { BodyqueEntity, WorldspawnEntity } from './entity/Worldspawn.ts';
 import { spawnflags } from './Defs.ts';
 import * as misc from './entity/Misc.ts';
@@ -20,7 +20,7 @@ import { ButtonEntity } from './entity/props/Buttons.ts';
 import { ArmySoldierMonster, ArmyEnforcerMonster } from './entity/monster/Soldier.ts';
 import { GameAI } from './helper/AI.ts';
 import * as sub from './entity/Subs.ts';
-import * as item from './entity/Items.mjs';
+import * as item from './entity/Items.ts';
 import BaseEntity from './entity/BaseEntity.mjs';
 import * as weapon from './entity/Weapons.ts';
 import DogMonsterEntity from './entity/monster/Dog.ts';

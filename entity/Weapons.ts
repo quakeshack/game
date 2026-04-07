@@ -6,7 +6,7 @@ import { featureFlags } from '../GameAPI.ts';
 import { crandom, EntityWrapper, entity, serializable } from '../helper/MiscHelpers.ts';
 import BaseEntity, { type TraceResult } from './BaseEntity.ts';
 import BaseMonster from './monster/BaseMonster.ts';
-import { PlayerEntity } from './Player.mjs';
+import { PlayerEntity } from './Player.ts';
 
 type WeaponAmmoSlot = 'ammo_shells' | 'ammo_nails' | 'ammo_rockets' | 'ammo_cells';
 type WeaponItemKey = 'IT_SHELLS' | 'IT_NAILS' | 'IT_ROCKETS' | 'IT_CELLS';
@@ -109,13 +109,14 @@ export function Precache(engineAPI: ServerEngineAPI): void {
 /**
  * Struct holding items and ammo.
  */
+@entity
 export class Backpack {
-  ammo_shells = 0;
-  ammo_nails = 0;
-  ammo_rockets = 0;
-  ammo_cells = 0;
-  items = 0;
-  weapon = 0;
+  @serializable ammo_shells = 0;
+  @serializable ammo_nails = 0;
+  @serializable ammo_rockets = 0;
+  @serializable ammo_cells = 0;
+  @serializable items = 0;
+  @serializable weapon: WeaponConfigKey | 0 = 0;
 }
 
 /**
@@ -660,6 +661,7 @@ export class BaseProjectile extends BaseEntity {
   }
 }
 
+@entity
 export class Grenade extends BaseProjectile {
   static classname = 'weapon_projectile_grenade';
 
@@ -735,6 +737,7 @@ export class Grenade extends BaseProjectile {
   }
 }
 
+@entity
 export class Missile extends BaseProjectile {
   static classname = 'weapon_projectile_missile';
 
@@ -823,6 +826,7 @@ export class BaseSpike extends BaseProjectile {
   }
 }
 
+@entity
 export class Spike extends BaseSpike {
   static classname = 'weapon_projectile_spike';
   static _damage = 9;
@@ -841,6 +845,7 @@ export class Spike extends BaseSpike {
   }
 }
 
+@entity
 export class Superspike extends BaseSpike {
   static classname = 'weapon_projectile_superspike';
   static _damage = 18;
@@ -848,6 +853,7 @@ export class Superspike extends BaseSpike {
   static _model = 'progs/s_spike.mdl';
 }
 
+@entity
 export class Laser extends BaseSpike {
   static classname = 'weapon_projectile_laser';
   static _damage = 15;
@@ -878,25 +884,18 @@ export class Laser extends BaseSpike {
   }
 }
 
-interface PlayerWeaponState {
-  lightningSoundTime: number;
-}
-
 /**
  * This class outsources all weapon related duties from PlayerEntity in its own separate component.
  * Ammo, however, is still managed over at PlayerEntity due to some clusterfun entaglement with engine code.
  */
 export class PlayerWeapons extends EntityWrapper<PlayerEntity> {
   private readonly _damageInflictor: DamageInflictor<PlayerEntity>;
-  private readonly _state: PlayerWeaponState;
+  private _lightningSoundTime = 0;
 
   constructor(playerEntity: PlayerEntity) {
     super(playerEntity);
 
     this._damageInflictor = new DamageInflictor(playerEntity);
-    this._state = {
-      lightningSoundTime: 0,
-    };
   }
 
   private get _player(): PlayerEntity {
@@ -1094,9 +1093,9 @@ export class PlayerWeapons extends EntityWrapper<PlayerEntity> {
       return;
     }
 
-    if (attackContinuation && this._state.lightningSoundTime < this._game.time) {
+    if (attackContinuation && this._lightningSoundTime < this._game.time) {
       this._startSound('weapons/lhit.wav');
-      this._state.lightningSoundTime = this._game.time + 0.6;
+      this._lightningSoundTime = this._game.time + 0.6;
     }
 
     this._player.punchangle[0] -= 1.0;

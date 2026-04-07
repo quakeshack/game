@@ -3,7 +3,7 @@ import Vector from '../../../shared/Vector.ts';
 import { channel, moveType, solid } from '../Defs.ts';
 import { EntityWrapper, Serializer, entity, serializable } from '../helper/MiscHelpers.ts';
 import BaseEntity from './BaseEntity.ts';
-import { PlayerEntity } from './Player.mjs';
+import { PlayerEntity } from './Player.ts';
 
 type SubMoveCallback = ((this: BaseEntity) => void) | null;
 
