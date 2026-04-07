@@ -1,5 +1,5 @@
 import type { BaseClientEdictHandler } from '../../../shared/ClientEdict.ts';
-import type { ClientdataMap, ClientEngineAPI, ClientEventValue, GLTexture, RefDef } from '../../../shared/GameInterfaces.ts';
+import type { ClientdataMap, ClientEngineAPI, ClientEventValue, GLTexture, RefDef, StartGameInterface } from '../../../shared/GameInterfaces.ts';
 
 import Vector from '../../../shared/Vector.ts';
 
@@ -263,7 +263,7 @@ export class ClientGameAPI {
     this.hud.loadState(parsedData.hud);
   }
 
-  static GetStartGameInterface(_engineAPI: ClientEngineAPI): null {
+  static GetStartGameInterface(_engineAPI: ClientEngineAPI): StartGameInterface | null {
     return null;
   }
 
