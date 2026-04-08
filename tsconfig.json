@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.vendored.json",
+  "include": [
+    "./**/*.mjs",
+    "./**/*.cjs",
+    "./**/*.ts",
+    "./**/*.mts",
+    "./**/*.cts",
+    "./**/*.d.ts"
+  ]
+}

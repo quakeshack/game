@@ -22,6 +22,28 @@ This repository provides a clean, modern framework to build Quake mods using Jav
 - **Create a new trigger** → Extend `BaseTriggerEntity` (see `entity/Triggers.ts`)
 - **Create a custom entity** → Just pick one of the misc entities, they are an easy start.
 
+### Vendored Mod Test Config
+
+If a mod repository is vendored into the engine under `source/game/<mod>`, it should ship a module-root `tsconfig.json` when it wants typed linting for its own tests. The engine lint config intentionally does not try to predict arbitrary mod test folder layouts.
+
+Use `source/game/tsconfig.vendored.json` as the base config and keep the module's `include` list local to that repo. A minimal setup looks like this:
+
+```json
+{
+  "extends": "../tsconfig.vendored.json",
+  "include": [
+    "./**/*.mjs",
+    "./**/*.cjs",
+    "./**/*.ts",
+    "./**/*.mts",
+    "./**/*.cts",
+    "./**/*.d.ts"
+  ]
+}
+```
+
+If the mod depends on another vendored game repo, add that sibling repo to `include` as well. For example, `hellwave` includes `../id1/**` because its tests and game code build on top of the id1 implementation.
+
 **File structure:**
 ```
 source/game/id1/
