@@ -39,7 +39,7 @@ export class TriggerFieldEntity extends BaseEntity {
 
   protected override _declareFields(): void {
     super._declareFields();
-    this.flags = TriggerFieldFlag.TFF_NONE;
+    this.flags = 0 as typeof this.flags;
   }
 
   override spawn(): void {
@@ -66,11 +66,13 @@ export class TriggerFieldEntity extends BaseEntity {
       return;
     }
 
-    if ((this.flags & TriggerFieldFlag.TFF_ANY_ENTITY_TRIGGERS) === 0 && !otherEntity.isActor()) {
+    const otherEntityIsActor = otherEntity.isActor();
+
+    if ((this.flags & TriggerFieldFlag.TFF_ANY_ENTITY_TRIGGERS) === 0 && !otherEntityIsActor) {
       return;
     }
 
-    if ((this.flags & TriggerFieldFlag.TFF_DEAD_ACTORS_TRIGGER) === 0 && otherEntity.health <= 0) {
+    if (otherEntityIsActor && (this.flags & TriggerFieldFlag.TFF_DEAD_ACTORS_TRIGGER) === 0 && otherEntity.health <= 0) {
       return;
     }
 
@@ -136,21 +138,21 @@ export class Sub<T extends BaseEntity = BaseEntity> extends EntityWrapper<T> {
     super(entity);
 
     this._serializer = new Serializer(this, this._engine);
+
     this._moveData = {
       finalOrigin: null,
       finalAngle: null,
       callback: null,
       active: false,
     };
+
     Serializer.makeSerializable(this._moveData, this._engine);
 
     this._useData = {
       callback: null,
     };
-    Serializer.makeSerializable(this._useData, this._engine);
 
-    this._serializer.startFields();
-    this._serializer.endFields();
+    Serializer.makeSerializable(this._useData, this._engine);
 
     this.reset();
   }

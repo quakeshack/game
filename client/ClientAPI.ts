@@ -245,9 +245,11 @@ export class ClientGameAPI {
   }
 
   saveGame(): string {
+    const serverInfoSnapshot = this.serverInfo as unknown as ServerInfoSnapshot;
+
     const data: ClientGameSaveData = {
       clientdata: { ...this.clientdata },
-      serverInfo: { ...(this.serverInfo as ServerInfoSnapshot) },
+      serverInfo: { ...serverInfoSnapshot },
       hud: this.hud.saveState(),
     };
 
@@ -256,9 +258,10 @@ export class ClientGameAPI {
 
   loadGame(data: string): void {
     const parsedData = JSON.parse(data) as ClientGameSaveData;
+    const serverInfoSnapshot = this.serverInfo as unknown as ServerInfoSnapshot;
 
     Object.assign(this.clientdata, parsedData.clientdata);
-    Object.assign(this.serverInfo as ServerInfoSnapshot, parsedData.serverInfo);
+    Object.assign(serverInfoSnapshot, parsedData.serverInfo);
 
     this.hud.loadState(parsedData.hud);
   }

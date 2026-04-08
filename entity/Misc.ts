@@ -626,8 +626,8 @@ export class BaseBarrelEntity extends BaseEntity {
   @serializable health = 20;
   @serializable bloodcolor: number = colors.DUST;
 
-  protected _damageInflictor = null;
-  protected _explosion = null;
+  protected _damageInflictor: DamageInflictor<BaseBarrelEntity> | null = null;
+  protected _explosion: Explosions<BaseBarrelEntity> | null = null;
 
   protected override _declareFields(): void {
     super._declareFields();

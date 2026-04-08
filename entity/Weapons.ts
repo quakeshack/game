@@ -22,13 +22,9 @@ interface DamageableEntity extends BaseEntity {
   health: number;
 }
 
-interface DamageHandledEntity extends BaseEntity {
+type DamageHandledEntity = BaseEntity & {
   _damageHandler: DamageHandler | null;
-}
-
-interface StatefulEntity extends BaseEntity {
-  _runState(state: string | null): boolean;
-}
+};
 
 interface StateDefiningEntityClass {
   _defineState(
@@ -54,14 +50,14 @@ export interface BackpackPickup {
   weapon: number;
 }
 
-interface DamageReceiverEntity extends BaseEntity {
+type DamageReceiverEntity = BaseEntity & {
   health: number;
   thinkDie(attackerEntity: BaseEntity): void;
   thinkPain?: (attackerEntity: BaseEntity, damagePoints: number) => void;
-  pain_finished?: number;
+  pain_finished: number;
   bloodcolor?: number;
-  enemy?: BaseEntity | null;
-}
+  enemy: BaseEntity | null;
+};
 
 export type WeaponConfigKey =
   | typeof items.IT_AXE
@@ -128,6 +124,11 @@ export class Backpack {
   @serializable weapon: WeaponConfigKey | 0 = 0;
 }
 
+/** Do not use try this at home, kids. */
+interface EntityExposingRunStateHack {
+  _runState(state: string | null): boolean;
+}
+
 /**
  * Shared explosion helper for projectile entities.
  */
@@ -163,8 +164,7 @@ export class Explosions<T extends BaseEntity = BaseEntity> extends EntityWrapper
 
     this._entity.setModel('progs/s_explod.spr');
 
-    const statefulEntity = this._entity as StatefulEntity;
-    statefulEntity._runState('s_explode1');
+    (this._entity as unknown as EntityExposingRunStateHack)._runState('s_explode1');
   }
 }
 
@@ -277,7 +277,14 @@ export class DamageInflictor<T extends BaseEntity = BaseEntity> extends EntityWr
    * Emits a beam event.
    */
   dispatchBeamEvent(beamType: number, endOrigin: Vector, startOrigin: Vector | null = null): void {
-    this._engine.DispatchBeamEvent(beamType, this._entity.edictId, startOrigin ?? this._entity.origin, endOrigin);
+    const edictId = this._entity.edictId;
+
+    console.assert(edictId !== undefined, 'DispatchBeamEvent requires an edict-backed entity');
+    if (edictId === undefined) {
+      return;
+    }
+
+    this._engine.DispatchBeamEvent(beamType, edictId, startOrigin ?? this._entity.origin, endOrigin);
   }
 
   blastDamage(damagePoints: number, attackerEntity: BaseEntity | null, ignore: BaseEntity | null = null): void {
@@ -380,15 +387,15 @@ export class DamageHandler<T extends BaseEntity = BaseEntity> extends EntityWrap
     beam: 1.0,
   };
 
-  private get _damageEntity(): DamageReceiverEntity {
-    return this._entity as DamageReceiverEntity;
+  private get _damageEntity(): BaseEntity & Partial<DamageReceiverEntity> {
+    return this._entity as unknown as BaseEntity & Partial<DamageReceiverEntity>;
   }
 
   protected override _assertEntity(): void {
     const entity = this._damageEntity;
 
     console.assert(entity.health !== undefined);
-    console.assert(entity.thinkDie !== undefined);
+    console.assert(typeof entity.thinkDie === 'function');
   }
 
   private _killed(attackerEntity: BaseEntity): void {
@@ -398,7 +405,7 @@ export class DamageHandler<T extends BaseEntity = BaseEntity> extends EntityWrap
     if (entity.movetype === moveType.MOVETYPE_PUSH || entity.movetype === moveType.MOVETYPE_NONE) {
       entity.takedamage = damage.DAMAGE_NO; // CR: not Quake vanilla behavior here
       entity.resetThinking();
-      entity.thinkDie(attackerEntity);
+      entity.thinkDie?.call(entity, attackerEntity);
       return;
     }
 
@@ -419,7 +426,7 @@ export class DamageHandler<T extends BaseEntity = BaseEntity> extends EntityWrap
     // CR: the original QuakeC would call monster_death_use, but we have all thinkDie invoking useTargets anyway
 
     entity.resetThinking();
-    entity.thinkDie(attackerEntity);
+    entity.thinkDie?.call(entity, attackerEntity);
   }
 
   /**
@@ -504,9 +511,11 @@ export class DamageHandler<T extends BaseEntity = BaseEntity> extends EntityWrap
 
     // check for invincibility and play protection sounds to indicate invincibility
     if (this._entity instanceof PlayerEntity && this._entity.invincible_finished >= this._game.time) {
-      if ((this._entity.invincible_sound_time[inflictorEntity.edictId] || 0) < this._game.time) {
+      const inflictorEdictId = inflictorEntity.edictId;
+
+      if (inflictorEdictId !== undefined && (this._entity.invincible_sound_time[inflictorEdictId] || 0) < this._game.time) {
         this._entity.startSound(channel.CHAN_ITEM, 'items/protect3.wav');
-        this._entity.invincible_sound_time[inflictorEntity.edictId] = this._game.time + 2.0;
+        this._entity.invincible_sound_time[inflictorEdictId] = this._game.time + 2.0;
       }
       return;
     }
@@ -815,6 +824,11 @@ export class BaseSpike extends BaseProjectile {
       this.damage(damageableEntity, ctor._damage, this.owner, this.origin);
     }
 
+    console.assert(ctor._tentType !== null, 'BaseSpike subclasses must define a temp-entity type');
+    if (ctor._tentType === null) {
+      return;
+    }
+
     this.engine.DispatchTempEntityEvent(ctor._tentType, this.origin);
 
     // delay the remove, the projectile might still be needed for some touch evaluations
@@ -930,7 +944,11 @@ export class PlayerWeapons extends EntityWrapper<PlayerEntity> {
     const config = weaponConfig.get(this._player.weapon as WeaponConfigKey);
     console.assert(config !== undefined, `PlayerWeapons.checkAmmo: invalid weapon ${this._player.weapon}`);
 
-    if (config?.ammoSlot !== null && this._player[config.ammoSlot] > 0) {
+    if (config === undefined) {
+      return false;
+    }
+
+    if (config.ammoSlot !== null && this._player[config.ammoSlot] > 0) {
       return true;
     }
 

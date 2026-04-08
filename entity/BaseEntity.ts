@@ -19,6 +19,7 @@ export type { ScheduledThinkCallback, TraceResult };
 
 export interface EntityClass<T extends BaseEntity = BaseEntity> {
   readonly classname: string;
+  readonly clientEdictHandler: typeof BaseClientEdictHandler | null;
   readonly clientEntityFields: string[];
 
   new (edict: ServerEdict | null, gameAPI: ServerGameAPI): T;
@@ -116,6 +117,11 @@ export default abstract class BaseEntity {
   @serializable punchangle = new Vector();
   @serializable idealpitch = 0;
   @serializable fixangle = false;
+  @serializable health = 0;
+  @serializable team = 0;
+  @serializable colormap = 0;
+  @serializable delay = 0;
+  @serializable noise: string | null = null;
 
   @serializable gravity: number | null = null;
   @serializable groundentity: BaseEntity | null = null;
@@ -130,6 +136,8 @@ export default abstract class BaseEntity {
   @serializable nextthink = 0.0;
 
   @serializable owner: BaseEntity | null = null;
+  @serializable enemy: BaseEntity | null = null;
+  @serializable goalentity: BaseEntity | null = null;
   @serializable killtarget: string | null = null;
   @serializable target: string | null = null;
   @serializable targetname: string | null = null;
@@ -360,7 +368,7 @@ export default abstract class BaseEntity {
    */
   _scheduleThink(
     nextThink: number,
-    callback: ScheduledThinkCallback,
+    callback: ScheduledThinkCallback<this>,
     identifier: string | null = null,
     isRequired = false,
   ): void {
@@ -370,10 +378,10 @@ export default abstract class BaseEntity {
 
     if (think !== null) {
       think.nextThink = nextThink;
-      think.callback = callback;
+      think.callback = callback as ScheduledThinkCallback;
       think.isRequired = isRequired;
     } else {
-      this._scheduledThinks.push(new ScheduledThink(nextThink, callback, identifier, isRequired));
+      this._scheduledThinks.push(new ScheduledThink(nextThink, callback as ScheduledThinkCallback, identifier, isRequired));
     }
 
     this._scheduledThinks.sort((left, right) => left.nextThink - right.nextThink);

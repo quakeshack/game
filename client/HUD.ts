@@ -11,7 +11,6 @@ import { ClientStats, type ClientStatsSnapshot } from './Sync.ts';
 type AmmoSlot = 'ammo_shells' | 'ammo_nails' | 'ammo_rockets' | 'ammo_cells';
 type HUDColor = Vector;
 type SerializedVector3 = [number, number, number];
-type MutableTextureGroup = Record<string, GLTexture | null>;
 
 interface HUDBackgrounds {
   statusbar: GLTexture | null;
@@ -170,9 +169,11 @@ function addTexture(textures: Set<GLTexture>, texture: GLTexture | null): void {
 /**
  * Reset a mutable texture group back to its unloaded state.
  */
-function clearTextureGroup(textures: MutableTextureGroup): void {
-  for (const key of Object.keys(textures) as Array<keyof MutableTextureGroup>) {
-    textures[key] = null;
+function clearTextureGroup<T extends object>(textures: T): void {
+  const mutableTextures = textures as Record<string, GLTexture | null>;
+
+  for (const key of Object.keys(mutableTextures)) {
+    mutableTextures[key] = null;
   }
 }
 

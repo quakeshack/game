@@ -31,7 +31,9 @@ export class ShalrathMissileEntity extends BaseProjectile {
   home(): void {
     console.assert(this.owner instanceof ShalrathMonsterEntity, 'Shalrath missile owner must be a shalrath');
 
-    const enemy = this.owner.enemy;
+    const owner = this.owner!;
+
+    const enemy = owner.enemy;
     if (enemy === null || enemy.health < 1) {
       this.remove();
       return;
@@ -50,11 +52,13 @@ export class ShalrathMissileEntity extends BaseProjectile {
   override spawn(): void {
     console.assert(this.owner !== null, 'Needs an owner');
 
+    const owner = this.owner!;
+
     super.spawn();
 
     this.movetype = moveType.MOVETYPE_FLYMISSILE;
 
-    const origin = this.owner.origin.copy().add(new Vector(0.0, 0.0, 10.0));
+    const origin = owner.origin.copy().add(new Vector(0.0, 0.0, 10.0));
     this.origin.set(origin);
     this.setOrigin(origin);
     this.velocity.multiply(400.0);
@@ -63,8 +67,13 @@ export class ShalrathMissileEntity extends BaseProjectile {
     this.setModel('progs/v_spike.mdl');
     this.setSize(Vector.origin, Vector.origin);
 
-    console.assert(this.owner instanceof ShalrathMonsterEntity, 'Shalrath missile owner must be a shalrath');
-    const dist = this.origin.distanceTo(this.owner.enemy.origin);
+    console.assert(owner instanceof ShalrathMonsterEntity, 'Shalrath missile owner must be a shalrath');
+
+    if (!(owner instanceof ShalrathMonsterEntity) || owner.enemy === null) {
+      return;
+    }
+
+    const dist = this.origin.distanceTo(owner.enemy.origin);
     this._scheduleThink(this.game.time + Math.max(0.1, dist * 0.002), () => {
       this.home();
     });

@@ -230,7 +230,6 @@ export class EntityWrapper<T extends BaseEntity = BaseEntity> {
  * Serializes and deserializes game state objects.
  * It still supports the legacy startFields/endFields workflow for JS callers,
  * but TS classes can declare static serializableFields instead.
- * @deprecated Use decoration-based serialization on entities directly instead of separate serializers where possible.
  */
 export class Serializer<T extends object> {
   static readonly TYPE_SKIPPED = 'X';
@@ -390,6 +389,7 @@ export class Serializer<T extends object> {
 
   /**
    * Starts recording newly added fields for legacy JS subclasses.
+   * @deprecated Use decoration-based serialization on entities directly instead of separate serializers where possible.
    */
   startFields(): void {
     this.#markerStart = Object.keys(this.#getObject());
@@ -397,6 +397,7 @@ export class Serializer<T extends object> {
 
   /**
    * Stops recording newly added fields for legacy JS subclasses.
+   * @deprecated Use decoration-based serialization on entities directly instead of separate serializers where possible.
    */
   endFields(): void {
     const markerStart = this.#markerStart;
@@ -441,23 +442,25 @@ export class Serializer<T extends object> {
    * Makes a plain object serializable through the same game save pipeline.
    * @returns The serializer attached to the object.
    */
-  static makeSerializable<TObject extends Record<string, unknown>>(
+  static makeSerializable<TObject extends object>(
     object: TObject,
     engine: ServerEngineAPI | null,
     fields: readonly string[] | null = null,
   ): Serializer<TObject> {
-    console.assert(object._serializer === undefined, 'object is already serializable');
+    const serializableObject = object as TObject & { _serializer?: Serializer<TObject> };
+
+    console.assert(serializableObject._serializer === undefined, 'object is already serializable');
 
     const serializer = new Serializer(object, engine);
 
-    Object.defineProperty(object, '_serializer', {
+    Object.defineProperty(serializableObject, '_serializer', {
       enumerable: false,
       configurable: false,
       writable: false,
       value: serializer,
     });
 
-    serializer.#setSerializableFields(fields ?? Object.keys(object));
+    serializer.#setSerializableFields(fields ?? Object.keys(object as Record<string, unknown>));
 
     return serializer;
   }

@@ -64,41 +64,59 @@ export class PlatformEntity extends BasePropEntity {
   }
 
   _hitBottom(): void {
+    const stopSound = this.noise1;
+
+    console.assert(stopSound !== null, 'PlatformEntity requires a stop sound');
+    if (stopSound === null) {
+      return;
+    }
+
     this.state = state.STATE_BOTTOM;
-    this.startSound(channel.CHAN_VOICE, this.noise1);
+    this.startSound(channel.CHAN_VOICE, stopSound);
   }
 
   _hitTop(): void {
+    const stopSound = this.noise1;
+
+    console.assert(stopSound !== null, 'PlatformEntity requires a stop sound');
+    if (stopSound === null) {
+      return;
+    }
+
     this.state = state.STATE_TOP;
-    this.startSound(channel.CHAN_VOICE, this.noise1);
+    this.startSound(channel.CHAN_VOICE, stopSound);
     this._scheduleThink(this.ltime + 3.0, () => {
       this._goDown();
     }, PLATFORM_GO_DOWN_THINK);
   }
 
   _goDown(): void {
+    const moveSound = this.noise;
     const sub = this._sub;
     console.assert(sub !== null, 'PlatformEntity requires Sub helper');
-    if (sub === null) {
+    console.assert(moveSound !== null, 'PlatformEntity requires a move sound');
+    if (sub === null || moveSound === null) {
       return;
     }
 
     this.state = state.STATE_DOWN;
-    this.startSound(channel.CHAN_VOICE, this.noise);
+    this.startSound(channel.CHAN_VOICE, moveSound);
     sub.calcMove(this.pos2, this.speed, () => {
       this._hitBottom();
     });
   }
 
   _goUp(): void {
+    const moveSound = this.noise;
     const sub = this._sub;
     console.assert(sub !== null, 'PlatformEntity requires Sub helper');
-    if (sub === null) {
+    console.assert(moveSound !== null, 'PlatformEntity requires a move sound');
+    if (sub === null || moveSound === null) {
       return;
     }
 
     this.state = state.STATE_UP;
-    this.startSound(channel.CHAN_VOICE, this.noise);
+    this.startSound(channel.CHAN_VOICE, moveSound);
     sub.calcMove(this.pos1, this.speed, () => {
       this._hitTop();
     });
@@ -314,7 +332,13 @@ export class TrainEntity extends BasePropEntity {
   }
 
   _trainFind(): void {
-    const targetEntity = this.findFirstEntityByFieldAndValue('targetname', this.target);
+    const target = this.target;
+    console.assert(target !== null, 'func_train requires a target');
+    if (target === null) {
+      return;
+    }
+
+    const targetEntity = this.findFirstEntityByFieldAndValue('targetname', target);
     console.assert(targetEntity !== null, 'func_train: target not found');
     if (targetEntity === null) {
       return;
@@ -332,13 +356,17 @@ export class TrainEntity extends BasePropEntity {
   }
 
   _trainNext(): void {
+    const target = this.target;
+    const stopSound = this.noise1;
     const sub = this._sub;
     console.assert(sub !== null, 'TrainEntity requires Sub helper');
-    if (sub === null) {
+    console.assert(target !== null, 'func_train requires a target');
+    console.assert(stopSound !== null, 'func_train requires a stop sound');
+    if (sub === null || target === null || stopSound === null) {
       return;
     }
 
-    const targetEntity = this.findFirstEntityByFieldAndValue('targetname', this.target);
+    const targetEntity = this.findFirstEntityByFieldAndValue('targetname', target);
     console.assert(targetEntity !== null && targetEntity.target !== null, 'func_train: no next target');
     if (targetEntity === null || targetEntity.target === null) {
       return;
@@ -347,7 +375,7 @@ export class TrainEntity extends BasePropEntity {
     // Move toward the next target point, again using mins for alignment.
     this.target = targetEntity.target;
     this.wait = targetEntity instanceof PathCornerEntity ? targetEntity.wait : 0;
-    this.startSound(channel.CHAN_VOICE, this.noise1);
+    this.startSound(channel.CHAN_VOICE, stopSound);
     sub.calcMove(targetEntity.origin.copy().subtract(this.mins), this.speed, () => {
       this._trainWait();
     });
@@ -355,7 +383,14 @@ export class TrainEntity extends BasePropEntity {
 
   _trainWait(): void {
     if (this.wait !== 0) {
-      this.startSound(channel.CHAN_VOICE, this.noise);
+      const moveSound = this.noise;
+
+      console.assert(moveSound !== null, 'func_train requires a move sound');
+      if (moveSound === null) {
+        return;
+      }
+
+      this.startSound(channel.CHAN_VOICE, moveSound);
     }
 
     // Default to a minimal delay when the path corner does not specify one.

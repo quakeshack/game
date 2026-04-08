@@ -1,4 +1,4 @@
-import type { ClientEventValue, PlayerEntitySpawnParamsDynamic, ServerEdict, ServerEngineAPI } from '../../../shared/GameInterfaces.ts';
+import type { PlayerEntitySpawnParamsDynamic, SerializableType, ServerEdict, ServerEngineAPI } from '../../../shared/GameInterfaces.ts';
 
 import { BaseClientEdictHandler } from '../../../shared/ClientEdict.ts';
 import Vector from '../../../shared/Vector.ts';
@@ -205,17 +205,20 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
 
   static clientEdictHandler = class PlayerClientEntity extends BaseClientEdictHandler {
     override emit(): void {
-      if ((+this.clientEdict.extended.items & items.IT_QUAD) !== 0) {
+      const extended = this.clientEdict.extended;
+      const extendedItems = extended?.items ?? 0;
+
+      if ((+extendedItems & items.IT_QUAD) !== 0) {
         const dynamicLight = this.engine.AllocDlight(this.clientEdict.num);
 
-        dynamicLight.color = this.engine.IndexToRGB(colors.HUD_CSHIFT_POWERUP_QUAD);
+        dynamicLight.color = new Vector(...this.engine.IndexToRGB(colors.HUD_CSHIFT_POWERUP_QUAD));
         dynamicLight.origin = this.clientEdict.origin.copy();
         dynamicLight.radius = 295 + Math.random() * 5;
         dynamicLight.die = this.engine.CL.time + 0.1;
-      } else if ((+this.clientEdict.extended.items & items.IT_INVULNERABILITY) !== 0) {
+      } else if ((+extendedItems & items.IT_INVULNERABILITY) !== 0) {
         const dynamicLight = this.engine.AllocDlight(this.clientEdict.num);
 
-        dynamicLight.color = this.engine.IndexToRGB(colors.HUD_CSHIFT_POWERUP_INVULN);
+        dynamicLight.color = new Vector(...this.engine.IndexToRGB(colors.HUD_CSHIFT_POWERUP_INVULN));
         dynamicLight.origin = this.clientEdict.origin.copy();
         dynamicLight.radius = 295 + Math.random() * 5;
         dynamicLight.die = this.engine.CL.time + 0.1;
@@ -306,7 +309,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
   @serializable bubble_count = 0;
 
   /** Keeps track of how the player died. */
-  @serializable deathtype = deathType.NONE;
+  @serializable deathtype: string | null = deathType.NONE;
 
   /** Next time the quad-damage warning should flash. */
   @serializable super_time = 0;
@@ -749,7 +752,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
   }
 
   protected _dropBackpack(): void {
-    const spawnedBackpack = this.engine.SpawnEntity(BackpackEntity.classname, {
+    const backpackEdict = this.engine.SpawnEntity(BackpackEntity.classname, {
       origin: this.origin.copy().subtract(new Vector(0.0, 0.0, 24.0)),
       items: this.weapon,
       ammo_cells: this.ammo_cells,
@@ -758,9 +761,10 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
       ammo_shells: this.ammo_shells,
       regeneration_time: 0, // do not regenerate
       remove_after: 120, // remove after 120s
-    }).entity;
-    console.assert(spawnedBackpack instanceof BackpackEntity, 'PlayerEntity._dropBackpack expects a BackpackEntity');
-    const backpack = spawnedBackpack as BackpackEntity;
+    });
+
+    const backpack = backpackEdict?.entity as BackpackEntity;
+    console.assert(backpack instanceof BackpackEntity, 'PlayerEntity._dropBackpack expects a BackpackEntity');
 
     this.ammo_cells = 0;
     this.ammo_nails = 0;
@@ -773,12 +777,15 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
   }
 
   protected _playerDie(): void {
+    const playerModelIndex = this._modelIndex.player!;
+    console.assert(playerModelIndex !== null, 'PlayerEntity requires a cached player model index');
+
     this.items &= ~items.IT_INVISIBILITY;
     this.invisible_finished = 0; // do not die as eyes
     this.invincible_finished = 0;
     this.super_damage_finished = 0;
     this.radsuit_finished = 0;
-    this.modelindex = this._modelIndex.player; // do not use eyes
+    this.modelindex = playerModelIndex; // do not use eyes
 
     if (this.game.deathmatch || this.game.coop) {
       this._dropBackpack();
@@ -844,18 +851,18 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
   }
 
   centerPrint(message: string): void {
-    this._requiredEdict.getClient().centerPrint(message);
+    this._requiredEdict.getClient()!.centerPrint(message);
   }
 
   consolePrint(message: string): void {
-    this._requiredEdict.getClient().consolePrint(message);
+    this._requiredEdict.getClient()!.consolePrint(message);
   }
 
-  dispatchEvent(eventType: number, ...args: ClientEventValue[]): void {
+  dispatchEvent(eventType: number, ...args: SerializableType[]): void {
     this.engine.DispatchClientEvent(this._requiredEdict, false, eventType, ...args);
   }
 
-  dispatchExpeditedEvent(eventType: number, ...args: ClientEventValue[]): void {
+  dispatchExpeditedEvent(eventType: number, ...args: SerializableType[]): void {
     this.engine.DispatchClientEvent(this._requiredEdict, true, eventType, ...args);
   }
 
@@ -899,8 +906,11 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
 
   protected _applySpawnParameters(): void {
     if (this.game.serverflags) {
+      const worldspawn = this.game.worldspawn!;
+      console.assert(worldspawn !== null, 'PlayerEntity expects worldspawn to be present');
+
       // HACK: maps/start.bsp always resets the carried parms.
-      if (this.game.worldspawn.model === 'maps/start.bsp') {
+      if (worldspawn.model === 'maps/start.bsp') {
         this._freshSpawnParameters();
         return;
       }
@@ -1071,7 +1081,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     if (trace.entity) {
       const tracedEntity = trace.entity;
       this.startSound(channel.CHAN_BODY, 'misc/talk.wav');
-      this.centerPrint(tracedEntity.classname);
+      this.centerPrint(tracedEntity.classname ?? 'unknown');
       console.debug('tracedEntity:', tracedEntity);
       console.debug('trace:', trace);
     }
@@ -1093,7 +1103,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     const maxs = new Vector(8.0, 8.0, 8.0);
     const trace = this.engine.Traceline(start, end, false, this._requiredEdict, mins, maxs);
 
-    if (trace.entity) {
+    if (trace.entity instanceof BaseEntity) {
       this.damage(trace.entity, 50000.0);
     }
   }
@@ -1441,9 +1451,13 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
         this.items &= ~items.IT_INVISIBILITY;
         this.invisible_finished = 0;
         this.invisible_time = 0;
-        this.modelindex = this._modelIndex.player;
+        const playerModelIndex = this._modelIndex.player!;
+        console.assert(playerModelIndex !== null, 'PlayerEntity requires a cached player model index');
+        this.modelindex = playerModelIndex;
       } else {
-        this.modelindex = this._modelIndex.eyes;
+        const eyesModelIndex = this._modelIndex.eyes!;
+        console.assert(eyesModelIndex !== null, 'PlayerEntity requires a cached eyes model index');
+        this.modelindex = eyesModelIndex;
         this.frame = 0;
       }
     }
@@ -1525,7 +1539,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     // Some Half-Life-like use logic lives here (buttons, pushing/pulling objects),
     // but line-of-sight and facing checks still need tightening.
     for (const { entity } of this.engine.FindInRadius(this.origin, 64.0, (serverEdict) => (serverEdict.entity!.flags & flags.FL_USEABLE) !== 0)) {
-      entity!.interact(this);
+      (entity as BaseEntity).interact(this);
     }
 
     this.button1 = false;
@@ -2002,7 +2016,8 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
       if (this.watertype === content.CONTENT_WATER) {
         this.startSound(channel.CHAN_BODY, 'player/h2ojump.wav');
       } else if (this.jump_flag < -650) {
-        this.game.worldspawn.damage(this, 5.0); // fixed 5 damage for falling
+        const worldspawn = this.game.worldspawn!;
+        worldspawn.damage(this, 5.0); // fixed 5 damage for falling
         this.startSound(channel.CHAN_VOICE, 'player/land2.wav');
         this.deathtype = deathType.FALLING;
       } else {

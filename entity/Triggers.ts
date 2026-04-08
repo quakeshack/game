@@ -480,6 +480,10 @@ export class SetSkillTriggerEntity extends BaseTriggerEntity {
       return;
     }
 
+    if (this.message === null) {
+      return;
+    }
+
     this.engine.SetCvar('skill', this.message);
   }
 
