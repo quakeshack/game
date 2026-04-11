@@ -11,45 +11,14 @@ import { ClientStats, type ClientStatsSnapshot } from './Sync.ts';
 
 type AmmoSlot = 'ammo_shells' | 'ammo_nails' | 'ammo_rockets' | 'ammo_cells';
 type HUDColor = Vector;
+type HUDTexture = GLTexture | null;
+type HUDTexturePair = [HUDTexture, HUDTexture];
+type HUDTextureGroup<TextureName extends string> = Record<TextureName, HUDTexture>;
 type SerializedVector3 = [number, number, number];
 
-interface HUDBackgrounds {
-  statusbar: GLTexture | null;
-  inventorybar: GLTexture | null;
-  scorebar: GLTexture | null;
-}
-
-interface HUDFaces {
-  face_invis: GLTexture | null;
-  face_invuln: GLTexture | null;
-  face_invis_invuln: GLTexture | null;
-  face_quad: GLTexture | null;
-  faces: Array<[GLTexture | null, GLTexture | null]>;
-}
-
-interface HUDArmors {
-  armor1: GLTexture | null;
-  armor2: GLTexture | null;
-  armor3: GLTexture | null;
-}
-
-interface HUDPowerups {
-  disc: GLTexture | null;
-}
-
-interface HUDAmmos {
-  ammo_shells: GLTexture | null;
-  ammo_nails: GLTexture | null;
-  ammo_rockets: GLTexture | null;
-  ammo_cells: GLTexture | null;
-}
-
-interface HUDLabels {
-  ranking: GLTexture | null;
-  complete: GLTexture | null;
-  inter: GLTexture | null;
-  finale: GLTexture | null;
-}
+type HUDFaces = HUDTextureGroup<'face_invis' | 'face_invuln' | 'face_invis_invuln' | 'face_quad'> & {
+  faces: HUDTexturePair[];
+};
 
 interface InventoryEntry {
   readonly item: items;
@@ -97,57 +66,28 @@ export interface HUDSaveState {
   stats: ClientStatsSnapshot;
 }
 
-const backgrounds: HUDBackgrounds = {
-  statusbar: null,
-  inventorybar: null,
-  scorebar: null,
-};
+const ammoSlots = ['ammo_shells', 'ammo_nails', 'ammo_rockets', 'ammo_cells'] as const;
+
+const backgrounds = createTextureGroup(['statusbar', 'inventorybar', 'scorebar'] as const);
 
 const faces: HUDFaces = {
-  face_invis: null,
-  face_invuln: null,
-  face_invis_invuln: null,
-  face_quad: null,
-  faces: [
-    [null, null],
-    [null, null],
-    [null, null],
-    [null, null],
-    [null, null],
-  ],
+  ...createTextureGroup(['face_invis', 'face_invuln', 'face_invis_invuln', 'face_quad'] as const),
+  faces: createFaceTextures(5),
 };
 
-const armors: HUDArmors = {
-  armor1: null,
-  armor2: null,
-  armor3: null,
-};
+const armors = createTextureGroup(['armor1', 'armor2', 'armor3'] as const);
 
-const powerups: HUDPowerups = {
-  disc: null,
-};
+const powerups = createTextureGroup(['disc'] as const);
 
-const ammos: HUDAmmos = {
-  ammo_shells: null,
-  ammo_nails: null,
-  ammo_rockets: null,
-  ammo_cells: null,
-};
+const ammos = createTextureGroup(ammoSlots);
 
-const labels: HUDLabels = {
-  ranking: null,
-  complete: null,
-  inter: null,
-  finale: null,
-};
+const labels = createTextureGroup(['ranking', 'complete', 'inter', 'finale'] as const);
 
 const cvars = {
   crosshair: null as Cvar | null,
   crossx: null as Cvar | null,
   crossy: null as Cvar | null,
 };
-
-const ammoSlots = ['ammo_shells', 'ammo_nails', 'ammo_rockets', 'ammo_cells'] as const;
 
 const inventory: InventoryEntry[] = [
   // weapons
@@ -180,28 +120,57 @@ const inventory: InventoryEntry[] = [
  * Assert that a named HUD texture is loaded before accessing it.
  * @returns The loaded texture.
  */
-function expectTexture(texture: GLTexture | null, name: string): GLTexture {
+function expectTexture(texture: HUDTexture, name: string): GLTexture {
   console.assert(texture !== null, `${name} HUD texture must be loaded before use`);
   return texture as GLTexture;
 }
 
 /**
+ * Create a mutable texture group with every slot starting unloaded.
+ * @returns Mutable texture group with unloaded slots.
+ */
+function createTextureGroup<TextureName extends string>(names: readonly TextureName[]): HUDTextureGroup<TextureName> {
+  const textures = {} as HUDTextureGroup<TextureName>;
+
+  for (const name of names) {
+    textures[name] = null;
+  }
+
+  return textures;
+}
+
+/**
+ * Create the animated face texture rows.
+ * @returns Animated face rows initialized with unloaded textures.
+ */
+function createFaceTextures(count: number): HUDTexturePair[] {
+  return Array.from({ length: count }, (): HUDTexturePair => [null, null]);
+}
+
+/**
  * Collect a texture reference for later shutdown cleanup.
  */
-function addTexture(textures: Set<GLTexture>, texture: GLTexture | null): void {
+function addTexture(textures: Set<GLTexture>, texture: HUDTexture): void {
   if (texture !== null) {
     textures.add(texture);
   }
 }
 
 /**
+ * Collect every texture from a mutable texture group.
+ */
+function addTextureGroup<TextureName extends string>(textures: Set<GLTexture>, textureGroup: HUDTextureGroup<TextureName>): void {
+  for (const key of Object.keys(textureGroup) as TextureName[]) {
+    addTexture(textures, textureGroup[key]);
+  }
+}
+
+/**
  * Reset a mutable texture group back to its unloaded state.
  */
-function clearTextureGroup<T extends object>(textures: T): void {
-  const mutableTextures = textures as Record<string, GLTexture | null>;
-
-  for (const key of Object.keys(mutableTextures)) {
-    mutableTextures[key] = null;
+function clearTextureGroup<TextureName extends string>(textureGroup: HUDTextureGroup<TextureName>): void {
+  for (const key of Object.keys(textureGroup) as TextureName[]) {
+    textureGroup[key] = null;
   }
 }
 
@@ -1169,25 +1138,11 @@ export class Q1HUD {
   static Shutdown(_engineAPI: ClientEngineAPI): void {
     const textures = new Set<GLTexture>();
 
-    for (const texture of Object.values(backgrounds)) {
-      addTexture(textures, texture);
-    }
-
-    for (const texture of Object.values(armors)) {
-      addTexture(textures, texture);
-    }
-
-    for (const texture of Object.values(powerups)) {
-      addTexture(textures, texture);
-    }
-
-    for (const texture of Object.values(ammos)) {
-      addTexture(textures, texture);
-    }
-
-    for (const texture of Object.values(labels)) {
-      addTexture(textures, texture);
-    }
+    addTextureGroup(textures, backgrounds);
+    addTextureGroup(textures, armors);
+    addTextureGroup(textures, powerups);
+    addTextureGroup(textures, ammos);
+    addTextureGroup(textures, labels);
 
     addTexture(textures, faces.face_invis);
     addTexture(textures, faces.face_invuln);

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
 import Vector from '../../../../shared/Vector.ts';
+import { createMockClientEngine, createMockTexture } from './fixtures.ts';
 
 const { clientEvent, clientEventName, effect, items } = await import('../../Defs.ts');
 await import('../../GameAPI.ts');
@@ -13,197 +14,6 @@ const clientApiModule = await import('../../client/ClientAPI.ts');
 const { ClientStats, ServerInfo } = syncModule;
 const { Q1HUD } = hudModule;
 const { ClientGameAPI } = clientApiModule;
-
-/**
- * Create an event bus with subscribe and publish support.
- * @returns {object} Mock event bus.
- */
-function createEventBus() {
-  const listeners = new Map();
-
-  return {
-    subscribe(eventName, handler) {
-      const handlers = listeners.get(eventName) ?? [];
-      handlers.push(handler);
-      listeners.set(eventName, handlers);
-
-      return () => {
-        const currentHandlers = listeners.get(eventName) ?? [];
-        listeners.set(eventName, currentHandlers.filter((currentHandler) => currentHandler !== handler));
-      };
-    },
-
-    publish(eventName, ...args) {
-      for (const handler of listeners.get(eventName) ?? []) {
-        handler(...args);
-      }
-    },
-  };
-}
-
-/**
- * Create a mock texture with the surface expected by HUD and ClientGameAPI.
- * @param {string} name Debug name.
- * @param {number} width Texture width.
- * @param {number} height Texture height.
- * @returns {object} Mock texture.
- */
-function createMockTexture(name, width = 24, height = 24) {
-  return {
-    name,
-    width,
-    height,
-    freed: false,
-    free() {
-      this.freed = true;
-    },
-    wrapClamped() {
-    },
-  };
-}
-
-/**
- * Create a minimal client engine API mock for HUD and client API tests.
- * @param {object} overrides Override values.
- * @returns {object} Mock engine API.
- */
-function createMockClientEngine(overrides = {}) {
-  const eventBus = createEventBus();
-  const sounds = [];
-  const commands = new Map();
-  const drawCharacters = [];
-  const consolePrints = [];
-  const drawPics = [];
-  const drawRects = [];
-  const drawStrings = [];
-
-  const baseEngine = {
-    eventBus,
-    sounds,
-    commands,
-    drawCharacters,
-    consolePrints,
-    drawPics,
-    drawRects,
-    drawStrings,
-    DrawCharacter(x, y, characterCode, scale = 1.0) {
-      drawCharacters.push({ x, y, characterCode, scale });
-    },
-    DrawPic(x, y, pic, scale = 1.0) {
-      drawPics.push({ x, y, pic, scale });
-    },
-    DrawRect(x, y, width, height, color, alpha = 1.0) {
-      drawRects.push({ x, y, width, height, color, alpha });
-    },
-    DrawString(x, y, text, scale = 1.0, color = null) {
-      drawStrings.push({ x, y, text, scale, color });
-    },
-    LoadPicFromWad(name) {
-      return createMockTexture(name);
-    },
-    LoadPicFromLump(name) {
-      return createMockTexture(name, 64, 16);
-    },
-    LoadPicFromFile(name) {
-      return Promise.resolve(createMockTexture(name));
-    },
-    LoadSound(name) {
-      const sound = {
-        name,
-        playCount: 0,
-        play() {
-          this.playCount += 1;
-        },
-      };
-      sounds.push(sound);
-      return sound;
-    },
-    ConsoleDebug() {
-    },
-    ConsoleError() {
-    },
-    ConsolePrint(message, color = null) {
-      consolePrints.push({ message, color });
-    },
-    RegisterCommand(name, handler) {
-      commands.set(name, handler);
-    },
-    UnregisterCommand(name) {
-      commands.delete(name);
-    },
-    ContentShift() {
-    },
-    IndexToRGB() {
-      return [1.0, 1.0, 1.0];
-    },
-    PlaceDecal() {
-    },
-    ModForName(name) {
-      return { name };
-    },
-    AllocDlight() {
-      return {};
-    },
-    VID: {
-      width: 320,
-      height: 200,
-    },
-    SCR: {
-      viewsize: 100,
-      crosshair: 0,
-      crossx: 0,
-      crossy: 0,
-      viewRect: {
-        x: 0,
-        y: 0,
-        width: 320,
-        height: 200,
-      },
-    },
-    CL: {
-      gametime: 0,
-      frametime: 0.1,
-      entityNum: 1,
-      intermission: false,
-      intermissionState: 0,
-      levelname: 'e1m1',
-      maxclients: 1,
-      time: 0,
-      viewangles: new Vector(),
-      vieworigin: new Vector(),
-      score() {
-        return {
-          isActive: false,
-          frags: 0,
-          name: '',
-          ping: 0,
-          colors: 0,
-        };
-      },
-    },
-  };
-
-  return {
-    ...baseEngine,
-    ...overrides,
-    VID: {
-      ...baseEngine.VID,
-      ...(overrides.VID ?? {}),
-    },
-    SCR: {
-      ...baseEngine.SCR,
-      ...(overrides.SCR ?? {}),
-      viewRect: {
-        ...baseEngine.SCR.viewRect,
-        ...(overrides.SCR?.viewRect ?? {}),
-      },
-    },
-    CL: {
-      ...baseEngine.CL,
-      ...(overrides.CL ?? {}),
-    },
-  };
-}
 
 /**
  * Create a minimal clientdata map for HUD and client API tests.
@@ -324,6 +134,34 @@ void describe('id1 client HUD state', () => {
     } finally {
       Q1HUD.Shutdown(engine);
     }
+  });
+
+  void test('frees loaded HUD textures and unregisters score commands on shutdown', () => {
+    const loadedTextures = [];
+    const engine = createMockClientEngine({
+      LoadPicFromWad(name) {
+        const texture = createMockTexture(name);
+        loadedTextures.push(texture);
+        return texture;
+      },
+      LoadPicFromLump(name) {
+        const texture = createMockTexture(name, 64, 16);
+        loadedTextures.push(texture);
+        return texture;
+      },
+    });
+
+    Q1HUD.Init(engine);
+
+    assert.equal(loadedTextures.length > 0, true);
+    assert.equal(engine.commands.has('+showscores'), true);
+    assert.equal(engine.commands.has('-showscores'), true);
+
+    Q1HUD.Shutdown(engine);
+
+    assert.equal(loadedTextures.every((texture) => texture.freed), true);
+    assert.equal(engine.commands.has('+showscores'), false);
+    assert.equal(engine.commands.has('-showscores'), false);
   });
 
   void test('shows the solo scoreboard automatically when the player is dead', () => {
@@ -600,15 +438,18 @@ void describe('id1 client HUD state', () => {
     const engine = createMockClientEngine({
       SCR: {
         viewsize: 100,
-        crosshair: 1,
-        crossx: 3,
-        crossy: -2,
         viewRect: {
           x: 16,
           y: 8,
           width: 288,
           height: 160,
         },
+      },
+    }, {
+      cvars: {
+        crosshair: 1,
+        cl_crossx: 3,
+        cl_crossy: -2,
       },
     });
 
@@ -624,11 +465,12 @@ void describe('id1 client HUD state', () => {
       hud.init();
       hud.draw();
 
-      assert.deepEqual(engine.drawCharacters, [{
+      assert.deepEqual(engine.drawStrings, [{
         x: 163,
         y: 86,
-        characterCode: 43,
+        text: '+',
         scale: 1.0,
+        color: new Vector(1.0, 1.0, 1.0),
       }]);
     } finally {
       Q1HUD.Shutdown(engine);
@@ -639,15 +481,18 @@ void describe('id1 client HUD state', () => {
     const engine = createMockClientEngine({
       SCR: {
         viewsize: 100,
-        crosshair: 1,
-        crossx: 0,
-        crossy: 0,
         viewRect: {
           x: 0,
           y: 0,
           width: 320,
           height: 200,
         },
+      },
+    }, {
+      cvars: {
+        crosshair: 1,
+        cl_crossx: 0,
+        cl_crossy: 0,
       },
     });
 
@@ -664,7 +509,7 @@ void describe('id1 client HUD state', () => {
       engine.eventBus.publish(clientEventName(clientEvent.INTERMISSION_START), null, new Vector(), new Vector());
       hud.draw();
 
-      assert.equal(engine.drawCharacters.length, 0);
+      assert.equal(engine.drawStrings.some(({ text }) => text === '+'), false);
     } finally {
       Q1HUD.Shutdown(engine);
     }
