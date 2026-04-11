@@ -71,19 +71,24 @@ function createMockClientEngine(overrides = {}) {
   const eventBus = createEventBus();
   const sounds = [];
   const commands = new Map();
+  const drawCharacters = [];
   const consolePrints = [];
   const drawPics = [];
   const drawRects = [];
   const drawStrings = [];
 
-  return {
+  const baseEngine = {
     eventBus,
     sounds,
     commands,
+    drawCharacters,
     consolePrints,
     drawPics,
     drawRects,
     drawStrings,
+    DrawCharacter(x, y, characterCode, scale = 1.0) {
+      drawCharacters.push({ x, y, characterCode, scale });
+    },
     DrawPic(x, y, pic, scale = 1.0) {
       drawPics.push({ x, y, pic, scale });
     },
@@ -145,12 +150,22 @@ function createMockClientEngine(overrides = {}) {
     },
     SCR: {
       viewsize: 100,
+      crosshair: 0,
+      crossx: 0,
+      crossy: 0,
+      viewRect: {
+        x: 0,
+        y: 0,
+        width: 320,
+        height: 200,
+      },
     },
     CL: {
       gametime: 0,
       frametime: 0.1,
       entityNum: 1,
       intermission: false,
+      intermissionState: 0,
       levelname: 'e1m1',
       maxclients: 1,
       time: 0,
@@ -166,7 +181,27 @@ function createMockClientEngine(overrides = {}) {
         };
       },
     },
+  };
+
+  return {
+    ...baseEngine,
     ...overrides,
+    VID: {
+      ...baseEngine.VID,
+      ...(overrides.VID ?? {}),
+    },
+    SCR: {
+      ...baseEngine.SCR,
+      ...(overrides.SCR ?? {}),
+      viewRect: {
+        ...baseEngine.SCR.viewRect,
+        ...(overrides.SCR?.viewRect ?? {}),
+      },
+    },
+    CL: {
+      ...baseEngine.CL,
+      ...(overrides.CL ?? {}),
+    },
   };
 }
 
@@ -339,6 +374,100 @@ void describe('id1 client HUD state', () => {
     }
   });
 
+  void test('draws engine finale text without the legacy Sbar overlay', () => {
+    const engine = createMockClientEngine({
+      CL: {
+        gametime: 0,
+        frametime: 0.1,
+        entityNum: 1,
+        intermission: true,
+        intermissionState: 2,
+        levelname: 'end',
+        maxclients: 1,
+        time: 0,
+        viewangles: new Vector(),
+        vieworigin: new Vector(),
+        score() {
+          return {
+            isActive: false,
+            frags: 0,
+            name: '',
+            ping: 0,
+            colors: 0,
+          };
+        },
+      },
+    });
+
+    Q1HUD.Init(engine);
+
+    try {
+      const game = {
+        clientdata: createClientdata(),
+        serverInfo: new ServerInfo(engine),
+      };
+      const hud = new Q1HUD(game, engine);
+
+      hud.init();
+      engine.eventBus.publish('client.center-print', 'The End');
+  engine.CL.time = 10;
+      hud.draw();
+
+      assert.equal(engine.drawPics.some(({ pic }) => pic.name === 'finale'), true);
+      assert.equal(engine.drawStrings.some(({ text }) => text.includes('The End')), true);
+      assert.equal(engine.drawPics.some(({ pic }) => pic.name === 'SBAR'), false);
+    } finally {
+      Q1HUD.Shutdown(engine);
+    }
+  });
+
+  void test('draws engine cutscene text without the finale banner', () => {
+    const engine = createMockClientEngine({
+      CL: {
+        gametime: 0,
+        frametime: 0.1,
+        entityNum: 1,
+        intermission: true,
+        intermissionState: 3,
+        levelname: 'end',
+        maxclients: 1,
+        time: 0,
+        viewangles: new Vector(),
+        vieworigin: new Vector(),
+        score() {
+          return {
+            isActive: false,
+            frags: 0,
+            name: '',
+            ping: 0,
+            colors: 0,
+          };
+        },
+      },
+    });
+
+    Q1HUD.Init(engine);
+
+    try {
+      const game = {
+        clientdata: createClientdata(),
+        serverInfo: new ServerInfo(engine),
+      };
+      const hud = new Q1HUD(game, engine);
+
+      hud.init();
+      engine.eventBus.publish('client.center-print', 'You are in the slipgate complex.');
+  engine.CL.time = 10;
+      hud.draw();
+
+      assert.equal(engine.drawPics.some(({ pic }) => pic.name === 'finale'), false);
+      assert.equal(engine.drawStrings.some(({ text }) => text.includes('You are in the slipgate complex.')), true);
+      assert.equal(engine.drawPics.some(({ pic }) => pic.name === 'SBAR'), false);
+    } finally {
+      Q1HUD.Shutdown(engine);
+    }
+  });
+
   void test('does not draw the wide mini multiplayer frag overlay anymore', () => {
     const engine = createMockClientEngine({
       VID: {
@@ -462,6 +591,80 @@ void describe('id1 client HUD state', () => {
         && text.charCodeAt(2) === '5'.charCodeAt(0) - 30
       )), true);
       assert.equal(engine.drawStrings.some(({ text }) => text === '025' || text === ' 25'), false);
+    } finally {
+      Q1HUD.Shutdown(engine);
+    }
+  });
+
+  void test('draws the classic crosshair through the game HUD when enabled', () => {
+    const engine = createMockClientEngine({
+      SCR: {
+        viewsize: 100,
+        crosshair: 1,
+        crossx: 3,
+        crossy: -2,
+        viewRect: {
+          x: 16,
+          y: 8,
+          width: 288,
+          height: 160,
+        },
+      },
+    });
+
+    Q1HUD.Init(engine);
+
+    try {
+      const game = {
+        clientdata: createClientdata(),
+        serverInfo: new ServerInfo(engine),
+      };
+      const hud = new Q1HUD(game, engine);
+
+      hud.init();
+      hud.draw();
+
+      assert.deepEqual(engine.drawCharacters, [{
+        x: 163,
+        y: 86,
+        characterCode: 43,
+        scale: 1.0,
+      }]);
+    } finally {
+      Q1HUD.Shutdown(engine);
+    }
+  });
+
+  void test('does not draw the game-owned crosshair during intermission', () => {
+    const engine = createMockClientEngine({
+      SCR: {
+        viewsize: 100,
+        crosshair: 1,
+        crossx: 0,
+        crossy: 0,
+        viewRect: {
+          x: 0,
+          y: 0,
+          width: 320,
+          height: 200,
+        },
+      },
+    });
+
+    Q1HUD.Init(engine);
+
+    try {
+      const game = {
+        clientdata: createClientdata(),
+        serverInfo: new ServerInfo(engine),
+      };
+      const hud = new Q1HUD(game, engine);
+
+      hud.init();
+      engine.eventBus.publish(clientEventName(clientEvent.INTERMISSION_START), null, new Vector(), new Vector());
+      hud.draw();
+
+      assert.equal(engine.drawCharacters.length, 0);
     } finally {
       Q1HUD.Shutdown(engine);
     }

@@ -1,4 +1,5 @@
-import type { ClientDamageEvent, ClientEngineAPI, GLTexture } from '../../../shared/GameInterfaces.ts';
+import { cvarFlags } from '@/shared/Defs.ts';
+import type { ClientDamageEvent, ClientEngineAPI, Cvar, GLTexture } from '../../../shared/GameInterfaces.ts';
 
 import Q from '../../../shared/Q.ts';
 import Vector from '../../../shared/Vector.ts';
@@ -138,6 +139,12 @@ const labels: HUDLabels = {
   complete: null,
   inter: null,
   finale: null,
+};
+
+const cvars = {
+  crosshair: null as Cvar | null,
+  crossx: null as Cvar | null,
+  crossy: null as Cvar | null,
 };
 
 const ammoSlots = ['ammo_shells', 'ammo_nails', 'ammo_rockets', 'ammo_cells'] as const;
@@ -683,11 +690,13 @@ export class Q1HUD {
   /**
    * Draw an intermission text block, optionally with Quake's typewriter reveal.
    */
-  protected _drawIntermissionText(message: string, useTypewriter: boolean): void {
-    const finaleLabel = expectTexture(labels.finale, 'finale');
+  protected _drawIntermissionText(message: string, useTypewriter: boolean, showFinaleLabel = true): void {
     const lines = formatCenterPrintLines(message);
 
-    this.overlay.drawPic(this.overlay.alignCenterHorizontally(finaleLabel.width), 16, finaleLabel);
+    if (showFinaleLabel) {
+      const finaleLabel = expectTexture(labels.finale, 'finale');
+      this.overlay.drawPic(this.overlay.alignCenterHorizontally(finaleLabel.width), 16, finaleLabel);
+    }
 
     let y = lines.length <= 4 ? Math.floor(this.overlay.height * 0.35) : 48;
     let remainingCharacters = Number.POSITIVE_INFINITY;
@@ -899,6 +908,16 @@ export class Q1HUD {
   }
 
   /**
+   * Draw the HUD-owned crosshair using the engine's classic glyph and offsets.
+   */
+  protected _drawCrosshair(): void {
+    const { x, y, width, height } = this.engine.SCR.viewRect;
+
+    // Quake only knows one kind of crosshair: +
+    this.engine.DrawString(x + width / 2 + cvars.crossx!.value, y + height / 2 + cvars.crossy!.value, '+');
+  }
+
+  /**
    * Draws a mini info bar at the top of the screen with game stats and level name.
    */
   protected _drawMiniInfo(offsetY = 0): void {
@@ -944,6 +963,24 @@ export class Q1HUD {
         this._drawIntermission();
       }
       return;
+    }
+
+    if (this.engine.CL.intermissionState === 2) {
+      if (this.centerPrint.message !== null) {
+        this._drawIntermissionText(this.centerPrint.message, true);
+      }
+      return;
+    }
+
+    if (this.engine.CL.intermissionState === 3) {
+      if (this.centerPrint.message !== null) {
+        this._drawIntermissionText(this.centerPrint.message, true, false);
+      }
+      return;
+    }
+
+    if (cvars.crosshair!.value !== 0) {
+      this._drawCrosshair();
     }
 
     if (shouldShowScoreboard) {
@@ -1064,6 +1101,12 @@ export class Q1HUD {
     this.overlay.offsets[1] = Math.floor((viewHeight - this.overlay.height) / 2);
   }
 
+  protected static _registerCvars(engineAPI: ClientEngineAPI): void {
+    cvars.crosshair = engineAPI.RegisterCvar('crosshair', '0', cvarFlags.ARCHIVE);
+    cvars.crossx = engineAPI.RegisterCvar('cl_crossx', '0', cvarFlags.ARCHIVE);
+    cvars.crossy = engineAPI.RegisterCvar('cl_crossy', '0', cvarFlags.ARCHIVE);
+  }
+
   static Init(this: typeof Q1HUD, engineAPI: ClientEngineAPI): void {
     backgrounds.statusbar = engineAPI.LoadPicFromWad('SBAR');
     backgrounds.inventorybar = engineAPI.LoadPicFromWad('IBAR');
@@ -1119,6 +1162,8 @@ export class Q1HUD {
     });
 
     Gfx.loadAssets(engineAPI);
+
+    this._registerCvars(engineAPI);
   }
 
   static Shutdown(_engineAPI: ClientEngineAPI): void {
@@ -1189,6 +1234,11 @@ export class Q1HUD {
 
     _engineAPI.UnregisterCommand('+showscores');
     _engineAPI.UnregisterCommand('-showscores');
+
+    for (const [k, cvar] of Object.entries(cvars)) {
+      cvar!.free();
+      cvars[k as keyof typeof cvars] = null;
+    }
   }
 
   #requireMessageBag(): MessageBag {

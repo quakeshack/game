@@ -364,7 +364,7 @@ const entityClasses = [
 
 There’s a way to store information across maps. This is done by Spawn Parameters. Classic Quake uses `SetSpawnParms`, `SetNewParms`, `SetChangeParms, `parm0..15`.
 
-By enabling the `CAP_SPAWNPARMS_DYNAMIC` flag, the engine will not use the classic API, but a modern API:
+QuakeShack uses a modern spawn-parameter API instead of the classic flow:
 
 * Engine can call:
   * `saveSpawnParameters(): string` for clients
@@ -374,7 +374,7 @@ That API will allow for more complex serialization/deserialization of spawn para
 
 ### Game Lifecycle
 
-A game is limited by a map. Every map starts a new game. The engine may prepare the game state by filling `parm0` to `parm15` and calling `SetSpawnParms`.
+A game is limited by a map. Every map starts a new game. The engine may restore saved spawn parameters for the connecting player before the normal client lifecycle continues.
 
 ### Frame Lifecyle
 
