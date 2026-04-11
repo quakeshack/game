@@ -1,4 +1,4 @@
-# QuakeJS Game Code
+# id1 Game Module
 
 In general the game code is completely object-oriented and it has *no global state*, therefore we need to carry around both engine interface as well as game interface. This allows the dedicated server to handle multiple servers at the same time enabling dynamic game lobbies etc. The most global state must be the variables on the `ServerGameAPI` object or on the `WorldspawnEntity`.
 
@@ -64,7 +64,7 @@ source/game/id1/
 
 ## Game
 
-Right now QuakeJS is a clean reimplementation of the Quake game logic.
+Right now the id1 GameModule is a clean reimplementation of the Quake game logic.
 It might not be perfect though, some idiosyncrasis will be sorted out as part of the code restructuring. Some idiosyncrasis will remain due to compatibility.
 
 During the reimplementation I noticed some bugs/issues within the original Quake game logic that I sorted out. Always trying to keep the actual game play unaffected.
@@ -125,7 +125,7 @@ Originally, Quake did not support client-side game code. In this project we also
 A couple of things I spotted or I’m unhappy with
 
 * [X] applyBackpack: currentammo not updated --> fixed by the new client code
-* [ ] cvars: move game related cvars to PR and QuakeJS game, less game duties on the engine
+* [ ] cvars: move game related cvars fully into the GameModule, less game duties on the engine
 * [X] BaseEntity: make state definitions static, right now it’s bloating up the memory footprint
 
 ### Entities
@@ -242,10 +242,10 @@ These base classes make it easy to create new entities with common behaviors:
   * Engine will communicate with the game through `ServerGameAPI` calling methods like `ClientConnect` and `ClientDisconnect`, but also with entities directly through methods such as `touch` and `think`.
   * Game will communicate mainly through the `ServerEngineAPI` object which is augmented by lots of methods declared on `BaseEntity`.
 
-### Loading QuakeJS
+### Loading the GameModule
 
 **Server-side initialization:**
-1. `PR.Init` imports the server game code
+1. `GameModule.Init` imports the active server game module
 2. `ServerGameAPI.Init()` is called (static) - register console variables here
 3. When server spawns, `new ServerGameAPI(engineAPI)` is instantiated
 4. Map loads, entities spawn via `entityRegistry`

@@ -71,16 +71,27 @@ function createMockClientEngine(overrides = {}) {
   const eventBus = createEventBus();
   const sounds = [];
   const commands = new Map();
+  const consolePrints = [];
+  const drawPics = [];
+  const drawRects = [];
+  const drawStrings = [];
 
   return {
     eventBus,
     sounds,
     commands,
-    DrawPic() {
+    consolePrints,
+    drawPics,
+    drawRects,
+    drawStrings,
+    DrawPic(x, y, pic, scale = 1.0) {
+      drawPics.push({ x, y, pic, scale });
     },
-    DrawRect() {
+    DrawRect(x, y, width, height, color, alpha = 1.0) {
+      drawRects.push({ x, y, width, height, color, alpha });
     },
-    DrawString() {
+    DrawString(x, y, text, scale = 1.0, color = null) {
+      drawStrings.push({ x, y, text, scale, color });
     },
     LoadPicFromWad(name) {
       return createMockTexture(name);
@@ -106,7 +117,8 @@ function createMockClientEngine(overrides = {}) {
     },
     ConsoleError() {
     },
-    ConsolePrint() {
+    ConsolePrint(message, color = null) {
+      consolePrints.push({ message, color });
     },
     RegisterCommand(name, handler) {
       commands.set(name, handler);
@@ -252,6 +264,240 @@ void describe('id1 client HUD state', () => {
     assert.equal(hud.damage.damageReceived, 9);
     assert.equal(hud.intermission.message, 'Episode complete');
     assert.equal(hud.stats.monsters_killed, 7);
+  });
+
+  void test('draws the invulnerability disc and 666 armor value', () => {
+    const engine = createMockClientEngine();
+
+    Q1HUD.Init(engine);
+
+    try {
+      const game = {
+        clientdata: createClientdata({
+          items: items.IT_INVULNERABILITY,
+          armorvalue: 42,
+        }),
+        serverInfo: new ServerInfo(engine),
+      };
+      const hud = new Q1HUD(game, engine);
+
+      hud.init();
+      hud.draw();
+
+      assert.equal(engine.drawPics.some(({ pic }) => pic.name === 'DISC'), true);
+      assert.equal(engine.drawPics.filter(({ pic }) => pic.name === 'ANUM_6').length, 3);
+    } finally {
+      Q1HUD.Shutdown(engine);
+    }
+  });
+
+  void test('shows the solo scoreboard automatically when the player is dead', () => {
+    const engine = createMockClientEngine();
+
+    Q1HUD.Init(engine);
+
+    try {
+      const game = {
+        clientdata: createClientdata({ health: 0 }),
+        serverInfo: new ServerInfo(engine),
+      };
+      const hud = new Q1HUD(game, engine);
+
+      hud.init();
+      hud.draw();
+
+      assert.equal(engine.drawPics.some(({ pic }) => pic.name === 'SCOREBAR'), true);
+      assert.equal(engine.drawPics.some(({ pic }) => pic.name === 'SBAR'), false);
+    } finally {
+      Q1HUD.Shutdown(engine);
+    }
+  });
+
+  void test('draws finale text from center-print during intermission', () => {
+    const engine = createMockClientEngine();
+
+    Q1HUD.Init(engine);
+
+    try {
+      const game = {
+        clientdata: createClientdata(),
+        serverInfo: new ServerInfo(engine),
+      };
+      const hud = new Q1HUD(game, engine);
+
+      hud.init();
+      engine.eventBus.publish(clientEventName(clientEvent.INTERMISSION_START), null, new Vector(), new Vector());
+      engine.eventBus.publish('client.center-print', 'Rune of Earth');
+      engine.CL.time = 10;
+
+      hud.draw();
+
+      assert.equal(engine.drawPics.some(({ pic }) => pic.name === 'finale'), true);
+      assert.equal(engine.drawStrings.some(({ text }) => text.includes('Rune of Earth')), true);
+    } finally {
+      Q1HUD.Shutdown(engine);
+    }
+  });
+
+  void test('does not draw the wide mini multiplayer frag overlay anymore', () => {
+    const engine = createMockClientEngine({
+      VID: {
+        width: 512,
+        height: 200,
+      },
+      SCR: {
+        viewsize: 100,
+      },
+      CL: {
+        gametime: 0,
+        frametime: 0.1,
+        entityNum: 2,
+        intermission: false,
+        levelname: 'dm3',
+        maxclients: 3,
+        time: 0,
+        viewangles: new Vector(),
+        vieworigin: new Vector(),
+        score(index) {
+          return [
+            { isActive: true, frags: 5, name: 'Ranger', ping: 45, colors: 0x4f },
+            { isActive: true, frags: 8, name: 'Player', ping: 20, colors: 0xf4 },
+            { isActive: true, frags: 2, name: 'Ogre', ping: 88, colors: 0x22 },
+          ][index] ?? { isActive: false, frags: 0, name: '', ping: 0, colors: 0 };
+        },
+      },
+    });
+
+    Q1HUD.Init(engine);
+
+    try {
+      const game = {
+        clientdata: createClientdata(),
+        serverInfo: new ServerInfo(engine),
+      };
+      const hud = new Q1HUD(game, engine);
+
+      hud.init();
+      hud.draw();
+
+      assert.equal(engine.drawRects.length, 0);
+      assert.equal(engine.drawStrings.some(({ text, x }) => text === 'Player' && x === 372), false);
+      assert.equal(engine.drawStrings.some(({ text, x }) => text === '[' && x === 324), false);
+    } finally {
+      Q1HUD.Shutdown(engine);
+    }
+  });
+
+  void test('shows chat through the message bag even when the status bar is hidden', () => {
+    const engine = createMockClientEngine({
+      VID: {
+        width: 768,
+        height: 200,
+      },
+      SCR: {
+        viewsize: 120,
+      },
+      CL: {
+        gametime: 0,
+        frametime: 0.1,
+        entityNum: 1,
+        intermission: false,
+        levelname: 'dm2',
+        maxclients: 2,
+        time: 0,
+        viewangles: new Vector(),
+        vieworigin: new Vector(),
+        score(index) {
+          return [
+            { isActive: true, frags: 4, name: 'Player', ping: 20, colors: 0x4f },
+            { isActive: true, frags: 3, name: 'Ranger', ping: 45, colors: 0xf4 },
+          ][index] ?? { isActive: false, frags: 0, name: '', ping: 0, colors: 0 };
+        },
+      },
+    });
+
+    Q1HUD.Init(engine);
+
+    try {
+      const game = {
+        clientdata: createClientdata(),
+        serverInfo: new ServerInfo(engine),
+      };
+      const hud = new Q1HUD(game, engine);
+
+      hud.init();
+      engine.eventBus.publish('client.chat.message', 'Ranger', 'Ready?', false);
+      hud.draw();
+
+      assert.equal(engine.consolePrints.some(({ message }) => message.includes('Ranger: Ready?')), true);
+      assert.equal(engine.drawStrings.some(({ text }) => text === 'Ranger: Ready?'), true);
+      assert.equal(engine.sounds.length, 0);
+    } finally {
+      Q1HUD.Shutdown(engine);
+    }
+  });
+
+  void test('draws inventory ammo counts using the classic small glyph digits', () => {
+    const engine = createMockClientEngine();
+
+    Q1HUD.Init(engine);
+
+    try {
+      const game = {
+        clientdata: createClientdata({
+          items: items.IT_SHOTGUN,
+          ammo_shells: 25,
+        }),
+        serverInfo: new ServerInfo(engine),
+      };
+      const hud = new Q1HUD(game, engine);
+
+      hud.init();
+      hud.draw();
+
+      assert.equal(engine.drawStrings.some(({ text }) => (
+        text.length === 3
+        && text.charCodeAt(0) === 32
+        && text.charCodeAt(1) === '2'.charCodeAt(0) - 30
+        && text.charCodeAt(2) === '5'.charCodeAt(0) - 30
+      )), true);
+      assert.equal(engine.drawStrings.some(({ text }) => text === '025' || text === ' 25'), false);
+    } finally {
+      Q1HUD.Shutdown(engine);
+    }
+  });
+
+  void test('flashes newly picked weapon icons before settling back to the selected icon', () => {
+    const engine = createMockClientEngine();
+
+    Q1HUD.Init(engine);
+
+    try {
+      const game = {
+        clientdata: createClientdata({
+          items: items.IT_SHOTGUN,
+          weapon: items.IT_SHOTGUN,
+          ammo_shells: 25,
+        }),
+        serverInfo: new ServerInfo(engine),
+      };
+      const hud = new Q1HUD(game, engine);
+
+      hud.init();
+      engine.eventBus.publish(clientEventName(clientEvent.ITEM_PICKED), {}, ['shotgun'], 'Shotgun', items.IT_SHOTGUN);
+      hud.draw();
+
+      assert.equal(engine.drawPics.some(({ pic }) => pic.name === 'INVA1_SHOTGUN'), true);
+
+      engine.CL.time = 1.1;
+      engine.drawPics.length = 0;
+      hud.draw();
+
+      assert.equal(engine.drawPics.some(({ pic }) => pic.name.startsWith('INVA')), false);
+      assert.equal(engine.drawPics.some(({ pic }) => pic.name === 'INV2_SHOTGUN'), true);
+    } finally {
+      Q1HUD.Shutdown(engine);
+    }
   });
 });
 

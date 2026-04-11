@@ -32,6 +32,10 @@ interface HUDArmors {
   armor3: GLTexture | null;
 }
 
+interface HUDPowerups {
+  disc: GLTexture | null;
+}
+
 interface HUDAmmos {
   ammo_shells: GLTexture | null;
   ammo_nails: GLTexture | null;
@@ -50,6 +54,7 @@ interface InventoryEntry {
   readonly item: items;
   icon: GLTexture | null;
   iconInactive: GLTexture | null;
+  flashIcons: GLTexture[];
   iconWidth: number;
   readonly iconSuffix: string;
   readonly iconPrefix: 'INV' | 'SB';
@@ -59,6 +64,13 @@ interface HUDMessage {
   readonly message: string;
   readonly color: Vector;
   readonly endtime: number;
+}
+
+type HUDScore = ReturnType<ClientEngineAPI['CL']['score']>;
+
+interface HUDScoreEntry {
+  readonly score: HUDScore;
+  readonly scoreIndex: number;
 }
 
 export interface HUDDamageState {
@@ -71,6 +83,11 @@ export interface HUDIntermissionState {
   running: boolean;
   message: string | null;
   mapCompletedTime: number;
+}
+
+interface HUDCenterPrintState {
+  message: string | null;
+  startTime: number;
 }
 
 export interface HUDSaveState {
@@ -105,6 +122,10 @@ const armors: HUDArmors = {
   armor3: null,
 };
 
+const powerups: HUDPowerups = {
+  disc: null,
+};
+
 const ammos: HUDAmmos = {
   ammo_shells: null,
   ammo_nails: null,
@@ -123,29 +144,29 @@ const ammoSlots = ['ammo_shells', 'ammo_nails', 'ammo_rockets', 'ammo_cells'] as
 
 const inventory: InventoryEntry[] = [
   // weapons
-  { item: items.IT_SHOTGUN, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'SHOTGUN', iconPrefix: 'INV' },
-  { item: items.IT_SUPER_SHOTGUN, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'SSHOTGUN', iconPrefix: 'INV' },
-  { item: items.IT_NAILGUN, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'NAILGUN', iconPrefix: 'INV' },
-  { item: items.IT_SUPER_NAILGUN, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'SNAILGUN', iconPrefix: 'INV' },
-  { item: items.IT_GRENADE_LAUNCHER, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'RLAUNCH', iconPrefix: 'INV' },
-  { item: items.IT_ROCKET_LAUNCHER, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'SRLAUNCH', iconPrefix: 'INV' },
-  { item: items.IT_LIGHTNING, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'LIGHTNG', iconPrefix: 'INV' },
+  { item: items.IT_SHOTGUN, icon: null, iconInactive: null, flashIcons: [], iconWidth: 0, iconSuffix: 'SHOTGUN', iconPrefix: 'INV' },
+  { item: items.IT_SUPER_SHOTGUN, icon: null, iconInactive: null, flashIcons: [], iconWidth: 0, iconSuffix: 'SSHOTGUN', iconPrefix: 'INV' },
+  { item: items.IT_NAILGUN, icon: null, iconInactive: null, flashIcons: [], iconWidth: 0, iconSuffix: 'NAILGUN', iconPrefix: 'INV' },
+  { item: items.IT_SUPER_NAILGUN, icon: null, iconInactive: null, flashIcons: [], iconWidth: 0, iconSuffix: 'SNAILGUN', iconPrefix: 'INV' },
+  { item: items.IT_GRENADE_LAUNCHER, icon: null, iconInactive: null, flashIcons: [], iconWidth: 0, iconSuffix: 'RLAUNCH', iconPrefix: 'INV' },
+  { item: items.IT_ROCKET_LAUNCHER, icon: null, iconInactive: null, flashIcons: [], iconWidth: 0, iconSuffix: 'SRLAUNCH', iconPrefix: 'INV' },
+  { item: items.IT_LIGHTNING, icon: null, iconInactive: null, flashIcons: [], iconWidth: 0, iconSuffix: 'LIGHTNG', iconPrefix: 'INV' },
 
   // keys
-  { item: items.IT_KEY1, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'KEY1', iconPrefix: 'SB' },
-  { item: items.IT_KEY2, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'KEY2', iconPrefix: 'SB' },
+  { item: items.IT_KEY1, icon: null, iconInactive: null, flashIcons: [], iconWidth: 0, iconSuffix: 'KEY1', iconPrefix: 'SB' },
+  { item: items.IT_KEY2, icon: null, iconInactive: null, flashIcons: [], iconWidth: 0, iconSuffix: 'KEY2', iconPrefix: 'SB' },
 
   // powerups
-  { item: items.IT_INVISIBILITY, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'INVIS', iconPrefix: 'SB' },
-  { item: items.IT_INVULNERABILITY, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'INVULN', iconPrefix: 'SB' },
-  { item: items.IT_SUIT, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'SUIT', iconPrefix: 'SB' },
-  { item: items.IT_QUAD, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'QUAD', iconPrefix: 'SB' },
+  { item: items.IT_INVISIBILITY, icon: null, iconInactive: null, flashIcons: [], iconWidth: 0, iconSuffix: 'INVIS', iconPrefix: 'SB' },
+  { item: items.IT_INVULNERABILITY, icon: null, iconInactive: null, flashIcons: [], iconWidth: 0, iconSuffix: 'INVULN', iconPrefix: 'SB' },
+  { item: items.IT_SUIT, icon: null, iconInactive: null, flashIcons: [], iconWidth: 0, iconSuffix: 'SUIT', iconPrefix: 'SB' },
+  { item: items.IT_QUAD, icon: null, iconInactive: null, flashIcons: [], iconWidth: 0, iconSuffix: 'QUAD', iconPrefix: 'SB' },
 
   // runes
-  { item: items.IT_SIGIL1, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'SIGIL1', iconPrefix: 'SB' },
-  { item: items.IT_SIGIL2, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'SIGIL2', iconPrefix: 'SB' },
-  { item: items.IT_SIGIL3, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'SIGIL3', iconPrefix: 'SB' },
-  { item: items.IT_SIGIL4, icon: null, iconInactive: null, iconWidth: 0, iconSuffix: 'SIGIL4', iconPrefix: 'SB' },
+  { item: items.IT_SIGIL1, icon: null, iconInactive: null, flashIcons: [], iconWidth: 0, iconSuffix: 'SIGIL1', iconPrefix: 'SB' },
+  { item: items.IT_SIGIL2, icon: null, iconInactive: null, flashIcons: [], iconWidth: 0, iconSuffix: 'SIGIL2', iconPrefix: 'SB' },
+  { item: items.IT_SIGIL3, icon: null, iconInactive: null, flashIcons: [], iconWidth: 0, iconSuffix: 'SIGIL3', iconPrefix: 'SB' },
+  { item: items.IT_SIGIL4, icon: null, iconInactive: null, flashIcons: [], iconWidth: 0, iconSuffix: 'SIGIL4', iconPrefix: 'SB' },
 ];
 
 /**
@@ -196,6 +217,36 @@ function toSerializedVector3(value: Vector | readonly number[] | Record<number, 
 function toVector(value: Vector | readonly number[] | Record<number, number>): Vector {
   const [x, y, z] = toSerializedVector3(value);
   return new Vector(x, y, z);
+}
+
+/**
+ * Apply Quake's center-print wrapping rules.
+ * @returns Wrapped center-print lines.
+ */
+function formatCenterPrintLines(message: string): string[] {
+  const lines: string[] = [];
+  let start = 0;
+
+  for (let i = 0; i < message.length; i++) {
+    let next: number | null = null;
+
+    if (message.charCodeAt(i) === 10) {
+      next = i + 1;
+    } else if ((i - start) >= 40) {
+      next = i;
+    }
+
+    if (next === null) {
+      continue;
+    }
+
+    lines.push(message.substring(start, i));
+    start = next;
+  }
+
+  lines.push(message.substring(start));
+
+  return lines;
 }
 
 /**
@@ -323,6 +374,18 @@ export class Gfx {
     }
   }
 
+  drawSmallNumber(x: number, y: number, value: number, digits = 3): void {
+    let text = value.toFixed(0);
+    if (text.length > digits) {
+      text = text.substring(text.length - digits, text.length);
+    } else {
+      text = text.padStart(digits, ' ');
+    }
+
+    const glyphText = text.replaceAll(/\d/g, (digit) => String.fromCharCode(digit.charCodeAt(0) - 30));
+    this.drawString(x, y, glyphText);
+  }
+
   drawSymbol(x: number, y: number, symbol: string): void {
     switch (symbol) {
       case ':':
@@ -385,11 +448,9 @@ export class Q1HUD {
   /** +showscores/-showscores */
   protected static _showScoreboard = false;
 
-  protected static readonly _ammoLowColor = new Vector(1.0, 1.0, 1.0);
-  protected static readonly _ammoColor = new Vector(1.0, 1.0, 1.0);
-
   protected stats: ClientStats | null = null;
   protected messageBag: MessageBag | null = null;
+  protected readonly inventoryFlashStartedAt = new Map<items, number>();
 
   protected damage = {
     /** time when the last damage was received based on CL.gametime */
@@ -406,6 +467,11 @@ export class Q1HUD {
     running: false,
     message: null as string | null,
     mapCompletedTime: 0,
+  };
+
+  protected centerPrint: HUDCenterPrintState = {
+    message: null,
+    startTime: 0,
   };
 
   protected readonly sbar: Gfx;
@@ -446,8 +512,6 @@ export class Q1HUD {
     this.stats = this._newStats();
     this.messageBag = this._newMessageBag();
 
-    this._initColors();
-
     // observe notable events
     this._subscribeToEvents();
   }
@@ -456,19 +520,19 @@ export class Q1HUD {
   }
 
   /**
-   * Initializes color values.
-   */
-  protected _initColors(): void {
-    const thisClass = this.constructor as typeof Q1HUD;
-
-    thisClass._ammoColor.set(this.engine.IndexToRGB(colors.HUD_AMMO_NORMAL));
-    thisClass._ammoLowColor.set(this.engine.IndexToRGB(colors.HUD_AMMO_WARNING));
-  }
-
-  /**
    * Subscribes to relevant events.
    */
   protected _subscribeToEvents(): void {
+    this.engine.eventBus.subscribe('server.spawning', (): void => {
+      this._clearIntermission();
+      this.inventoryFlashStartedAt.clear();
+    });
+
+    this.engine.eventBus.subscribe('client.disconnected', (): void => {
+      this._clearIntermission();
+      this.inventoryFlashStartedAt.clear();
+    });
+
     // subscribe to viewsize resize events
     this.engine.eventBus.subscribe('cvar.changed', (name: string): void => {
       switch (name) {
@@ -499,7 +563,7 @@ export class Q1HUD {
     // picked up an item
     this.engine.eventBus.subscribe(
       clientEventName(clientEvent.ITEM_PICKED),
-      (_itemEntity: object, itemNames: string[], netname: string | null): void => {
+      (_itemEntity: object, itemNames: string[], netname: string | null, pickupItems: number = 0): void => {
         const messageBag = this.#requireMessageBag();
         if (netname !== null) {
           messageBag.addMessage(`You got ${netname}.`);
@@ -509,8 +573,13 @@ export class Q1HUD {
           messageBag.addMessage('You found an empty item.');
         }
 
-        // TODO: do the picked up animation effect
-        // console.debug(`Picked up item: ${itemEntity.classname} (items = ${items})`);
+        if (pickupItems !== 0) {
+          for (const entry of inventory) {
+            if ((pickupItems & entry.item) !== 0 && entry.flashIcons.length > 0) {
+              this.inventoryFlashStartedAt.set(entry.item, this.engine.CL.time);
+            }
+          }
+        }
 
         this.engine.ContentShift(contentShift.bonus, new Vector(...this.engine.IndexToRGB(colors.HUD_CSHIFT_BONUSFLASH)), 0.2);
       },
@@ -532,6 +601,7 @@ export class Q1HUD {
     this.engine.eventBus.subscribe(
       clientEventName(clientEvent.INTERMISSION_START),
       (message: string | null, origin: Vector, angles: Vector): void => {
+        this._clearCenterPrint();
         this.intermission.running = true;
         this.intermission.message = message || null;
         this.intermission.mapCompletedTime = this.engine.CL.gametime;
@@ -542,13 +612,15 @@ export class Q1HUD {
       },
     );
 
+    this.engine.eventBus.subscribe('client.center-print', (message: string): void => {
+      this.centerPrint.message = message.length > 0 ? message : null;
+      this.centerPrint.startTime = this.engine.CL.time;
+    });
+
     // chat message
     this.engine.eventBus.subscribe('client.chat.message', (name: string, message: string, isDirect: boolean): void => {
       const color = isDirect ? new Vector(0.5, 1.0, 0.5) : new Vector(1.0, 1.0, 1.0);
-
       this.#requireMessageBag().addMessage(`${name}: ${message}`, 10.0, color);
-
-      this.engine.LoadSound('misc/talk.wav').play();
     });
 
     // obituary event
@@ -590,6 +662,61 @@ export class Q1HUD {
   }
 
   /**
+   * Reset the current center-print state.
+   */
+  protected _clearCenterPrint(): void {
+    this.centerPrint.message = null;
+    this.centerPrint.startTime = 0;
+  }
+
+  /**
+   * Reset the active intermission state.
+   */
+  protected _clearIntermission(): void {
+    this._clearCenterPrint();
+    this.intermission.running = false;
+    this.intermission.message = null;
+    this.intermission.mapCompletedTime = 0;
+    this.engine.CL.intermission = false;
+  }
+
+  /**
+   * Draw an intermission text block, optionally with Quake's typewriter reveal.
+   */
+  protected _drawIntermissionText(message: string, useTypewriter: boolean): void {
+    const finaleLabel = expectTexture(labels.finale, 'finale');
+    const lines = formatCenterPrintLines(message);
+
+    this.overlay.drawPic(this.overlay.alignCenterHorizontally(finaleLabel.width), 16, finaleLabel);
+
+    let y = lines.length <= 4 ? Math.floor(this.overlay.height * 0.35) : 48;
+    let remainingCharacters = Number.POSITIVE_INFINITY;
+
+    if (useTypewriter) {
+      remainingCharacters = Math.floor(8 * (this.engine.CL.time - this.centerPrint.startTime));
+    }
+
+    for (const line of lines) {
+      const visibleText = remainingCharacters === Number.POSITIVE_INFINITY
+        ? line
+        : line.substring(0, Math.max(0, Math.min(line.length, remainingCharacters)));
+
+      if (visibleText.length > 0) {
+        this.overlay.drawString(Math.floor((this.overlay.width - visibleText.length * 16) / 2), y, visibleText, 2.0);
+      }
+
+      if (remainingCharacters !== Number.POSITIVE_INFINITY) {
+        remainingCharacters -= line.length;
+        if (remainingCharacters <= 0) {
+          return;
+        }
+      }
+
+      y += 16;
+    }
+  }
+
+  /**
    * Draws the status bar, inventory bar, and score bar.
    */
   protected _drawStatusBar(): void {
@@ -601,7 +728,10 @@ export class Q1HUD {
     }
 
     // Draw armor
-    if (clientdata.armorvalue >= 0) {
+    if ((clientdata.items & items.IT_INVULNERABILITY) !== 0) {
+      this.sbar.drawNumber(24, 0, 666, 3, 1);
+      this.sbar.drawPic(0, 0, powerups.disc);
+    } else if (clientdata.armorvalue >= 0) {
       switch (true) {
         case (clientdata.items & items.IT_ARMOR3) !== 0:
           this.sbar.drawPic(0, 0, armors.armor3);
@@ -615,7 +745,6 @@ export class Q1HUD {
           break;
       }
 
-      // Draw armor value
       this.sbar.drawNumber(24, 0, clientdata.armorvalue, 3, clientdata.armorvalue <= 25 ? 1 : 0);
     }
 
@@ -643,9 +772,6 @@ export class Q1HUD {
    */
   protected _drawInventory(offsetY = 0): void {
     const clientdata = this.game.clientdata;
-    const thisClass = this.constructor as typeof Q1HUD;
-    const ammoLowColor = thisClass._ammoLowColor;
-    const ammoColor = thisClass._ammoColor;
 
     this.sbar.drawPic(0, offsetY, backgrounds.inventorybar);
 
@@ -653,16 +779,19 @@ export class Q1HUD {
     for (let i = 0; i < ammoSlots.length; i++) {
       const ammoSlot = ammoSlots[i] as AmmoSlot;
       if (clientdata[ammoSlot] > 0) {
-        this.sbar.drawString((6 * i + 1) * 8 - 2, -24, clientdata[ammoSlot].toFixed(0).padStart(3), 1.0, clientdata[ammoSlot] <= 10 ? ammoLowColor : ammoColor);
+        this.sbar.drawSmallNumber((6 * i + 1) * 8 - 2, -24, clientdata[ammoSlot]);
       }
     }
 
     // Draw inventory slots (both weapons and items)
     for (let i = 0, wsOffsetX = 0; i < inventory.length; i++) {
       const entry = inventory[i];
-      // TODO: do the picked up animation effect
       if ((clientdata.items & entry.item) !== 0) {
-        if (clientdata.health > 0 && clientdata.weapon === entry.item) {
+        const flashIcon = this._getInventoryFlashIcon(entry);
+
+        if (flashIcon !== null) {
+          this.sbar.drawPic(wsOffsetX, offsetY + 8, flashIcon);
+        } else if (clientdata.health > 0 && clientdata.weapon === entry.item) {
           this.sbar.drawPic(wsOffsetX, offsetY + 8, entry.icon);
         } else {
           this.sbar.drawPic(wsOffsetX, offsetY + 8, entry.iconInactive);
@@ -670,6 +799,27 @@ export class Q1HUD {
       }
       wsOffsetX += entry.iconWidth;
     }
+  }
+
+  /**
+   * @returns The animated pickup flash frame for a weapon inventory slot, when active.
+   */
+  protected _getInventoryFlashIcon(entry: InventoryEntry): GLTexture | null {
+    const flashStartedAt = this.inventoryFlashStartedAt.get(entry.item);
+
+    if (flashStartedAt === undefined || entry.flashIcons.length === 0) {
+      return null;
+    }
+
+    const flashFrame = Math.floor((this.engine.CL.time - flashStartedAt) * 10.0);
+    if (flashFrame >= 10) {
+      this.inventoryFlashStartedAt.delete(entry.item);
+      return null;
+    }
+
+    const icon = entry.flashIcons[flashFrame % entry.flashIcons.length];
+
+    return icon ?? null;
   }
 
   /**
@@ -685,23 +835,12 @@ export class Q1HUD {
     const x = 0;
     let y = 64;
 
-    const scores: Array<ReturnType<typeof this.engine.CL.score>> = [];
-
-    for (let i = 0; i < this.engine.CL.maxclients; i++) {
-      const score = this.engine.CL.score(i);
-      if (!score.isActive) {
-        continue;
-      }
-
-      scores.push(score);
-    }
-
-    scores.sort((a, b) => b.frags - a.frags);
+    const scores = this._getSortedScores();
 
     this.overlay.drawBorderedRect(x, y, this.overlay.width, this.overlay.height - 88, new Vector(...this.engine.IndexToRGB(colors.HUD_RANKING_BACKGROUND)), 0.66);
 
     for (let i = 0; i < scores.length; i++) {
-      const score = scores[i];
+      const score = scores[i].score;
 
       this.overlay.drawRect(x + 8, y + 24 * i + 8, 80, 8, new Vector(...this.engine.IndexToRGB((score.colors & 0xf0) + 8)));
       this.overlay.drawRect(x + 8, y + 24 * i + 16, 80, 8, new Vector(...this.engine.IndexToRGB((score.colors & 0xf) * 16 + 8)));
@@ -727,10 +866,10 @@ export class Q1HUD {
    */
   protected _drawIntermission(): void {
     const stats = this.#requireStats();
+    const message = this.intermission.message ?? this.centerPrint.message;
 
-    if (this.intermission.message) {
-      this.overlay.drawString(16, 16, 'TODO: Intermission Message', 2.0);
-      // TODO: draw the intermission message
+    if (message !== null) {
+      this._drawIntermissionText(message, this.intermission.message === null);
     } else {
       const completeLabel = expectTexture(labels.complete, 'complete');
       const interLabel = expectTexture(labels.inter, 'inter');
@@ -774,7 +913,30 @@ export class Q1HUD {
     this.sbar.drawString(8, offsetY + 12, `${secrets.padEnd(19)} ${this.engine.CL.levelname.trim().padStart(18)}`.substring(0, 38));
   }
 
+  /**
+   * Collect active scores sorted by frag count.
+   * @returns Sorted score entries with their client slot indices.
+   */
+  protected _getSortedScores(): HUDScoreEntry[] {
+    const scores: HUDScoreEntry[] = [];
+
+    for (let scoreIndex = 0; scoreIndex < this.engine.CL.maxclients; scoreIndex++) {
+      const score = this.engine.CL.score(scoreIndex);
+      if (!score.isActive) {
+        continue;
+      }
+
+      scores.push({ score, scoreIndex });
+    }
+
+    scores.sort((a, b) => b.score.frags - a.score.frags);
+
+    return scores;
+  }
+
   draw(): void {
+    const shouldShowScoreboard = Q1HUD._showScoreboard || this.game.clientdata.health <= 0;
+
     if (this.intermission.running) {
       if (this.engine.CL.maxclients > 1) {
         this._drawScoreboard();
@@ -784,11 +946,11 @@ export class Q1HUD {
       return;
     }
 
-    if (Q1HUD._showScoreboard) {
+    if (shouldShowScoreboard) {
       if (this.engine.CL.maxclients > 1) {
         this._drawScoreboard();
       } else {
-        if (this.engine.SCR.viewsize === 120 || this.engine.SCR.viewsize <= 100) {
+        if (this.engine.SCR.viewsize <= 100) {
           this._drawInventory(-24);
         }
         this._drawMiniInfo();
@@ -906,6 +1068,7 @@ export class Q1HUD {
     backgrounds.statusbar = engineAPI.LoadPicFromWad('SBAR');
     backgrounds.inventorybar = engineAPI.LoadPicFromWad('IBAR');
     backgrounds.scorebar = engineAPI.LoadPicFromWad('SCOREBAR');
+    powerups.disc = engineAPI.LoadPicFromWad('DISC');
 
     faces.face_invis = engineAPI.LoadPicFromWad('FACE_INVIS');
     faces.face_invuln = engineAPI.LoadPicFromWad('FACE_INVUL2');
@@ -935,9 +1098,14 @@ export class Q1HUD {
       if (weapon.iconPrefix === 'INV') {
         weapon.icon = engineAPI.LoadPicFromWad(`INV2_${weapon.iconSuffix}`);
         weapon.iconInactive = engineAPI.LoadPicFromWad(`INV_${weapon.iconSuffix}`);
+        weapon.flashIcons.length = 0;
+        for (let flashFrame = 0; flashFrame < 5; flashFrame++) {
+          weapon.flashIcons.push(engineAPI.LoadPicFromWad(`INVA${flashFrame + 1}_${weapon.iconSuffix}`));
+        }
       } else {
         weapon.icon = engineAPI.LoadPicFromWad(`${weapon.iconPrefix}_${weapon.iconSuffix}`);
         weapon.iconInactive = weapon.icon; // no inactive icon for keys
+        weapon.flashIcons.length = 0;
       }
 
       weapon.iconWidth = expectTexture(weapon.icon, `${weapon.iconPrefix}_${weapon.iconSuffix}`).width;
@@ -964,6 +1132,10 @@ export class Q1HUD {
       addTexture(textures, texture);
     }
 
+    for (const texture of Object.values(powerups)) {
+      addTexture(textures, texture);
+    }
+
     for (const texture of Object.values(ammos)) {
       addTexture(textures, texture);
     }
@@ -985,8 +1157,12 @@ export class Q1HUD {
     for (const weapon of inventory) {
       addTexture(textures, weapon.icon);
       addTexture(textures, weapon.iconInactive);
+      for (const flashIcon of weapon.flashIcons) {
+        addTexture(textures, flashIcon);
+      }
       weapon.icon = null;
       weapon.iconInactive = null;
+      weapon.flashIcons.length = 0;
       weapon.iconWidth = 0;
     }
 
@@ -996,6 +1172,7 @@ export class Q1HUD {
 
     clearTextureGroup(backgrounds);
     clearTextureGroup(armors);
+    clearTextureGroup(powerups);
     clearTextureGroup(ammos);
     clearTextureGroup(labels);
 

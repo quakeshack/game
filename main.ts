@@ -1,4 +1,4 @@
-import type { GameModuleIdentification } from '../../engine/server/GameLoader.ts';
+import type { GameModuleIdentification } from '../../engine/common/GameModule.ts';
 
 import { gameCapabilities } from '../../shared/Defs.ts';
 import { ServerGameAPI } from './GameAPI.ts';
