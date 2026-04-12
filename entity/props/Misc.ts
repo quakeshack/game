@@ -1,4 +1,4 @@
-import { entity, serializable } from '../../helper/MiscHelpers.ts';
+import { serializableObject, serializable } from '../../helper/MiscHelpers.ts';
 import { NullEntity } from '../Misc.ts';
 
 /**
@@ -11,7 +11,7 @@ import { NullEntity } from '../Misc.ts';
  *  - fog_density - Density of the fog, as a float (e.g. "0.01")
  *  - fog_max_opacity - Maximum opacity of the fog, as a float between 0 and 1 (e.g. "0.8")
  */
-@entity
+@serializableObject
 export class FogEntity extends NullEntity {
   static classname = 'func_fog';
 

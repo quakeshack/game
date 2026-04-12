@@ -4,7 +4,7 @@ import Vector from '../../../../shared/Vector.ts';
 
 import { channel, colors, damage, moveType, solid } from '../../Defs.ts';
 import type { ServerGameAPI } from '../../GameAPI.ts';
-import { entity, serializable } from '../../helper/MiscHelpers.ts';
+import { serializableObject, serializable } from '../../helper/MiscHelpers.ts';
 import type BaseEntity from '../BaseEntity.ts';
 import { PlayerEntity } from '../Player.ts';
 import { DamageHandler } from '../Weapons.ts';
@@ -28,7 +28,7 @@ import BasePropEntity, { state } from './BasePropEntity.ts';
  * 2) metallic click
  * 3) in-out
  */
-@entity
+@serializableObject
 export class ButtonEntity extends BasePropEntity {
   static classname = 'func_button';
 

@@ -10,7 +10,7 @@ import { BaseClientEdictHandler } from '../../../shared/ClientEdict.ts';
 import Q from '../../../shared/Q.ts';
 import Vector from '../../../shared/Vector.ts';
 import { attn, content, damage, dead, effect, flags, moveType, solid, waterlevel } from '../Defs.ts';
-import { entity, serializable, Serializer } from '../helper/MiscHelpers.ts';
+import { serializableObject, serializable, Serializer, type SerializableRecord } from '../helper/MiscHelpers.ts';
 
 type ScheduledThinkCallback<T extends BaseEntity = BaseEntity> = (this: T, entity: T) => void;
 type TraceResult = ReturnType<ServerEngineAPI['Traceline']>;
@@ -38,7 +38,7 @@ export interface EntityStateDefinition<T extends BaseEntity = BaseEntity> {
 /**
  * Serializable scheduled think entry used by the BaseEntity think queue.
  */
-@entity
+@serializableObject
 class ScheduledThink {
   @serializable nextThink: number;
   @serializable callback: ScheduledThinkCallback;
@@ -62,7 +62,7 @@ class ScheduledThink {
  * can see what exists without reverse-engineering serializer side effects.
  * Legacy JS subclasses can still add fields in _declareFields() while the port is in flight.
  */
-@entity
+@serializableObject
 export default abstract class BaseEntity {
   /** The classname of the entity referenced by maps. Must be set. */
   public static classname: string;
@@ -230,6 +230,7 @@ export default abstract class BaseEntity {
   /**
    * Legacy JS hook for declaring subclass fields before spawn.
    * New TS subclasses should prefer typed class fields and static serializableFields.
+   * @deprecated Use serializer annotations instead and put your fields inside the class.
    */
   protected _declareFields(): void {
   }
@@ -856,10 +857,10 @@ export default abstract class BaseEntity {
   }
 
   serialize(): SerializedData {
-    return this._serializer.serialize() as unknown as SerializedData;
+    return this._serializer.serialize() as SerializedData;
   }
 
   deserialize(data: SerializedData): void {
-    this._serializer.deserialize(data as unknown as Record<string, ['X']>);
+    this._serializer.deserialize(data as SerializableRecord);
   }
 }

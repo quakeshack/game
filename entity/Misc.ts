@@ -4,7 +4,7 @@ import { BaseClientEdictHandler } from '../../../shared/ClientEdict.ts';
 import Vector from '../../../shared/Vector.ts';
 
 import { attn, channel, colors, content, damage, effect, moveType, solid, tentType, waterlevel } from '../Defs.ts';
-import { crandom, entity, serializable } from '../helper/MiscHelpers.ts';
+import { crandom, serializableObject, serializable } from '../helper/MiscHelpers.ts';
 import BaseEntity from './BaseEntity.ts';
 import BaseMonster from './monster/BaseMonster.ts';
 import { PlayerEntity } from './Player.ts';
@@ -15,7 +15,7 @@ import { DamageHandler, DamageInflictor, Explosions, Laser, Spike, Superspike } 
  * QUAKED info_null (0 0.5 0) (-4 -4 -4) (4 4 4)
  * Used as a positional target for spotlights, etc.
  */
-@entity
+@serializableObject
 export class NullEntity extends BaseEntity {
   static classname = 'info_null';
 
@@ -28,7 +28,7 @@ export class NullEntity extends BaseEntity {
  * QUAKED info_notnull (0 0.5 0) (-4 -4 -4) (4 4 4)
  * Used as a positional target for lightning.
  */
-@entity
+@serializableObject
 export class InfoNotNullEntity extends BaseEntity {
   static classname = 'info_notnull';
 }
@@ -37,7 +37,7 @@ export class InfoNotNullEntity extends BaseEntity {
  * Legacy alias used by some maps and editors for a persistent point target,
  * e.g. player statue in END.BSP.
  */
-@entity
+@serializableObject
 export class MiscNullEntity extends InfoNotNullEntity {
   static classname = 'misc_null';
 }
@@ -47,7 +47,7 @@ export class MiscNullEntity extends InfoNotNullEntity {
  * This is the camera point for the intermission.
  * Use mangle instead of angle, so you can set pitch or roll as well as yaw. 'pitch roll yaw'
  */
-@entity
+@serializableObject
 export class IntermissionCameraEntity extends BaseEntity {
   static classname = 'info_intermission';
 
@@ -58,7 +58,7 @@ export class IntermissionCameraEntity extends BaseEntity {
  * QUAKED viewthing (0 .5 .8) (-8 -8 -8) (8 8 8)
  * Just for the debugging level. Don't use.
  */
-@entity
+@serializableObject
 export class ViewthingEntity extends BaseEntity {
   static classname = 'viewthing';
 
@@ -73,7 +73,7 @@ export class ViewthingEntity extends BaseEntity {
   }
 }
 
-@entity
+@serializableObject
 export class BaseLightEntity extends BaseEntity {
   static START_OFF = 1;
 
@@ -110,7 +110,7 @@ export class BaseLightEntity extends BaseEntity {
  * Default style is 0.
  * If targeted, it will toggle between on or off.
  */
-@entity
+@serializableObject
 export class LightEntity extends BaseLightEntity {
   static classname = 'light';
 
@@ -140,7 +140,7 @@ export class LightEntity extends BaseLightEntity {
  * If targeted, it will toggle between on or off.
  * Makes steady fluorescent humming sound.
  */
-@entity
+@serializableObject
 export class LightFluoroEntity extends BaseLightEntity {
   static classname = 'light_fluoro';
 
@@ -161,7 +161,7 @@ export class LightFluoroEntity extends BaseLightEntity {
  * Default style is 10.
  * Makes sparking, broken fluorescent sound.
  */
-@entity
+@serializableObject
 export class LightFluorosparkEntity extends BaseLightEntity {
   static classname = 'light_fluorospark';
 
@@ -184,7 +184,7 @@ export class LightFluorosparkEntity extends BaseLightEntity {
  * Default light value is 300.
  * Default style is 0.
  */
-@entity
+@serializableObject
 export class LightGlobeEntity extends BaseLightEntity {
   static classname = 'light_globe';
 
@@ -202,7 +202,7 @@ export class LightGlobeEntity extends BaseLightEntity {
  * Disappears after 700 ms.
  * TODO: This could be a client-side effect instead of an entity.
  */
-@entity
+@serializableObject
 export class LightGlobeDynamicEntity extends BaseLightEntity {
   static classname = 'light_globe_dynamic';
 
@@ -224,7 +224,7 @@ export class LightGlobeDynamicEntity extends BaseLightEntity {
   }
 }
 
-@entity
+@serializableObject
 export class TorchLightEntity extends BaseLightEntity {
   protected override _precache(): void {
     this.engine.PrecacheModel('progs/flame.mdl');
@@ -245,7 +245,7 @@ export class TorchLightEntity extends BaseLightEntity {
  * Default light value is 200.
  * Default style is 0.
  */
-@entity
+@serializableObject
 export class SmallWalltorchLightEntity extends TorchLightEntity {
   static classname = 'light_torch_small_walltorch';
 
@@ -259,7 +259,7 @@ export class SmallWalltorchLightEntity extends TorchLightEntity {
  * QUAKED light_flame_large_yellow (0 1 0) (-10 -10 -12) (12 12 18)
  * Large yellow flame ball.
  */
-@entity
+@serializableObject
 export class YellowLargeFlameLightEntity extends TorchLightEntity {
   static classname = 'light_flame_large_yellow';
 
@@ -274,7 +274,7 @@ export class YellowLargeFlameLightEntity extends TorchLightEntity {
  * QUAKED light_flame_small_yellow (0 1 0) (-8 -8 -8) (8 8 8) START_OFF
  * Small yellow flame ball.
  */
-@entity
+@serializableObject
 export class YellowSmallFlameLightEntity extends TorchLightEntity {
   static classname = 'light_flame_small_yellow';
 
@@ -288,7 +288,7 @@ export class YellowSmallFlameLightEntity extends TorchLightEntity {
  * QUAKED light_flame_small_white (0 1 0) (-10 -10 -40) (10 10 40) START_OFF
  * Small white flame ball.
  */
-@entity
+@serializableObject
 export class WhiteSmallFlameLightEntity extends TorchLightEntity {
   static classname = 'light_flame_small_white';
 
@@ -298,7 +298,7 @@ export class WhiteSmallFlameLightEntity extends TorchLightEntity {
   }
 }
 
-@entity
+@serializableObject
 export class FireballEntity extends BaseEntity {
   static classname = 'misc_fireball_fireball';
 
@@ -351,7 +351,7 @@ export class FireballEntity extends BaseEntity {
  * QUAKED misc_fireball (0 .5 .8) (-8 -8 -8) (8 8 8)
  * Lava Balls.
  */
-@entity
+@serializableObject
 export class FireballSpawnerEntity extends BaseEntity {
   static classname = 'misc_fireball';
 
@@ -380,7 +380,7 @@ export class FireballSpawnerEntity extends BaseEntity {
   }
 }
 
-@entity
+@serializableObject
 export class DebugMarkerEntity extends BaseEntity {
   static classname = 'debug_marker';
 
@@ -412,7 +412,7 @@ export class DebugMarkerEntity extends BaseEntity {
   }
 }
 
-@entity
+@serializableObject
 export class BaseAmbientSound extends BaseEntity {
   static _sfxName: string | null = null;
   static _volume = 0;
@@ -438,70 +438,70 @@ export class BaseAmbientSound extends BaseEntity {
   }
 }
 
-@entity
+@serializableObject
 export class AmbientCompHum extends BaseAmbientSound {
   static classname = 'ambient_comp_hum';
   static _sfxName = 'ambience/comp1.wav';
   static _volume = 1.0;
 }
 
-@entity
+@serializableObject
 export class AmbientDrone extends BaseAmbientSound {
   static classname = 'ambient_drone';
   static _sfxName = 'ambience/drone6.wav';
   static _volume = 0.5;
 }
 
-@entity
+@serializableObject
 export class AmbientSuckWind extends BaseAmbientSound {
   static classname = 'ambient_suck_wind';
   static _sfxName = 'ambience/suck1.wav';
   static _volume = 1.0;
 }
 
-@entity
+@serializableObject
 export class AmbientFlouroBuzz extends BaseAmbientSound {
   static classname = 'ambient_flouro_buzz';
   static _sfxName = 'ambience/buzz1.wav';
   static _volume = 1.0;
 }
 
-@entity
+@serializableObject
 export class AmbientDrip extends BaseAmbientSound {
   static classname = 'ambient_drip';
   static _sfxName = 'ambience/drip1.wav';
   static _volume = 0.5;
 }
 
-@entity
+@serializableObject
 export class AmbientThunder extends BaseAmbientSound {
   static classname = 'ambient_thunder';
   static _sfxName = 'ambience/thunder1.wav';
   static _volume = 0.5;
 }
 
-@entity
+@serializableObject
 export class AmbientLightBuzz extends BaseAmbientSound {
   static classname = 'ambient_light_buzz';
   static _sfxName = 'ambience/fl_hum1.wav';
   static _volume = 0.5;
 }
 
-@entity
+@serializableObject
 export class AmbientSwamp1 extends BaseAmbientSound {
   static classname = 'ambient_swamp1';
   static _sfxName = 'ambience/swamp1.wav';
   static _volume = 0.5;
 }
 
-@entity
+@serializableObject
 export class AmbientSwamp2 extends BaseAmbientSound {
   static classname = 'ambient_swamp2';
   static _sfxName = 'ambience/swamp2.wav';
   static _volume = 0.5;
 }
 
-@entity
+@serializableObject
 export class BaseWallEntity extends BaseEntity {
   override use(_usedByEntity: BaseEntity): void {
     this.frame = 1 - this.frame;
@@ -525,7 +525,7 @@ export class BaseWallEntity extends BaseEntity {
  * QUAKED func_wall (0 .5 .8) ?
  * This is just a solid wall if not inhibited.
  */
-@entity
+@serializableObject
 export class WallEntity extends BaseWallEntity {
   static classname = 'func_wall';
 }
@@ -534,7 +534,7 @@ export class WallEntity extends BaseWallEntity {
  * QUAKED func_illusionary (0 .5 .8) ?
  * A simple entity that looks solid but lets you walk through it.
  */
-@entity
+@serializableObject
 export class IllusionaryWallEntity extends BaseWallEntity {
   static classname = 'func_illusionary';
 
@@ -557,7 +557,7 @@ export class IllusionaryWallEntity extends BaseWallEntity {
  * This bmodel will appear if the episode has already been completed,
  * so players can't reenter it.
  */
-@entity
+@serializableObject
 export class EpisodegateWallEntity extends BaseWallEntity {
   static classname = 'func_episodegate';
 
@@ -575,7 +575,7 @@ export class EpisodegateWallEntity extends BaseWallEntity {
  * QUAKED func_bossgate (0 .5 .8) ?
  * This bmodel appears unless players have all of the episode sigils.
  */
-@entity
+@serializableObject
 export class BossgateWallEntity extends BaseWallEntity {
   static classname = 'func_bossgate';
 
@@ -592,7 +592,7 @@ export class BossgateWallEntity extends BaseWallEntity {
 /**
  * Ephemeral teleport fog effect.
  */
-@entity
+@serializableObject
 export class TeleportEffectEntity extends BaseEntity {
   static classname = 'misc_tfog';
 
@@ -618,7 +618,7 @@ export class TeleportEffectEntity extends BaseEntity {
   }
 }
 
-@entity
+@serializableObject
 export class BaseBarrelEntity extends BaseEntity {
   static _model: string | null = null;
   static _noise: string | null = null;
@@ -695,7 +695,7 @@ export class BaseBarrelEntity extends BaseEntity {
 /**
  * QUAKED misc_explobox (0 .5 .8) (0 0 0) (32 32 64)
  */
-@entity
+@serializableObject
 export class BarrelEntity extends BaseBarrelEntity {
   static classname = 'misc_explobox';
   static _model = 'maps/b_explob.bsp';
@@ -706,7 +706,7 @@ export class BarrelEntity extends BaseBarrelEntity {
  * QUAKED misc_explobox2 (0 .5 .8) (0 0 0) (32 32 64)
  * Smaller exploding box, REGISTERED ONLY.
  */
-@entity
+@serializableObject
 export class SmallBarrelEntity extends BaseBarrelEntity {
   static classname = 'misc_explobox2';
   static _model = 'maps/b_explob.bsp';
@@ -717,7 +717,7 @@ export class SmallBarrelEntity extends BaseBarrelEntity {
  * QUAKED path_corner (0.5 0.3 0) (-8 -8 -8) (8 8 8)
  * Monsters will continue walking towards the next target corner.
  */
-@entity
+@serializableObject
 export class PathCornerEntity extends BaseEntity {
   static classname = 'path_corner';
 
@@ -754,7 +754,7 @@ export class PathCornerEntity extends BaseEntity {
  * When triggered, fires a spike in the direction set in QuakeEd.
  * Laser is only for REGISTERED.
  */
-@entity
+@serializableObject
 export class TrapSpikeshooterEntity extends BaseEntity {
   static classname = 'trap_spikeshooter';
 
@@ -810,7 +810,7 @@ export class TrapSpikeshooterEntity extends BaseEntity {
  * "wait" time between spikes (1.0 default).
  * "nextthink" delay before firing first spike, so multiple shooters can be staggered.
  */
-@entity
+@serializableObject
 export class TrapShooterEntity extends TrapSpikeshooterEntity {
   static classname = 'trap_shooter';
 
@@ -833,7 +833,7 @@ export class TrapShooterEntity extends TrapSpikeshooterEntity {
  * Do not place this inside the map, use the static bubble() function instead.
  * For use inside the map, use air_bubbles instead.
  */
-@entity
+@serializableObject
 export class BubbleSpawnerEntity extends BaseEntity {
   static classname = 'misc_bubble_spawner';
 
@@ -881,7 +881,7 @@ export class BubbleSpawnerEntity extends BaseEntity {
  * QUAKED air_bubbles (0 .5 .8) (-8 -8 -8) (8 8 8)
  * Testing air bubbles.
  */
-@entity
+@serializableObject
 export class StaticBubbleSpawnerEntity extends BubbleSpawnerEntity {
   static classname = 'air_bubbles';
 
@@ -897,7 +897,7 @@ export class StaticBubbleSpawnerEntity extends BubbleSpawnerEntity {
   }
 }
 
-@entity
+@serializableObject
 export class BubbleEntity extends BaseEntity {
   static classname = 'misc_bubble';
 
@@ -970,7 +970,7 @@ export class BubbleEntity extends BaseEntity {
  * Set the "model" field to the path of the model to use.
  * Its mesh will be used for collision.
  */
-@entity
+@serializableObject
 export class MiscModelEntity extends BaseEntity {
   static classname = 'misc_model';
 

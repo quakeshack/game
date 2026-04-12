@@ -163,18 +163,32 @@ export enum decals {
 
 /**
  * Client event opcodes emitted by the game code.
+ * Custom client events should use opcodes above 100 to avoid conflicts with built-in events.
  */
 export enum clientEvent {
+  /** brief HUD bonus flash (void) */
   BONUS_FLASH = 1,
+  /** HUD damage flash (void) @deprecated use DAMAGE_RECEIVED instead */
   DAMAGE_FLASH = 2,
+  /** stats updated (slot: string, value: number, sourceEdict?: ServerEdict|number) */
   STATS_UPDATED = 3,
+  /** stats initialized (slot: string, value: number) */
   STATS_INIT = 4,
+  /** notify item pick up (itemEntity: object|null, itemNames: string[], netname: string|null, pickupItems: number) */
   ITEM_PICKED = 5,
+  /** change the active weapon (weapon: number) */
   WEAPON_SELECTED = 6,
+  /** report a player kill (victimEdictId: number|null, attackerEdictId: number|null, weapon: number, items: number) */
   OBITUARY = 7,
+  /** start intermission (message: string|null, origin: Vector, angles: Vector) */
   INTERMISSION_START = 8,
+  /** place a decal (origin: Vector, normal: Vector, texture: decals) */
   EMIT_DECAL = 9,
-  DAMAGE_RECEIVED = 99,
+  /** arbitrary HUD message (message: string, color: Vector, duration: number) */
+  HUD_MESSAGE = 10,
+  /** damage received (damageReceived: number, armorLost: number, attackOrigin: Vector) */
+  DAMAGE_RECEIVED = 11,
+  /** test hook; arbitrary arguments (any...) */
   TEST_EVENT = 254,
 }
 

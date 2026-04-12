@@ -24,7 +24,7 @@ import * as item from './entity/Items.ts';
 import BaseEntity from './entity/BaseEntity.ts';
 import * as weapon from './entity/Weapons.ts';
 import DogMonsterEntity from './entity/monster/Dog.ts';
-import { entity, serializable, Serializer, type SerializableRecord } from './helper/MiscHelpers.ts';
+import { serializableObject, serializable, Serializer, type SerializableRecord } from './helper/MiscHelpers.ts';
 import DemonMonster from './entity/monster/Demon.ts';
 import { MeatSprayEntity } from './entity/monster/BaseMonster.ts';
 import ZombieMonster, { ZombieGibGrenade } from './entity/monster/Zombie.ts';
@@ -197,7 +197,7 @@ export const entityClasses: readonly EntityClass[] = [
   miscProps.FogEntity,
 ];
 
-@entity
+@serializableObject
 export class ServerGameAPI {
   static _entityRegistry: EntityRegistry = new EntityRegistry(entityClasses);
 

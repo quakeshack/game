@@ -3,7 +3,7 @@ import type { ServerGameAPI } from '../GameAPI.ts';
 import type BaseEntity from '../entity/BaseEntity.ts';
 
 import { clientEvent } from '../Defs.ts';
-import { entity, serializable, Serializer } from './MiscHelpers.ts';
+import { serializableObject, serializable, Serializer } from './MiscHelpers.ts';
 
 export const gameStatSlots = [
   'monsters_total',
@@ -22,7 +22,7 @@ export interface GameStatsRecipient {
  * Tracks per-level monster and secret statistics and mirrors them to clients.
  * Keep the client-side sync code aligned with these slots.
  */
-@entity
+@serializableObject
 export default class GameStats {
   readonly game: ServerGameAPI;
   readonly engine: ServerEngineAPI;

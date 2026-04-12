@@ -85,24 +85,31 @@ void describe('id1 client HUD state', () => {
     const hud = new Q1HUD(game, engine);
 
     hud.init();
-    hud.loadState({
-      damage: {
-        time: 4,
-        attackOrigin: [1, 2, 3],
-        damageReceived: 9,
-      },
-      intermission: {
-        running: true,
-        message: 'Episode complete',
-        mapCompletedTime: 17,
-      },
-      stats: {
-        monsters_total: 10,
-        monsters_killed: 7,
-        secrets_total: 5,
-        secrets_found: 4,
-      },
-    });
+    hud.damage.time = 4;
+    hud.damage.attackOrigin = new Vector(1, 2, 3);
+    hud.damage.damageReceived = 9;
+    hud.intermission.running = true;
+    hud.intermission.message = 'Episode complete';
+    hud.intermission.mapCompletedTime = 17;
+    hud.stats.monsters_total = 10;
+    hud.stats.monsters_killed = 7;
+    hud.stats.secrets_total = 5;
+    hud.stats.secrets_found = 4;
+
+    const savedState = hud.saveState();
+
+    hud.damage.time = 0;
+    hud.damage.attackOrigin = new Vector();
+    hud.damage.damageReceived = 0;
+    hud.intermission.running = false;
+    hud.intermission.message = null;
+    hud.intermission.mapCompletedTime = 0;
+    hud.stats.monsters_total = 0;
+    hud.stats.monsters_killed = 0;
+    hud.stats.secrets_total = 0;
+    hud.stats.secrets_found = 0;
+
+    hud.loadState(savedState);
 
     assert.ok(hud.damage.attackOrigin instanceof Vector);
     assert.deepEqual(Array.from(hud.damage.attackOrigin), [1, 2, 3]);

@@ -2,14 +2,14 @@ import Vector from '../../../../shared/Vector.ts';
 
 import { channel, damage, flags, moveType, tentType } from '../../Defs.ts';
 import { QuakeEntityAI } from '../../helper/AI.ts';
-import { entity, serializable } from '../../helper/MiscHelpers.ts';
+import { serializableObject, serializable } from '../../helper/MiscHelpers.ts';
 import type BaseEntity from '../BaseEntity.ts';
 import { DamageInflictor } from '../Weapons.ts';
 import { WalkMonster } from './BaseMonster.ts';
 
 type TarbabyTouchState = 'normal' | 'jumping';
 
-@entity
+@serializableObject
 export default class TarbabyMonsterEntity extends WalkMonster {
   static classname = 'monster_tarbaby';
   static _modelDefault = 'progs/tarbaby.mdl';

@@ -1,7 +1,7 @@
 import Vector from '../../../shared/Vector.ts';
 
 import { channel, moveType, solid } from '../Defs.ts';
-import { EntityWrapper, Serializer, entity, serializable } from '../helper/MiscHelpers.ts';
+import { EntityWrapper, Serializer, serializableObject, serializable } from '../helper/MiscHelpers.ts';
 import BaseEntity from './BaseEntity.ts';
 import { PlayerEntity } from './Player.ts';
 
@@ -33,7 +33,7 @@ export { TriggerFieldFlag as triggerFieldFlags };
  * Special entity that will trigger a linked entity's use method when touched.
  * Use flags and {triggerFieldFlags} to adjust behavior.
  */
-@entity
+@serializableObject
 export class TriggerFieldEntity extends BaseEntity {
   static classname = 'subs_triggerfield';
 
@@ -90,7 +90,7 @@ export class TriggerFieldEntity extends BaseEntity {
  * Special entity that will trigger a linked entity's useTargets method after a delay.
  * You do not have to spawn this yourself, it will be done by useTargets when a delay is set.
  */
-@entity
+@serializableObject
 export class DelayedThinkEntity extends BaseEntity {
   static classname = 'subs_delayedthink';
 
@@ -129,30 +129,27 @@ export class DelayedThinkEntity extends BaseEntity {
  * - delayed interactions
  * - optional triggers upon use
  */
+@serializableObject
 export class Sub<T extends BaseEntity = BaseEntity> extends EntityWrapper<T> {
   readonly _serializer: Serializer<Sub<T>>;
-  _moveData: SubMoveData;
-  _useData: SubUseData;
+  @serializable _moveData: SubMoveData;
+  @serializable _useData: SubUseData;
 
   constructor(entity: T) {
     super(entity);
 
     this._serializer = new Serializer(this, this._engine);
 
-    this._moveData = {
+    this._moveData = Serializer.makeSerializableObject({
       finalOrigin: null,
       finalAngle: null,
       callback: null,
       active: false,
-    };
+    } as SubMoveData, this._engine);
 
-    Serializer.makeSerializable(this._moveData, this._engine);
-
-    this._useData = {
+    this._useData = Serializer.makeSerializableObject({
       callback: null,
-    };
-
-    Serializer.makeSerializable(this._useData, this._engine);
+    } as SubUseData, this._engine);
 
     this.reset();
   }

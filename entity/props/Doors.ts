@@ -5,7 +5,7 @@ import type BaseEntity from '../BaseEntity.ts';
 import Vector from '../../../../shared/Vector.ts';
 
 import { attn, channel, colors, damage, items, moveType, solid, worldType } from '../../Defs.ts';
-import { entity, serializable } from '../../helper/MiscHelpers.ts';
+import { serializableObject, serializable } from '../../helper/MiscHelpers.ts';
 import { itemNames } from '../Items.ts';
 import { PlayerEntity } from '../Player.ts';
 import { TriggerFieldEntity } from '../Subs.ts';
@@ -38,7 +38,7 @@ export enum DoorFlag {
 
 export { DoorFlag as flag };
 
-@entity
+@serializableObject
 export abstract class BaseDoorEntity extends BasePropEntity {
   @serializable _linkedDoor: BaseDoorEntity | null = null;
   @serializable _triggerField: BaseEntity | null = null;
@@ -330,7 +330,7 @@ export abstract class BaseDoorEntity extends BasePropEntity {
  * 3) stone chain
  * 4) screechy metal
  */
-@entity
+@serializableObject
 export class DoorEntity extends BaseDoorEntity {
   static classname = 'func_door';
 
@@ -556,7 +556,7 @@ export class DoorEntity extends BaseDoorEntity {
  * 2) metal
  * 3) base
  */
-@entity
+@serializableObject
 export class SecretDoorEntity extends BaseDoorEntity {
   static classname = 'func_door_secret';
 

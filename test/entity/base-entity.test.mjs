@@ -2,7 +2,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import BaseEntity from '../../entity/BaseEntity.ts';
-import { entity, serializable, Serializer } from '../../helper/MiscHelpers.ts';
+import { serializableObject, serializable, Serializer } from '../../helper/MiscHelpers.ts';
 
 /**
  * Create the minimal game API surface required by serializer tests.
@@ -38,53 +38,6 @@ void describe('Serializer', () => {
     });
   });
 
-  void test('still supports legacy startFields/endFields callers', () => {
-    class LegacySerializable {
-      constructor() {
-        this._serializer = new Serializer(this, null);
-        this._serializer.startFields();
-        this.name = 'legacy';
-        this.enabled = true;
-        this._serializer.endFields();
-      }
-    }
-
-    const instance = new LegacySerializable();
-
-    assert.deepEqual(instance._serializer.serialize(), {
-      enabled: ['P', true],
-      name: ['P', 'legacy'],
-    });
-  });
-});
-
-void describe('BaseEntity', () => {
-  void test('stays extensible for mod-friendly subclasses during the transition', () => {
-    class ModFriendlyEntity extends BaseEntity {
-      static classname = 'mod_friendly';
-
-      _declareFields() {
-        super._declareFields();
-        this._serializer.startFields();
-        this.customField = 42;
-        this._serializer.endFields();
-      }
-
-      constructor(gameAPI) {
-        super(null, gameAPI);
-        this.postConstructorField = 'works';
-      }
-    }
-
-    const entity = new ModFriendlyEntity(createMockGameAPI()).initializeEntity();
-
-    assert.equal(Object.isSealed(entity), false);
-    assert.equal(entity.customField, 42);
-    assert.equal(entity.postConstructorField, 'works');
-
-    entity.extraField = 'mods stay easy';
-    assert.equal(entity.extraField, 'mods stay easy');
-  });
 });
 
 void describe('@entity / @serializable decorators', () => {
@@ -124,7 +77,7 @@ void describe('@entity / @serializable decorators', () => {
   });
 
   void test('entity and serializable are exported functions', () => {
-    assert.equal(typeof entity, 'function');
+    assert.equal(typeof serializableObject, 'function');
     assert.equal(typeof serializable, 'function');
   });
 

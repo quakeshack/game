@@ -5,7 +5,7 @@ import Vector from '../../../shared/Vector.ts';
 import { damage, effect, flags, items, range } from '../Defs.ts';
 import BaseEntity from '../entity/BaseEntity.ts';
 import type BaseMonster from '../entity/monster/BaseMonster.ts';
-import { entity, EntityWrapper, serializable, Serializer } from './MiscHelpers.ts';
+import { serializableObject, EntityWrapper, serializable, Serializer } from './MiscHelpers.ts';
 
 type CombatTarget = MonsterActor | PlayerActor;
 
@@ -280,7 +280,7 @@ export enum ATTACK_STATE {
   AS_MISSILE = 4,
 }
 
-@entity
+@serializableObject
 class EnemyMetadata {
   readonly _serializer: Serializer<EnemyMetadata>;
 
@@ -309,7 +309,7 @@ class EnemyMetadata {
 /**
  * Entity-local AI state based on original Quake behavior.
  */
-@entity
+@serializableObject
 export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI<T> {
   readonly _serializer: Serializer<QuakeEntityAI<T>>;
 

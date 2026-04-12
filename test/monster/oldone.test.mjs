@@ -183,7 +183,7 @@ void describe('OldOneMonster QC fixes', () => {
     oldOne.spawn();
 
     assert.equal(oldOne.movetype, moveType.MOVETYPE_STEP);
-    assert.equal(oldOne.solid, solid.SOLID_SLIDEBOX);
+    assert.equal(oldOne.solid, solid.SOLID_MESH);
     assert.equal(oldOne.health, 40000);
     assert.equal(oldOne.takedamage, damage.DAMAGE_YES);
     assert.equal(stateName, 'old_idle1');

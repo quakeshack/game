@@ -3,7 +3,7 @@ import type { ServerEngineAPI } from '../../../shared/GameInterfaces.ts';
 import Vector from '../../../shared/Vector.ts';
 
 import { channel, clientEvent, flags, items, moveType, solid, tentType, worldType } from '../Defs.ts';
-import { entity, serializable } from '../helper/MiscHelpers.ts';
+import { serializableObject, serializable } from '../helper/MiscHelpers.ts';
 import BaseEntity from './BaseEntity.ts';
 import { PlayerEntity as RuntimePlayerEntity } from './Player.ts';
 import type { PlayerEntity } from './Player.ts';
@@ -30,7 +30,8 @@ const itemFlags = Object.values(items).filter((value): value is items => typeof 
 // - armor: 20s
 // - ammo: 30s
 
-const WEAPON_BIG2 = 1;
+/** spawnflag for some items allowing larger ammo */
+export const WEAPON_BIG2 = 1;
 
 /**
  * maps item to a string
@@ -54,7 +55,7 @@ export const itemNames: Readonly<Record<number, string>> = {
   [items.IT_KEY2]: 'Gold Key',
 };
 
-@entity
+@serializableObject
 export abstract class BaseItemEntity extends BaseEntity {
   @serializable ammo_shells = 0;
   @serializable ammo_nails = 0;
@@ -156,6 +157,10 @@ export abstract class BaseItemEntity extends BaseEntity {
     player.startSound(channel.CHAN_ITEM, this.noise);
     player.dispatchExpeditedEvent(clientEvent.ITEM_PICKED, this.edict, collectedItems, this.netname, this.items);
 
+    if (this.message !== null) {
+      player.dispatchExpeditedEvent(clientEvent.HUD_MESSAGE, this.message, new Vector(1.0, 1.0, 1.0), 3.0);
+    }
+
     this._afterTouch(player);
   }
 
@@ -186,7 +191,7 @@ export abstract class BaseItemEntity extends BaseEntity {
  *
  * A backpack can contain a bunch of items as well as ammo.
  */
-@entity
+@serializableObject
 export class BackpackEntity extends BaseItemEntity {
   static classname = 'item_backpack';
 
@@ -231,7 +236,7 @@ export class BackpackEntity extends BaseItemEntity {
   }
 }
 
-@entity
+@serializableObject
 export abstract class BaseAmmoEntity extends BaseItemEntity {
   /** model set, when WEAPON_BIG2 is not set */
   static _model: string | null = null;
@@ -288,7 +293,7 @@ export abstract class BaseAmmoEntity extends BaseItemEntity {
 /**
  * QUAKED item_shells (0 .5 .8) (0 0 0) (32 32 32) big
  */
-@entity
+@serializableObject
 export class ItemShellsEntity extends BaseAmmoEntity {
   static classname = 'item_shells';
 
@@ -328,7 +333,7 @@ export class ItemShellsEntity extends BaseAmmoEntity {
 /**
  * QUAKED item_spikes (0 .5 .8) (0 0 0) (32 32 32) big
  */
-@entity
+@serializableObject
 export class ItemSpikesEntity extends BaseAmmoEntity {
   static classname = 'item_spikes';
 
@@ -368,7 +373,7 @@ export class ItemSpikesEntity extends BaseAmmoEntity {
 /**
  * QUAKED item_rockets (0 .5 .8) (0 0 0) (32 32 32) big
  */
-@entity
+@serializableObject
 export class ItemRocketsEntity extends BaseAmmoEntity {
   static classname = 'item_rockets';
 
@@ -396,7 +401,7 @@ export class ItemRocketsEntity extends BaseAmmoEntity {
 /**
  * QUAKED item_cells (0 .5 .8) (0 0 0) (32 32 32) big
  */
-@entity
+@serializableObject
 export class ItemCellsEntity extends BaseAmmoEntity {
   static classname = 'item_cells';
 
@@ -421,7 +426,7 @@ export class ItemCellsEntity extends BaseAmmoEntity {
   }
 }
 
-@entity
+@serializableObject
 export abstract class BaseKeyEntity extends BaseItemEntity {
   static _item = 0;
 
@@ -516,7 +521,7 @@ export abstract class BaseKeyEntity extends BaseItemEntity {
  * 1: metal
  * 2: base
  */
-@entity
+@serializableObject
 export class SilverKeyEntity extends BaseKeyEntity {
   static classname = 'item_key1';
 
@@ -546,7 +551,7 @@ export class SilverKeyEntity extends BaseKeyEntity {
  * 1: metal
  * 2: base
  */
-@entity
+@serializableObject
 export class GoldKeyEntity extends BaseKeyEntity {
   static classname = 'item_key2';
 
@@ -565,7 +570,7 @@ export class GoldKeyEntity extends BaseKeyEntity {
   };
 }
 
-@entity
+@serializableObject
 export abstract class BaseArtifactEntity extends BaseItemEntity {
   static _item = 0;
   static _regenerationTime = 60;
@@ -624,7 +629,7 @@ export abstract class BaseArtifactEntity extends BaseItemEntity {
  * QUAKED item_artifact_invulnerability (0 .5 .8) (-16 -16 -24) (16 16 32)
  * Player is invulnerable for 30 seconds
  */
-@entity
+@serializableObject
 export class InvulnerabilityEntity extends BaseArtifactEntity {
   static classname = 'item_artifact_invulnerability';
 
@@ -652,7 +657,7 @@ export class InvulnerabilityEntity extends BaseArtifactEntity {
  * QUAKED item_artifact_invisibility (0 .5 .8) (-16 -16 -24) (16 16 32)
  * Player is invisible for 30 seconds
  */
-@entity
+@serializableObject
 export class InvisibilityEntity extends BaseArtifactEntity {
   static classname = 'item_artifact_invisibility';
 
@@ -680,7 +685,7 @@ export class InvisibilityEntity extends BaseArtifactEntity {
  * QUAKED item_artifact_envirosuit (0 .5 .8) (-16 -16 -24) (16 16 32)
  * Player takes no damage from water or slime for 30 seconds
  */
-@entity
+@serializableObject
 export class RadsuitEntity extends BaseArtifactEntity {
   static classname = 'item_artifact_envirosuit';
 
@@ -705,7 +710,7 @@ export class RadsuitEntity extends BaseArtifactEntity {
  * QUAKED item_artifact_super_damage (0 .5 .8) (-16 -16 -24) (16 16 32)
  * The next attack from the player will do 4x damage
  */
-@entity
+@serializableObject
 export class SuperDamageEntity extends BaseArtifactEntity {
   static classname = 'item_artifact_super_damage';
 
@@ -731,7 +736,7 @@ export class SuperDamageEntity extends BaseArtifactEntity {
  * QUAKED item_sigil (0 .5 .8) (-16 -16 -24) (16 16 32) E1 E2 E3 E4
  * End of level sigil, pick up to end episode and return to jrstart.
  */
-@entity
+@serializableObject
 export class SigilEntity extends BaseItemEntity {
   static classname = 'item_sigil';
 
@@ -813,7 +818,7 @@ export class SigilEntity extends BaseItemEntity {
  * rot you down to your maximum health limit,
  * one point per second.
  */
-@entity
+@serializableObject
 export class HealthItemEntity extends BaseItemEntity {
   static classname = 'item_health';
 
@@ -932,7 +937,7 @@ export class HealthItemEntity extends BaseItemEntity {
   }
 }
 
-@entity
+@serializableObject
 export abstract class BaseArmorEntity extends BaseItemEntity {
   static _armortype = 0;
   static _armorvalue = 0;
@@ -984,7 +989,7 @@ export abstract class BaseArmorEntity extends BaseItemEntity {
 /**
  * QUAKED item_armor1 (0 .5 .8) (-16 -16 0) (16 16 32)
  */
-@entity
+@serializableObject
 export class LightArmorEntity extends BaseArmorEntity {
   static classname = 'item_armor1';
 
@@ -997,7 +1002,7 @@ export class LightArmorEntity extends BaseArmorEntity {
 /**
  * QUAKED item_armor2 (0 .5 .8) (-16 -16 0) (16 16 32)
  */
-@entity
+@serializableObject
 export class StrongArmorEntity extends BaseArmorEntity {
   static classname = 'item_armor2';
 
@@ -1010,7 +1015,7 @@ export class StrongArmorEntity extends BaseArmorEntity {
 /**
  * QUAKED item_armorInv (0 .5 .8) (-16 -16 0) (16 16 32)
  */
-@entity
+@serializableObject
 export class HeavyArmorEntity extends BaseArmorEntity {
   static classname = 'item_armorInv';
 
@@ -1020,7 +1025,7 @@ export class HeavyArmorEntity extends BaseArmorEntity {
   static _skin = 2;
 }
 
-@entity
+@serializableObject
 export abstract class BaseWeaponEntity extends BaseItemEntity {
   static _model: string | null = null;
   static _weapon: items | 0 = 0;
@@ -1062,7 +1067,7 @@ export abstract class BaseWeaponEntity extends BaseItemEntity {
 /**
  * QUAKED weapon_supershotgun (0 .5 .8) (-16 -16 0) (16 16 32)
  */
-@entity
+@serializableObject
 export class WeaponSuperShotgun extends BaseWeaponEntity {
   static classname = 'weapon_supershotgun';
 
@@ -1078,7 +1083,7 @@ export class WeaponSuperShotgun extends BaseWeaponEntity {
 /**
  * QUAKED weapon_nailgun (0 .5 .8) (-16 -16 0) (16 16 32)
  */
-@entity
+@serializableObject
 export class WeaponNailgun extends BaseWeaponEntity {
   static classname = 'weapon_nailgun';
 
@@ -1094,7 +1099,7 @@ export class WeaponNailgun extends BaseWeaponEntity {
 /**
  * QUAKED weapon_supernailgun (0 .5 .8) (-16 -16 0) (16 16 32)
  */
-@entity
+@serializableObject
 export class WeaponSuperNailgun extends BaseWeaponEntity {
   static classname = 'weapon_supernailgun';
 
@@ -1110,7 +1115,7 @@ export class WeaponSuperNailgun extends BaseWeaponEntity {
 /**
  * QUAKED weapon_grenadelauncher (0 .5 .8) (-16 -16 0) (16 16 32)
  */
-@entity
+@serializableObject
 export class WeaponGrenadeLauncher extends BaseWeaponEntity {
   static classname = 'weapon_grenadelauncher';
 
@@ -1126,7 +1131,7 @@ export class WeaponGrenadeLauncher extends BaseWeaponEntity {
 /**
  * QUAKED weapon_rocketlauncher (0 .5 .8) (-16 -16 0) (16 16 32)
  */
-@entity
+@serializableObject
 export class WeaponRocketLauncher extends BaseWeaponEntity {
   static classname = 'weapon_rocketlauncher';
 
@@ -1142,7 +1147,7 @@ export class WeaponRocketLauncher extends BaseWeaponEntity {
 /**
  * QUAKED weapon_lightning (0 .5 .8) (-16 -16 0) (16 16 32)
  */
-@entity
+@serializableObject
 export class WeaponThunderbolt extends BaseWeaponEntity {
   static classname = 'weapon_lightning';
 

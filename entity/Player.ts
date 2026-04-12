@@ -5,7 +5,7 @@ import Vector from '../../../shared/Vector.ts';
 
 import { attn, channel, clientEvent, colors, content, damage, dead, deathType, effect, flags, hull, items, moveType, solid, waterlevel } from '../Defs.ts';
 import { featureFlags } from '../GameAPI.ts';
-import { crandom, entity, serializable, Serializer } from '../helper/MiscHelpers.ts';
+import { crandom, serializableObject, serializable, Serializer } from '../helper/MiscHelpers.ts';
 import BaseEntity from './BaseEntity.ts';
 import { BackpackEntity } from './Items.ts';
 import { BubbleSpawnerEntity, InfoNotNullEntity, IntermissionCameraEntity, TeleportEffectEntity } from './Misc.ts';
@@ -102,7 +102,7 @@ export class InfoPlayerStartCoop extends InfoNotNullEntity {
   static classname = 'info_player_coop';
 }
 
-@entity
+@serializableObject
 export class PlayerEntity extends BaseEntity implements PlayerEntitySpawnParamsDynamic {
   static classname = 'player';
 
@@ -339,7 +339,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
   @serializable invincible_finished = 0;
 
   /** Next invincibility sound time per attacking entity. */
-  @serializable invincible_sound_time: InvincibleSoundTimeMap = {};
+  @serializable invincible_sound_time: InvincibleSoundTimeMap = {}; // FIXME: needs to be a Map, otherwise save/load will not work with this
 
   /** Time for the next quad damage sound tick while firing. */
   @serializable super_sound = 0;
@@ -372,7 +372,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
   @serializable protected _damageTime = 0;
 
   /** Cached model indices for the normal player model and invisibility eyes. */
-  @serializable protected _modelIndex: ModelIndexSet = { player: null, eyes: null };
+  @serializable protected _modelIndex: ModelIndexSet = Serializer.makeSerializableObject({ player: null, eyes: null }, this.engine);
 
   private get _requiredEdict(): ServerEdict {
     const edict = this.edict;
@@ -398,8 +398,6 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     Serializer.makeSerializable(this.invincible_sound_time, this.engine);
     this.clientdataFields = [...(this.constructor as typeof PlayerEntity).clientdataFields];
 
-    this._modelIndex = { player: null, eyes: null };
-    Serializer.makeSerializable(this._modelIndex, this.engine);
     this._damageHandler = new DamageHandler(this);
   }
 
@@ -2160,7 +2158,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
   }
 }
 
-@entity
+@serializableObject
 export class TelefragTriggerEntity extends BaseEntity {
   static classname = 'misc_teledeath';
 
@@ -2195,7 +2193,7 @@ export class TelefragTriggerEntity extends BaseEntity {
   }
 }
 
-@entity
+@serializableObject
 export class GibEntity extends BaseEntity {
   static classname = 'misc_gib';
 

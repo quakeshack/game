@@ -2,7 +2,7 @@ import Vector from '../../../../shared/Vector.ts';
 
 import { attn, channel, range, solid } from '../../Defs.ts';
 import { ATTACK_STATE, QuakeEntityAI } from '../../helper/AI.ts';
-import { entity } from '../../helper/MiscHelpers.ts';
+import { serializableObject } from '../../helper/MiscHelpers.ts';
 import BaseEntity from '../BaseEntity.ts';
 import { SwimMonster } from './BaseMonster.ts';
 
@@ -11,7 +11,7 @@ import { SwimMonster } from './BaseMonster.ts';
  *
  * Rotfish — an underwater melee-only monster.
  */
-@entity
+@serializableObject
 export default class FishMonsterEntity extends SwimMonster {
   static classname = 'monster_fish';
   static _health = 25;

@@ -1,7 +1,7 @@
 import Vector from '../../../shared/Vector.ts';
 
 import { attn, channel, damage, flags, moveType, solid } from '../Defs.ts';
-import { entity, serializable } from '../helper/MiscHelpers.ts';
+import { serializableObject, serializable } from '../helper/MiscHelpers.ts';
 import BaseEntity from './BaseEntity.ts';
 import { TeleportEffectEntity } from './Misc.ts';
 import { PlayerEntity, TelefragTriggerEntity } from './Player.ts';
@@ -9,7 +9,7 @@ import { TeleportTrainEntity } from './props/Platforms.ts';
 import { Sub } from './Subs.ts';
 import { DamageHandler } from './Weapons.ts';
 
-@entity
+@serializableObject
 export class BaseTriggerEntity extends BaseEntity {
   /** @protected */
   protected static readonly _sounds = [null, 'misc/secret.wav', 'misc/talk.wav', 'misc/trigger1.wav'] as const;
@@ -71,7 +71,7 @@ export class BaseTriggerEntity extends BaseEntity {
  * This fixed size trigger cannot be touched, it can only be fired by other events.
  * It can contain killtargets, targets, delays, and messages.
  */
-@entity
+@serializableObject
 export class RelayTriggerEntity extends BaseTriggerEntity {
   static classname = 'trigger_relay';
 
@@ -101,7 +101,7 @@ export class RelayTriggerEntity extends BaseTriggerEntity {
  * 4)
  * set "message" to text string
  */
-@entity
+@serializableObject
 export class MultipleTriggerEntity extends BaseTriggerEntity {
   static classname = 'trigger_multiple';
 
@@ -210,7 +210,7 @@ export class MultipleTriggerEntity extends BaseTriggerEntity {
  * 4)
  * set "message" to text string
  */
-@entity
+@serializableObject
 export class OnceTriggerEntity extends MultipleTriggerEntity {
   static classname = 'trigger_once';
 
@@ -230,7 +230,7 @@ export class OnceTriggerEntity extends MultipleTriggerEntity {
  * 4)
  * set "message" to text string
  */
-@entity
+@serializableObject
 export class SecretTriggerEntity extends OnceTriggerEntity {
   static classname = 'trigger_secret';
 
@@ -271,7 +271,7 @@ export class SecretTriggerEntity extends OnceTriggerEntity {
  *
  * After the counter has been triggered "count" times (default 2), it will fire all of its targets and remove itself.
  */
-@entity
+@serializableObject
 export class CountTriggerEntity extends MultipleTriggerEntity {
   static classname = 'trigger_counter';
 
@@ -310,7 +310,7 @@ export class CountTriggerEntity extends MultipleTriggerEntity {
  * This is the destination marker for a teleporter.
  * It should have a "targetname" field with the same value as a teleporter's "target" field.
  */
-@entity
+@serializableObject
 export class InfoTeleportDestination extends BaseEntity {
   static classname = 'info_teleport_destination';
 
@@ -332,7 +332,7 @@ export class InfoTeleportDestination extends BaseEntity {
  *
  * If the trigger_teleport has a targetname, it will only teleport entities when it has been fired.
  */
-@entity
+@serializableObject
 export class TeleportTriggerEntity extends BaseTriggerEntity {
   static classname = 'trigger_teleport';
 
@@ -433,7 +433,7 @@ export class TeleportTriggerEntity extends BaseTriggerEntity {
  * QUAKED trigger_onlyregistered (.5 .5 .5) ?
  * Only fires if playing the registered version, otherwise prints a message.
  */
-@entity
+@serializableObject
 export class OnlyRegisteredTriggerEntity extends BaseTriggerEntity {
   static classname = 'trigger_onlyregistered';
 
@@ -471,7 +471,7 @@ export class OnlyRegisteredTriggerEntity extends BaseTriggerEntity {
  * Sets skill level to the value of "message".
  * Only used on start map.
  */
-@entity
+@serializableObject
 export class SetSkillTriggerEntity extends BaseTriggerEntity {
   static classname = 'trigger_setskill';
 
@@ -498,7 +498,7 @@ export class SetSkillTriggerEntity extends BaseTriggerEntity {
  * When the player touches this, they get sent to the map listed in the "map" variable.
  * Unless the NO_INTERMISSION flag is set, the view will go to the info_intermission spot and display stats.
  */
-@entity
+@serializableObject
 export class ChangeLevelTriggerEntity extends BaseTriggerEntity {
   static classname = 'trigger_changelevel';
 
@@ -543,7 +543,7 @@ export class ChangeLevelTriggerEntity extends BaseTriggerEntity {
  * Set dmg to damage amount (default: 5).
  * Optional netname.
  */
-@entity
+@serializableObject
 export class TriggerHurtEntity extends BaseTriggerEntity {
   static classname = 'trigger_hurt';
 
@@ -575,7 +575,7 @@ export class TriggerHurtEntity extends BaseTriggerEntity {
  * QUAKED trigger_push (.5 .5 .5) ? PUSH_ONCE
  * Pushes the player and other objects.
  */
-@entity
+@serializableObject
 export class TriggerPushEntity extends BaseTriggerEntity {
   static classname = 'trigger_push';
   static FLAG_PUSH_ONCE = 1;
@@ -615,7 +615,7 @@ export class TriggerPushEntity extends BaseTriggerEntity {
  * "speed" defaults to 200, the speed thrown forward.
  * "height" defaults to 200, the speed thrown upwards.
  */
-@entity
+@serializableObject
 export class TriggerMonsterjumpEntity extends BaseTriggerEntity {
   static classname = 'trigger_monsterjump';
 

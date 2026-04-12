@@ -1,6 +1,7 @@
 import type { ClientEngineAPI } from '../../../shared/GameInterfaces.ts';
 
 import { clientEvent, clientEventName } from '../Defs.ts';
+import { serializable, serializableObject, Serializer } from '../helper/MiscHelpers.ts';
 
 export const clientStatSlots = [
   'monsters_total',
@@ -10,13 +11,6 @@ export const clientStatSlots = [
 ] as const;
 
 export type ClientStatSlot = (typeof clientStatSlots)[number];
-
-export interface ClientStatsSnapshot {
-  monsters_total: number;
-  monsters_killed: number;
-  secrets_total: number;
-  secrets_found: number;
-}
 
 export interface ServerInfoSnapshot {
   [key: string]: string;
@@ -58,11 +52,14 @@ export function parseNumericStatValue(value: number | string): number | null {
  * Keeps track of game statistics during the current game.
  * NOTE: Make sure to keep it in sync with the server GameStats!
  */
+@serializableObject
 export class ClientStats {
-  monsters_total = 0;
-  monsters_killed = 0;
-  secrets_total = 0;
-  secrets_found = 0;
+  @serializable monsters_total = 0;
+  @serializable monsters_killed = 0;
+  @serializable secrets_total = 0;
+  @serializable secrets_found = 0;
+
+  readonly _serializer: Serializer<ClientStats>;
 
   constructor(engineAPI: ClientEngineAPI) {
     // game stats base value
@@ -73,6 +70,8 @@ export class ClientStats {
     engineAPI.eventBus.subscribe(clientEventName(clientEvent.STATS_UPDATED), (slot: string, value: number | string): void => {
       this._setStat(slot, value);
     });
+
+    this._serializer = new Serializer(this, null);
   }
 
   /**

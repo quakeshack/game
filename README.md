@@ -56,7 +56,7 @@ source/game/id1/
 │   ├── Triggers.ts
 │   └── ...
 ├── helper/           # Helper classes (AI, utilities)
-│   └── MiscHelpers.ts # Serializer, decorators, EntityWrapper
+│   └── MiscHelpers.ts # Serializer, decorators, EntityWrapper, plain-object save/load helpers
 ├── client/           # Client-side code (HUD, effects)
 ├── GameAPI.ts        # Server game state and entity registry
 └── Defs.ts           # Constants and enums
@@ -76,7 +76,7 @@ Beyond bugfixes and modernizing the architecture, this port introduces several n
 * **Player Interaction (`+use`)**: Built-in support for a dedicated `+use` (interact) button. Entities can be flagged with `FL_USEABLE`, enabling a Half-Life-style direct player interaction mechanism instead of just relying on proximity triggers (`touch`) or shooting.
 * **Custom Blood Colors**: Entities that take damage (`takedamage`) can define custom color indices for their "blood" particles or spray via the `bloodcolor` field (e.g., buttons and doors use `colors.DUST` instead of red blood).
 * **Client-Side Game Code Capabilities**: Unlike QuakeC, this port has an entire client-side framework (`ClientGameAPI`) that handles logic like drawing dynamic HUD elements, managing intermission screens, and rendering effects (e.g., screen flashes, decals, or gibbing models) independently of the server.
-* **Complex Serialization (`Serializer` + Decorators)**: The game state management supports detailed object serialization via `@entity`/`@serializable` TC39 decorators that automatically track which fields to serialize, going far beyond QuakeC's simple `parm0...15` spawn parameters.
+* **Complex Serialization (`Serializer` + Decorators)**: The game state management supports detailed object serialization via `@serializableObject`/`@serializable` TC39 decorators. The serializer is not tied to `ServerEngineAPI`; it can be attached to entities, helper objects, or plain state bags, and only needs an engine reference when it has to resolve edict-backed entity references during load. This goes far beyond QuakeC's simple `parm0...15` spawn parameters.
 * **Feature Flags**: Built-in toggles (`featureFlags` array in `GameAPI.ts`) to enable modernized physics and gameplay behaviors that alter standard Quake conventions:
   * `improved-gib-physics`: Instead of a simple upward throw, gibs and player heads properly calculate momentum from the incoming impact, resulting in realistic physical forces applied correctly during explosions or deaths. Additionally applies blast momentum realistically to all entities (not just those walking).
   * `correct-ballistic-grenades`: Replaces hard-coded trajectories for Ogre grenades and Zombie gibs. It uses actual physics equations, gravity settings, and travel-time formulas to calculate perfect parabolic arcs towards the target limits.
@@ -84,19 +84,19 @@ Beyond bugfixes and modernizing the architecture, this port introduces several n
 
 ### Serializable Field Decorators
 
-TypeScript entity classes use TC39 decorators to declare which fields are part of the serialized game state (save/load, spawn parameters). Two decorators from `helper/MiscHelpers.ts` work together:
+TypeScript classes use TC39 decorators to declare which fields are part of the serialized game state (save/load, spawn parameters). Two decorators from `helper/MiscHelpers.ts` work together:
 
 | Decorator | Target | Purpose |
 |-|-|-|
 | `@serializable` | Field | Marks a class field for serialization |
-| `@entity` | Class | Finalizes all `@serializable` fields into a frozen `static serializableFields` array |
+| `@serializableObject` | Class | Finalizes all `@serializable` fields into a frozen `static serializableFields` array |
 
 **Usage:**
 
 ```typescript
-import { entity, serializable, Serializer } from '../helper/MiscHelpers.ts';
+import { serializableObject, serializable, Serializer } from '../helper/MiscHelpers.ts';
 
-@entity
+@serializableObject
 class MyMonster extends BaseEntity {
   @serializable health = 100;
   @serializable enemy: BaseEntity | null = null;
@@ -109,10 +109,12 @@ class MyMonster extends BaseEntity {
 
 **How it works:**
 1. `@serializable` field decorators accumulate field names during class definition.
-2. `@entity` class decorator freezes them into `static serializableFields` on the class.
+2. `@serializableObject` class decorator freezes them into `static serializableFields` on the class.
 3. At runtime, `collectSerializableFields()` walks the prototype chain and merges fields from every class in the hierarchy — parent fields are included automatically.
 
 **Backward compatibility:** Legacy `.mjs` subclasses can still use `static serializableFields` arrays or the `startFields()`/`endFields()` pattern. A decorated parent and a legacy child work correctly together.
+
+The same serializer can also be attached to plain objects with `Serializer.makeSerializable()` or `Serializer.makeSerializableObject()`. Use a server engine only when the object needs to resolve entity references during deserialization.
 
 ## Client-side Game
 
@@ -165,7 +167,7 @@ RFC 2119 applies.
 * The game code should not hardcode `classname` when used for spawning entities, the game code should use `ExampleEntity.classname` instead of `'misc_example'`.
 * Entity properties starting with `_` are considered protected and must and will not be set by the map loading code. If you intend to modify these properties outside of the class defining it, you must mark with with jsdoc’s `@public` annotation.
 * Entity properties intended to be read-only must be annotated with jsdoc’s `@readonly` annotation and should be declared throw a getter without a setter.
-* TypeScript entities must declare serializable properties with the `@serializable` field decorator and `@entity` class decorator.
+* TypeScript entities must declare serializable properties with the `@serializable` field decorator and `@serializableObject` class decorator.
 * Legacy JS entities may still declare properties in the `_declareFields()` method.
 * Entities must declare assets to be precached in the `_precache()` method only.
 * Entities must declare states in the `_initStates()` method only.
@@ -200,7 +202,7 @@ However, the engine reads from a set of must be defined properties. `BaseEntity`
 |-|-|
 | `ServerGameAPI` | Holds the whole server game state. It will be instantiated by the engine’s spawn server code and only lasts exactly one level. The class holds information such as the skill level and exposes methods for engine game updates. Also the engine asks the `ServerGameAPI` to spawn map objects. |
 | `ClientGameAPI` | _Not completely designed yet._ It is supposed to handle anything supposed to run on the client side such as HUD, temporary entities, etc. |
-| `BaseEntity` |  Every entity derives from this class. It provides all necessary information for the engine to place objects in the world. Also the engine will write back certain information directly into an entity. This class provides _lots_ of helpers such as the state machine, thinking scheduler and also provides core concepts of for instance damage handling. Uses `@entity`/`@serializable` decorators for field serialization. |
+| `BaseEntity` |  Every entity derives from this class. It provides all necessary information for the engine to place objects in the world. Also the engine will write back certain information directly into an entity. This class provides _lots_ of helpers such as the state machine, thinking scheduler and also provides core concepts of for instance damage handling. Uses `@serializableObject`/`@serializable` decorators for field serialization. |
 | `PlayerEntity` | The player entity not just represents a player in the world, but it also handles impulse commands, weapon interaction, jumping, partially swimming, effects of having certain items. Some logic is outsourced to helper classes such as the `PlayerWeapons` class. |
 | `WorldspawnEntity` | Defines the world, but is mainly used to precache resources that can be used from anywhere. |
 
@@ -267,9 +269,9 @@ Most monsters extend `WalkMonster`, `FlyMonster`, or `SwimMonster` (which all ex
 
 ```typescript
 import { WalkMonster } from './BaseMonster.ts';
-import { entity, serializable } from '../../helper/MiscHelpers.ts';
+import { serializableObject, serializable } from '../../helper/MiscHelpers.ts';
 
-@entity
+@serializableObject
 export class MyMonster extends WalkMonster {
   static classname = 'monster_mymonster';
   static _health = 100;
@@ -281,7 +283,7 @@ export class MyMonster extends WalkMonster {
 ```
 
 Key requirements:
-- Use `@entity` on the class and `@serializable` on fields that need to survive save/load
+- Use `@serializableObject` on the class and `@serializable` on fields that need to survive save/load
 - Use `_defineState()` in `static _initStates()` to define animation states
 - Use `_runState('statename')` to transition between states
 
@@ -292,9 +294,9 @@ Bosses like Chthon and Shub-Niggurath don't use the standard AI system. They are
 ```typescript
 import BaseEntity from '../BaseEntity.ts';
 import BaseMonster from './BaseMonster.ts';
-import { entity, serializable } from '../../helper/MiscHelpers.ts';
+import { serializableObject, serializable } from '../../helper/MiscHelpers.ts';
 
-@entity
+@serializableObject
 export class MyBoss extends BaseMonster {
   static classname = 'monster_myboss';
 

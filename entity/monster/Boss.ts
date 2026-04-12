@@ -2,7 +2,7 @@ import Vector from '../../../../shared/Vector.ts';
 
 import { channel, damage, effect, moveType, solid, tentType } from '../../Defs.ts';
 import { EntityAI, NoopMonsterAI } from '../../helper/AI.ts';
-import { entity, serializable } from '../../helper/MiscHelpers.ts';
+import { serializableObject, serializable } from '../../helper/MiscHelpers.ts';
 import BaseEntity from '../BaseEntity.ts';
 import { FireballEntity } from '../Misc.ts';
 import { state } from '../props/BasePropEntity.ts';
@@ -52,7 +52,7 @@ export class BossLavaball extends Missile {
 /**
  * QUAKED monster_boss (1 0 0) (-128 -128 -24) (128 128 256)
  */
-@entity
+@serializableObject
 export class BossMonster extends BaseMonster {
   static classname = 'monster_boss';
   static _modelDefault = 'progs/boss.mdl';
@@ -231,6 +231,8 @@ $frame shockc9 shockc10
       return;
     }
 
+    this.solid = solid.SOLID_MESH;
+
     this.engine.eventBus.publish('game.monster.spawned', this);
   }
 
@@ -306,7 +308,7 @@ $frame shockc9 shockc10
  * QUAKED event_lightning (0 1 1) (-16 -16 -16) (16 16 16)
  * Just for boss level.
  */
-@entity
+@serializableObject
 export class EventLightningEntity extends BaseEntity {
   static classname = 'event_lightning';
 

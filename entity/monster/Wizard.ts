@@ -2,7 +2,7 @@ import Vector from '../../../../shared/Vector.ts';
 
 import { attn, channel, effect, flags, range, solid, tentType } from '../../Defs.ts';
 import { ATTACK_STATE, QuakeEntityAI } from '../../helper/AI.ts';
-import { entity, serializable } from '../../helper/MiscHelpers.ts';
+import { serializableObject, serializable } from '../../helper/MiscHelpers.ts';
 import type BaseEntity from '../BaseEntity.ts';
 import { BaseSpike } from '../Weapons.ts';
 import { FlyMonster } from './BaseMonster.ts';
@@ -18,7 +18,7 @@ export class WizardMissile extends BaseSpike {
 /**
  * QUAKED monster_wizard (1 0 0) (-16 -16 -24) (16 16 40) Ambush
  */
-@entity
+@serializableObject
 export default class WizardMonsterEntity extends FlyMonster {
   static classname = 'monster_wizard';
   static _health = 80;

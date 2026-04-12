@@ -3,7 +3,7 @@ import Vector, { type DirectionalVectors } from '../../../shared/Vector.ts';
 
 import { attn, channel, clientEvent, colors, content, damage, decals, effect, flags, items, moveType, solid, tentType, waterlevel } from '../Defs.ts';
 import { featureFlags } from '../GameAPI.ts';
-import { crandom, EntityWrapper, entity, serializable } from '../helper/MiscHelpers.ts';
+import { crandom, EntityWrapper, serializableObject, serializable } from '../helper/MiscHelpers.ts';
 import BaseEntity, { type TraceResult } from './BaseEntity.ts';
 import BaseMonster from './monster/BaseMonster.ts';
 import { PlayerEntity } from './Player.ts';
@@ -114,7 +114,7 @@ export function Precache(engineAPI: ServerEngineAPI): void {
 /**
  * Struct holding items and ammo.
  */
-@entity
+@serializableObject
 export class Backpack {
   @serializable ammo_shells = 0;
   @serializable ammo_nails = 0;
@@ -601,7 +601,7 @@ export class DamageHandler<T extends BaseEntity = BaseEntity> extends EntityWrap
   }
 }
 
-@entity
+@serializableObject
 export class BaseProjectile extends BaseEntity {
   static classname = 'weapon_projectile_abstract';
   static _model: string | null = null;
@@ -679,7 +679,7 @@ export class BaseProjectile extends BaseEntity {
   }
 }
 
-@entity
+@serializableObject
 export class Grenade extends BaseProjectile {
   static classname = 'weapon_projectile_grenade';
 
@@ -755,7 +755,7 @@ export class Grenade extends BaseProjectile {
   }
 }
 
-@entity
+@serializableObject
 export class Missile extends BaseProjectile {
   static classname = 'weapon_projectile_missile';
 
@@ -801,7 +801,7 @@ export class Missile extends BaseProjectile {
   }
 }
 
-@entity
+@serializableObject
 export class BaseSpike extends BaseProjectile {
   static _damage = 0;
   static _tentType: number | null = null;
@@ -849,7 +849,7 @@ export class BaseSpike extends BaseProjectile {
   }
 }
 
-@entity
+@serializableObject
 export class Spike extends BaseSpike {
   static classname = 'weapon_projectile_spike';
   static _damage = 9;
@@ -868,7 +868,7 @@ export class Spike extends BaseSpike {
   }
 }
 
-@entity
+@serializableObject
 export class Superspike extends BaseSpike {
   static classname = 'weapon_projectile_superspike';
   static _damage = 18;
@@ -876,7 +876,7 @@ export class Superspike extends BaseSpike {
   static _model = 'progs/s_spike.mdl';
 }
 
-@entity
+@serializableObject
 export class Laser extends BaseSpike {
   static classname = 'weapon_projectile_laser';
   static _damage = 15;

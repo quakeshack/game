@@ -2,7 +2,7 @@ import Vector from '../../../../shared/Vector.ts';
 
 import { attn, channel, effect, solid } from '../../Defs.ts';
 import { QuakeEntityAI } from '../../helper/AI.ts';
-import { entity, serializable } from '../../helper/MiscHelpers.ts';
+import { serializableObject, serializable } from '../../helper/MiscHelpers.ts';
 import type BaseEntity from '../BaseEntity.ts';
 import { DamageInflictor, Laser } from '../Weapons.ts';
 import { WalkMonster } from './BaseMonster.ts';
@@ -10,7 +10,7 @@ import { WalkMonster } from './BaseMonster.ts';
 /**
  * QUAKED monster_army (1 0 0) (-16 -16 -24) (16 16 40) Ambush
  */
-@entity
+@serializableObject
 export class ArmySoldierMonster extends WalkMonster {
   static classname = 'monster_army';
   static _health = 30;
@@ -302,7 +302,7 @@ $frame prowl_17 prowl_18 prowl_19 prowl_20 prowl_21 prowl_22 prowl_23 prowl_24
 /**
  * QUAKED monster_enforcer (1 0 0) (-16 -16 -24) (16 16 40) Ambush
  */
-@entity
+@serializableObject
 export class ArmyEnforcerMonster extends WalkMonster {
   static classname = 'monster_enforcer';
   static _health = 80;

@@ -3,7 +3,7 @@ import type BaseEntity from '../BaseEntity.ts';
 import Vector from '../../../../shared/Vector.ts';
 
 import { channel, moveType, solid } from '../../Defs.ts';
-import { entity, serializable } from '../../helper/MiscHelpers.ts';
+import { serializableObject, serializable } from '../../helper/MiscHelpers.ts';
 import { PathCornerEntity } from '../Misc.ts';
 import { PlayerEntity } from '../Player.ts';
 import BaseEntityClass from '../BaseEntity.ts';
@@ -29,7 +29,7 @@ type PlatformSoundPair = readonly [string | null, string | null];
  * 1) base fast
  * 2) chain slow
  */
-@entity
+@serializableObject
 export class PlatformEntity extends BasePropEntity {
   static classname = 'func_plat';
 
@@ -207,7 +207,7 @@ export class PlatformEntity extends BasePropEntity {
   }
 }
 
-@entity
+@serializableObject
 export class PlatformTriggerEntity extends BaseEntityClass {
   static classname = 'func_plat_trigger';
 
@@ -280,7 +280,7 @@ export class PlatformTriggerEntity extends BaseEntityClass {
  * "sounds"
  * 1) ratchet metal
  */
-@entity
+@serializableObject
 export class TrainEntity extends BasePropEntity {
   static classname = 'func_train';
 
@@ -420,7 +420,7 @@ export class TrainEntity extends BasePropEntity {
   }
 }
 
-@entity
+@serializableObject
 export class RotatingEntity extends BasePropEntity {
   static classname = 'func_rotating';
 
@@ -516,7 +516,7 @@ export class RotatingEntity extends BasePropEntity {
  * QUAKED misc_teleporttrain (0 .5 .8) (-8 -8 -8) (8 8 8)
  * This is used for the final boss.
  */
-@entity
+@serializableObject
 export class TeleportTrainEntity extends TrainEntity {
   static classname = 'misc_teleporttrain';
 

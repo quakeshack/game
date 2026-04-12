@@ -7,7 +7,8 @@ import Vector from '../../../shared/Vector.ts';
 import { clientEvent, clientEventName, colors, contentShift, items } from '../Defs.ts';
 import { weaponConfig, type WeaponConfigKey } from '../entity/Weapons.ts';
 import type { ClientGameAPI } from './ClientAPI.ts';
-import { ClientStats, type ClientStatsSnapshot } from './Sync.ts';
+import { ClientStats } from './Sync.ts';
+import { serializable, serializableObject, Serializer, type SerializableRecord } from '../helper/MiscHelpers.ts';
 
 type AmmoSlot = 'ammo_shells' | 'ammo_nails' | 'ammo_rockets' | 'ammo_cells';
 type HUDColor = Vector;
@@ -63,7 +64,8 @@ interface HUDCenterPrintState {
 export interface HUDSaveState {
   damage: HUDDamageState;
   intermission: HUDIntermissionState;
-  stats: ClientStatsSnapshot;
+  stats: SerializableRecord;
+  messageBag: SerializableRecord;
 }
 
 const ammoSlots = ['ammo_shells', 'ammo_nails', 'ammo_rockets', 'ammo_cells'] as const;
@@ -376,27 +378,42 @@ export class Gfx {
   }
 }
 
+@serializableObject
+export class MessageBagMessage {
+  readonly _serializer: Serializer<MessageBagMessage>;
+
+  @serializable readonly message: string;
+  @serializable readonly color: Vector;
+  @serializable readonly endtime: number;
+
+  constructor(message: string, color: Vector, endtime: number) {
+    this.message = message;
+    this.color = color;
+    this.endtime = endtime;
+    this._serializer = new Serializer(this, null);
+  }
+}
+
+@serializableObject
 export class MessageBag {
+  readonly _serializer: Serializer<MessageBag>;
+
   protected _engine: ClientEngineAPI;
   protected _gfx: Gfx;
-  protected _messages: HUDMessage[] = [];
-  protected _offset: [number, number] = [0, 0];
+  @serializable protected _messages: HUDMessage[] = [];
+  @serializable protected _offset: [number, number] = [0, 0];
 
   constructor(engine: ClientEngineAPI, gfx: Gfx) {
     this._engine = engine;
     this._gfx = gfx;
+    this._serializer = new Serializer(this, null);
   }
 
   /**
    * Adds a message to the bag.
    */
   addMessage(message: string, duration = 5.0, color = new Vector(1.0, 1.0, 1.0)): void {
-    this._messages.push({
-      message,
-      color,
-      endtime: this._engine.CL.gametime + duration,
-    });
-
+    this._messages.push(new MessageBagMessage(message, color, this._engine.CL.gametime + duration));
     this._engine.ConsolePrint(`\x03${message}\n`, color); // TODO: have a better system for this
   }
 
@@ -420,13 +437,16 @@ export class MessageBag {
   }
 }
 
+@serializableObject
 export class Q1HUD {
+  readonly _serializer: Serializer<Q1HUD>;
+
   /** +showscores/-showscores */
   protected static _showScoreboard = false;
 
-  protected stats: ClientStats | null = null;
-  protected messageBag: MessageBag | null = null;
-  protected readonly inventoryFlashStartedAt = new Map<items, number>();
+  @serializable protected stats: ClientStats | null = null;
+  @serializable protected messageBag: MessageBag | null = null;
+  @serializable protected readonly inventoryFlashStartedAt = new Map<items, number>();
 
   protected damage = {
     /** time when the last damage was received based on CL.gametime */
@@ -464,20 +484,14 @@ export class Q1HUD {
   }
 
   constructor(clientGameAPI: ClientGameAPI, clientEngineAPI: ClientEngineAPI) {
+    this._serializer = new Serializer(this, null);
+
     this.game = clientGameAPI;
     this.engine = clientEngineAPI;
 
     // setup the viewport
     this.sbar = new Gfx(this.engine, 320, 24);
     this.overlay = new Gfx(this.engine, 640, 480);
-  }
-
-  get hudStats(): ClientStats {
-    return this.#requireStats();
-  }
-
-  get hudMessages(): MessageBag {
-    return this.#requireMessageBag();
   }
 
   init(): void {
@@ -540,13 +554,12 @@ export class Q1HUD {
     this.engine.eventBus.subscribe(
       clientEventName(clientEvent.ITEM_PICKED),
       (_itemEntity: object, itemNames: string[], netname: string | null, pickupItems: number = 0): void => {
-        const messageBag = this.#requireMessageBag();
         if (netname !== null) {
-          messageBag.addMessage(`You got ${netname}.`);
+          this.messageBag!.addMessage(`You got ${netname}.`);
         } else if (itemNames.length > 0) {
-          messageBag.addMessage(`You got ${itemNames.join(', ')}.`);
+          this.messageBag!.addMessage(`You got ${itemNames.join(', ')}.`);
         } else {
-          messageBag.addMessage('You found an empty item.');
+          this.messageBag!.addMessage('You found an empty item.');
         }
 
         if (pickupItems !== 0) {
@@ -573,6 +586,11 @@ export class Q1HUD {
       }
     });
 
+    // generic HUD message event
+    this.engine.eventBus.subscribe(clientEventName(clientEvent.HUD_MESSAGE), (message: string, color: Vector, duration: number): void => {
+      this.messageBag!.addMessage(message, duration, color);
+    });
+
     // intermission screen
     this.engine.eventBus.subscribe(
       clientEventName(clientEvent.INTERMISSION_START),
@@ -596,7 +614,7 @@ export class Q1HUD {
     // chat message
     this.engine.eventBus.subscribe('client.chat.message', (name: string, message: string, isDirect: boolean): void => {
       const color = isDirect ? new Vector(0.5, 1.0, 0.5) : new Vector(1.0, 1.0, 1.0);
-      this.#requireMessageBag().addMessage(`${name}: ${message}`, 10.0, color);
+      this.messageBag!.addMessage(`${name}: ${message}`, 10.0, color);
     });
 
     // obituary event
@@ -828,9 +846,8 @@ export class Q1HUD {
     y += this.overlay.height - 88;
 
     if (this.game.serverInfo.coop !== '0') {
-      const stats = this.#requireStats();
-      const monsters = `Monsters: ${stats.monsters_killed.toFixed(0).padStart(3)} / ${stats.monsters_total.toFixed(0).padStart(3)}`;
-      const secrets = `Secrets:  ${stats.secrets_found.toFixed(0).padStart(3)} / ${stats.secrets_total.toFixed(0).padStart(3)}`;
+      const monsters = `Monsters: ${this.stats!.monsters_killed.toFixed(0).padStart(3)} / ${this.stats!.monsters_total.toFixed(0).padStart(3)}`;
+      const secrets = `Secrets:  ${this.stats!.secrets_found.toFixed(0).padStart(3)} / ${this.stats!.secrets_total.toFixed(0).padStart(3)}`;
       this.overlay.drawString(x + 8, y + 8, monsters, 1.0, secondaryColor);
       this.overlay.drawString(x + 8, y + 16, secrets, 1.0, secondaryColor);
 
@@ -843,7 +860,6 @@ export class Q1HUD {
    * Draws intermission screen.
    */
   protected _drawIntermission(): void {
-    const stats = this.#requireStats();
     const message = this.intermission.message ?? this.centerPrint.message;
 
     if (message !== null) {
@@ -865,14 +881,14 @@ export class Q1HUD {
       this.overlay.drawNumber(266 + 48 + 160, 82, num % 10, 1);
 
       // draw secrets
-      this.overlay.drawNumber(140 + 160, 122, stats.secrets_found, 3);
+      this.overlay.drawNumber(140 + 160, 122, this.stats!.secrets_found, 3);
       this.overlay.drawSymbol(234 + 160, 122, '/');
-      this.overlay.drawNumber(266 + 160, 122, stats.secrets_total, 3);
+      this.overlay.drawNumber(266 + 160, 122, this.stats!.secrets_total, 3);
 
       // draw monsters
-      this.overlay.drawNumber(140 + 160, 162, stats.monsters_killed, 3);
+      this.overlay.drawNumber(140 + 160, 162, this.stats!.monsters_killed, 3);
       this.overlay.drawSymbol(234 + 160, 162, '/');
-      this.overlay.drawNumber(266 + 160, 162, stats.monsters_total, 3);
+      this.overlay.drawNumber(266 + 160, 162, this.stats!.monsters_total, 3);
     }
   }
 
@@ -890,12 +906,10 @@ export class Q1HUD {
    * Draws a mini info bar at the top of the screen with game stats and level name.
    */
   protected _drawMiniInfo(offsetY = 0): void {
-    const stats = this.#requireStats();
-
     this.sbar.drawPic(0, offsetY, backgrounds.scorebar);
 
-    const monsters = `Monsters: ${stats.monsters_killed} / ${stats.monsters_total}`;
-    const secrets = ` Secrets: ${stats.secrets_found} / ${stats.secrets_total}`;
+    const monsters = `Monsters: ${this.stats!.monsters_killed} / ${this.stats!.monsters_total}`;
+    const secrets = ` Secrets: ${this.stats!.secrets_found} / ${this.stats!.secrets_total}`;
 
     this.sbar.drawString(8, offsetY + 4, `${monsters.padEnd(19)} ${Q.secsToTime(this.engine.CL.gametime).padStart(18)}`);
     this.sbar.drawString(8, offsetY + 12, `${secrets.padEnd(19)} ${this.engine.CL.levelname.trim().padStart(18)}`.substring(0, 38));
@@ -970,7 +984,7 @@ export class Q1HUD {
 
     this._drawStatusBar();
 
-    this.#requireMessageBag().drawMessages();
+    this.messageBag!.drawMessages();
   }
 
   /**
@@ -1017,8 +1031,6 @@ export class Q1HUD {
   }
 
   saveState(): HUDSaveState {
-    const stats = this.#requireStats();
-
     return {
       damage: {
         time: this.damage.time,
@@ -1030,12 +1042,8 @@ export class Q1HUD {
         message: this.intermission.message,
         mapCompletedTime: this.intermission.mapCompletedTime,
       },
-      stats: {
-        monsters_total: stats.monsters_total,
-        monsters_killed: stats.monsters_killed,
-        secrets_total: stats.secrets_total,
-        secrets_found: stats.secrets_found,
-      },
+      stats: this.stats!._serializer.serialize(),
+      messageBag: this.messageBag!._serializer.serialize(),
     };
   }
 
@@ -1048,7 +1056,8 @@ export class Q1HUD {
     this.intermission.message = state.intermission.message;
     this.intermission.mapCompletedTime = state.intermission.mapCompletedTime;
 
-    Object.assign(this.#requireStats(), state.stats);
+    this.stats!._serializer.deserialize(state.stats);
+    this.messageBag!._serializer.deserialize(state.messageBag);
   }
 
   /**
@@ -1194,15 +1203,5 @@ export class Q1HUD {
       cvar!.free();
       cvars[k as keyof typeof cvars] = null;
     }
-  }
-
-  #requireMessageBag(): MessageBag {
-    console.assert(this.messageBag !== null, 'HUD message bag must be initialized before use');
-    return this.messageBag as MessageBag;
-  }
-
-  #requireStats(): ClientStats {
-    console.assert(this.stats !== null, 'HUD stats must be initialized before use');
-    return this.stats as ClientStats;
   }
 }

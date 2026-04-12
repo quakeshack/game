@@ -2,13 +2,13 @@ import Vector from '../../../../shared/Vector.ts';
 
 import { attn, channel, effect, solid, tentType } from '../../Defs.ts';
 import { QuakeEntityAI } from '../../helper/AI.ts';
-import { entity } from '../../helper/MiscHelpers.ts';
+import { serializableObject } from '../../helper/MiscHelpers.ts';
 import type BaseEntity from '../BaseEntity.ts';
 import { LightGlobeDynamicEntity } from '../Misc.ts';
 import { DamageInflictor } from '../Weapons.ts';
 import { MeatSprayEntity, WalkMonster } from './BaseMonster.ts';
 
-@entity
+@serializableObject
 export default class ShamblerMonsterEntity extends WalkMonster {
   static classname = 'monster_shambler';
   static _health = 600;

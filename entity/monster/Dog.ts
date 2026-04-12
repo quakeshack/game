@@ -2,11 +2,11 @@ import Vector from '../../../../shared/Vector.ts';
 
 import { attn, channel, flags, range, solid } from '../../Defs.ts';
 import { ATTACK_STATE, QuakeEntityAI } from '../../helper/AI.ts';
-import { entity, serializable } from '../../helper/MiscHelpers.ts';
+import { serializableObject, serializable } from '../../helper/MiscHelpers.ts';
 import BaseEntity from '../BaseEntity.ts';
 import { WalkMonster } from './BaseMonster.ts';
 
-@entity
+@serializableObject
 export default class DogMonsterEntity extends WalkMonster {
   static classname = 'monster_dog';
   static _health = 25;

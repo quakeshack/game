@@ -16,13 +16,13 @@ interface SerializableFieldsConstructor {
 
 /**
  * Accumulator filled by @serializable field decorators during class definition.
- * Flushed by the @entity class decorator into the class's static serializableFields.
+ * Flushed by the @serializableObject class decorator into the class's static serializableFields.
  */
 let pendingSerializableFields: string[] = [];
 
 /**
  * TC39 field decorator that marks a class field as serializable.
- * Must be used together with @entity on the enclosing class.
+ * Must be used together with @serializableObject on the enclosing class.
  */
 export function serializable(_value: undefined, context: ClassFieldDecoratorContext): void {
   pendingSerializableFields.push(String(context.name));
@@ -34,7 +34,7 @@ export function serializable(_value: undefined, context: ClassFieldDecoratorCont
  * serializableFields array on the class, compatible with the existing
  * collectSerializableFields() prototype-chain walk.
  */
-export function entity<T extends abstract new (...args: never[]) => object>(
+export function serializableObject<T extends abstract new (...args: never[]) => object>(
   target: T,
   _context: ClassDecoratorContext,
 ): T {
@@ -52,16 +52,29 @@ export function entity<T extends abstract new (...args: never[]) => object>(
   return target;
 }
 
+enum SerializedType {
+  SKIPPED = 'X',
+  PRIMITIVE = 'P',
+  INFINITY = 'I',
+  ARRAY = 'A',
+  EDICT = 'E',
+  FUNCTION = 'F',
+  SERIALIZABLE = 'S',
+  VECTOR = 'V',
+  MAP = 'M',
+}
+
 type SerializablePrimitive = string | number | boolean | null;
 type SerializableRecord = Record<string, SerializedToken>;
-type SerializedSkip = ['X'];
-type SerializedPrimitiveValue = ['P', SerializablePrimitive];
-type SerializedInfinity = ['I', number];
-type SerializedArray = ['A', SerializedToken[]];
-type SerializedEdictReference = ['E', number | null];
-type SerializedFunction = ['F', string];
-type SerializedSerializable = ['S', SerializableRecord];
-type SerializedVector = ['V', ...number[]];
+type SerializedSkip = [SerializedType.SKIPPED];
+type SerializedPrimitiveValue = [SerializedType.PRIMITIVE, SerializablePrimitive];
+type SerializedInfinity = [SerializedType.INFINITY, number];
+type SerializedArray = [SerializedType.ARRAY, SerializedToken[]];
+type SerializedEdictReference = [SerializedType.EDICT, number | null];
+type SerializedFunction = [SerializedType.FUNCTION, string];
+type SerializedSerializable = [SerializedType.SERIALIZABLE, SerializableRecord];
+type SerializedVector = [SerializedType.VECTOR, ...number[]];
+type SerializedMap = [SerializedType.MAP, [string, SerializedToken][]];
 type SerializedToken =
   | SerializedArray
   | SerializedEdictReference
@@ -70,10 +83,15 @@ type SerializedToken =
   | SerializedPrimitiveValue
   | SerializedSerializable
   | SerializedSkip
-  | SerializedVector;
+  | SerializedVector
+  | SerializedMap;
 
 type SerializableContainer = Record<string, unknown> & {
   _serializer?: Serializer<object>;
+};
+
+type SerializableObject<T extends object> = T & {
+  _serializer: Serializer<T>;
 };
 
 export type { SerializableRecord, SerializedToken };
@@ -128,6 +146,18 @@ function isEntityReference(value: unknown): value is { readonly edictId: number 
  */
 export function crandom(): number {
   return 2.0 * (Math.random() - 0.5);
+}
+
+/**
+ * Returns a random integer between min and max, inclusive.
+ * @param min integer minimum value
+ * @param max integer maximum value
+ * @returns random number between min and max, inclusive
+ */
+export function irandom(min: number, max: number): number {
+  console.assert(Number.isInteger(min) && Number.isInteger(max), 'irandom requires integer arguments');
+  console.assert(max >= min, 'irandom requires max to be greater than or equal to min');
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 /**
@@ -227,24 +257,14 @@ export class EntityWrapper<T extends BaseEntity = BaseEntity> {
 }
 
 /**
- * Serializes and deserializes game state objects.
- * It still supports the legacy startFields/endFields workflow for JS callers,
- * but TS classes can declare static serializableFields instead.
+ * Serializes and deserializes game or helper state objects.
+ * TS classes declare serializable fields via @serializable + @serializableObject decorators.
+ * The engine reference is optional and is only needed when entity references must be resolved during deserialization.
  */
 export class Serializer<T extends object> {
-  static readonly TYPE_SKIPPED = 'X';
-  static readonly TYPE_PRIMITIVE = 'P';
-  static readonly TYPE_INFINITY = 'I';
-  static readonly TYPE_ARRAY = 'A';
-  static readonly TYPE_EDICT = 'E';
-  static readonly TYPE_FUNCTION = 'F';
-  static readonly TYPE_SERIALIZABLE = 'S';
-  static readonly TYPE_VECTOR = 'V';
-
   readonly #objectReference: WeakRef<T>;
   readonly #engineReference: WeakRef<ServerEngineAPI> | null;
   #serializableFields: string[];
-  #markerStart: string[] | null = null;
 
   constructor(object: T, engine: ServerEngineAPI | null) {
     this.#objectReference = new WeakRef(object);
@@ -273,37 +293,40 @@ export class Serializer<T extends object> {
   #serializeValue(value: unknown): SerializedToken {
     switch (true) {
       case value === undefined:
-        return [Serializer.TYPE_SKIPPED];
+        return [SerializedType.SKIPPED];
 
       case value === Infinity:
-        return [Serializer.TYPE_INFINITY, 1];
+        return [SerializedType.INFINITY, 1];
 
       case value === -Infinity:
-        return [Serializer.TYPE_INFINITY, -1];
+        return [SerializedType.INFINITY, -1];
 
       case typeof value === 'string':
       case typeof value === 'boolean':
       case typeof value === 'number':
       case value === null:
-        return [Serializer.TYPE_PRIMITIVE, value as SerializablePrimitive];
+        return [SerializedType.PRIMITIVE, value as SerializablePrimitive];
 
       case typeof value === 'function':
-        return [Serializer.TYPE_FUNCTION, value.toString()];
+        return [SerializedType.FUNCTION, value.toString()];
 
       case value instanceof Vector:
-        return [Serializer.TYPE_VECTOR, ...value];
+        return [SerializedType.VECTOR, ...value];
+
+      case value instanceof Map:
+        return [SerializedType.MAP, Array.from(value.entries()).map(([key, val]) => [key, this.#serializeValue(val)])];
 
       case Array.isArray(value):
-        return [Serializer.TYPE_ARRAY, value.map((item) => this.#serializeValue(item))];
+        return [SerializedType.ARRAY, value.map((item) => this.#serializeValue(item))];
 
       case isEntityReference(value):
-        return [Serializer.TYPE_EDICT, value.edictId ?? null];
+        return [SerializedType.EDICT, value.edictId ?? null];
 
       case value instanceof SerializableEntity:
-        return [Serializer.TYPE_SERIALIZABLE, value.serialize() as unknown as SerializableRecord];
+        return [SerializedType.SERIALIZABLE, value.serialize() as unknown as SerializableRecord];
 
       case isSerializableContainer(value):
-        return [Serializer.TYPE_SERIALIZABLE, value._serializer!.serialize()];
+        return [SerializedType.SERIALIZABLE, value._serializer!.serialize()];
     }
 
     throw new TypeError(`Unknown type for serialization: ${typeof value}`);
@@ -311,39 +334,34 @@ export class Serializer<T extends object> {
 
   #deserializeValue(value: SerializedToken): unknown {
     switch (value[0]) {
-      case Serializer.TYPE_INFINITY:
+      case SerializedType.INFINITY:
         return value[1] * Infinity;
 
-      case Serializer.TYPE_PRIMITIVE:
+      case SerializedType.PRIMITIVE:
         return value[1];
 
-      case Serializer.TYPE_ARRAY:
+      case SerializedType.ARRAY:
         return value[1].map((item) => this.#deserializeValue(item));
 
-      case Serializer.TYPE_EDICT: {
-        const engine = this.#getEngine();
-        if (engine === null) {
-          throw new Error('Serializer cannot resolve edict references without an engine.');
-        }
-
+      case SerializedType.EDICT: {
         const edictId = value[1];
         if (edictId === null) {
           return null;
         }
 
-        const edict = engine.GetEdictById(edictId);
+        const edict = this.#getEngine()!.GetEdictById(edictId);
         return edict !== null ? edict.entity : null;
       }
 
-      case Serializer.TYPE_FUNCTION: {
+      case SerializedType.FUNCTION: {
         let code = value[1];
 
-        if (code.startsWith('function ')) {
+        if (code.startsWith('function ') || code.startsWith('function(')) { // regular function
           // eslint-disable-next-line @typescript-eslint/no-implied-eval
           return (new Function(`return ${code}`))();
         }
 
-        if (code.includes('=>')) {
+        if (code.includes('=>')) { // arrow functions are actually not supported, we need to hack them into regular functions
           code = `function ${code.replace('=>', '{')}}`;
         } else {
           code = `function ${code}`;
@@ -353,10 +371,20 @@ export class Serializer<T extends object> {
         return (new Function(`return ${code}`))();
       }
 
-      case Serializer.TYPE_VECTOR:
+      case SerializedType.VECTOR:
         return new Vector(...(value.slice(1) as number[]));
 
-      case Serializer.TYPE_SERIALIZABLE: {
+      case SerializedType.MAP: {
+        const map = new Map<string, unknown>();
+
+        for (const [key, val] of value[1]) {
+          map.set(key, this.#deserializeValue(val));
+        }
+
+        return map;
+      }
+
+      case SerializedType.SERIALIZABLE: {
         const object: Record<string, unknown> = {};
         const serializer = Serializer.makeSerializable(object, this.#getEngine());
         serializer.deserialize(value[1]);
@@ -368,44 +396,6 @@ export class Serializer<T extends object> {
     throw new TypeError(`Unknown type for deserialization: ${value[0]}`);
   }
 
-  /**
-   * Resets recorded fields.
-   */
-  resetFields(): void {
-    this.#serializableFields = collectSerializableFields(this.#getObject());
-    this.#markerStart = null;
-  }
-
-  /**
-   * Adds fields to serialize.
-   */
-  addFields(...fields: string[]): void {
-    for (const field of fields) {
-      if (!this.#serializableFields.includes(field)) {
-        this.#serializableFields.push(field);
-      }
-    }
-  }
-
-  /**
-   * Starts recording newly added fields for legacy JS subclasses.
-   * @deprecated Use decoration-based serialization on entities directly instead of separate serializers where possible.
-   */
-  startFields(): void {
-    this.#markerStart = Object.keys(this.#getObject());
-  }
-
-  /**
-   * Stops recording newly added fields for legacy JS subclasses.
-   * @deprecated Use decoration-based serialization on entities directly instead of separate serializers where possible.
-   */
-  endFields(): void {
-    const markerStart = this.#markerStart;
-    console.assert(markerStart !== null, 'Serializer.endFields requires a matching startFields call');
-    this.addFields(...Object.keys(this.#getObject()).filter((key) => !markerStart!.includes(key)));
-    this.#markerStart = null;
-  }
-
   serialize(): SerializableRecord {
     const data: SerializableRecord = {};
     const objectRecord = this.#getObject() as Record<string, unknown>;
@@ -414,7 +404,7 @@ export class Serializer<T extends object> {
       const value = objectRecord[field];
       console.assert(value !== undefined, 'missing field', field);
       const serializedValue = this.#serializeValue(value);
-      if (serializedValue[0] === Serializer.TYPE_SKIPPED) {
+      if (serializedValue[0] === SerializedType.SKIPPED) {
         continue;
       }
 
@@ -429,7 +419,7 @@ export class Serializer<T extends object> {
 
     for (const [key, value] of Object.entries(data)) {
       const currentValue = objectRecord[key];
-      if (value[0] === Serializer.TYPE_SERIALIZABLE && isSerializableContainer(currentValue)) {
+      if (value[0] === SerializedType.SERIALIZABLE && isSerializableContainer(currentValue)) {
         currentValue._serializer!.deserialize(value[1]);
         continue;
       }
@@ -439,7 +429,8 @@ export class Serializer<T extends object> {
   }
 
   /**
-   * Makes a plain object serializable through the same game save pipeline.
+   * Makes an object serializable through the same game save pipeline.
+   * Pass null for engine when the object does not need edict-backed entity resolution.
    * @returns The serializer attached to the object.
    */
   static makeSerializable<TObject extends object>(
@@ -463,5 +454,22 @@ export class Serializer<T extends object> {
     serializer.#setSerializableFields(fields ?? Object.keys(object as Record<string, unknown>));
 
     return serializer;
+  }
+
+  /**
+   * Makes a plain object serializable through the same game save pipeline.
+   * Pass null for engine when the object does not need edict-backed entity resolution.
+   */
+  static makeSerializableObject<TObject extends object>(
+    object: TObject,
+    engine: ServerEngineAPI | null,
+  ) {
+    const serializableObject = object as TObject & { _serializer?: Serializer<TObject> };
+
+    console.assert(serializableObject._serializer === undefined, 'object is already serializable');
+
+    this.makeSerializable(serializableObject, engine);
+
+    return serializableObject as SerializableObject<TObject>;
   }
 }

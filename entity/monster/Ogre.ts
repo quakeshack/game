@@ -2,13 +2,13 @@ import Vector from '../../../../shared/Vector.ts';
 
 import { attn, channel, solid } from '../../Defs.ts';
 import { QuakeEntityAI } from '../../helper/AI.ts';
-import { entity } from '../../helper/MiscHelpers.ts';
+import { serializableObject } from '../../helper/MiscHelpers.ts';
 import type BaseEntity from '../BaseEntity.ts';
 import { GibEntity, PlayerEntity } from '../Player.ts';
 import { Grenade } from '../Weapons.ts';
 import BaseMonster, { WalkMonster } from './BaseMonster.ts';
 
-@entity
+@serializableObject
 export default class OgreMonsterEntity extends WalkMonster {
   static classname = 'monster_ogre';
 

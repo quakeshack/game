@@ -2,7 +2,7 @@ import Vector from '../../../../shared/Vector.ts';
 
 import { channel, effect, moveType, solid } from '../../Defs.ts';
 import { QuakeEntityAI } from '../../helper/AI.ts';
-import { entity } from '../../helper/MiscHelpers.ts';
+import { serializableObject } from '../../helper/MiscHelpers.ts';
 import type BaseEntity from '../BaseEntity.ts';
 import { BaseProjectile } from '../Weapons.ts';
 import { WalkMonster } from './BaseMonster.ts';
@@ -83,7 +83,7 @@ export class ShalrathMissileEntity extends BaseProjectile {
 /**
  * QUAKED monster_shalrath (1 0 0) (-32 -32 -24) (32 32 48) Ambush
  */
-@entity
+@serializableObject
 export default class ShalrathMonsterEntity extends WalkMonster {
   static classname = 'monster_shalrath';
   static _health = 400;

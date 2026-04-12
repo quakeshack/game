@@ -4,11 +4,11 @@ import Vector from '../../../../shared/Vector.ts';
 
 import { attn, channel, damage, moveType, solid } from '../../Defs.ts';
 import { QuakeEntityAI } from '../../helper/AI.ts';
-import { entity, serializable } from '../../helper/MiscHelpers.ts';
+import { serializableObject, serializable } from '../../helper/MiscHelpers.ts';
 import BaseEntity from '../BaseEntity.ts';
 import { WalkMonster } from './BaseMonster.ts';
 
-@entity
+@serializableObject
 export default class ZombieMonster extends WalkMonster {
   static classname = 'monster_zombie';
 
@@ -471,7 +471,7 @@ $frame cruc_1 cruc_2 cruc_3 cruc_4 cruc_5 cruc_6
   }
 }
 
-@entity
+@serializableObject
 export class ZombieGibGrenade extends BaseEntity {
   static classname = 'monster_zombie_giblet';
 

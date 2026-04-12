@@ -4,12 +4,12 @@ import Vector from '../../../../shared/Vector.ts';
 
 import { channel, solid, tentType } from '../../Defs.ts';
 import { QuakeEntityAI } from '../../helper/AI.ts';
-import { entity } from '../../helper/MiscHelpers.ts';
+import { serializableObject } from '../../helper/MiscHelpers.ts';
 import type BaseEntity from '../BaseEntity.ts';
 import { BaseSpike } from '../Weapons.ts';
 import BaseMonster, { WalkMonster } from './BaseMonster.ts';
 
-@entity
+@serializableObject
 export class KnightMonster extends WalkMonster {
   static classname = 'monster_knight';
 
@@ -318,7 +318,7 @@ $frame deathb9 deathb10 deathb11
   }
 }
 
-@entity
+@serializableObject
 export class KnightSpike extends BaseSpike {
   static classname = 'knightspike';
 
@@ -335,7 +335,7 @@ export class KnightSpike extends BaseSpike {
   }
 }
 
-@entity
+@serializableObject
 export class HellKnightMonster extends KnightMonster {
   static classname = 'monster_hell_knight';
 

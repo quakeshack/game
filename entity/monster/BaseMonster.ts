@@ -3,7 +3,7 @@ import Vector from '../../../../shared/Vector.ts';
 import { colors, damage, flags, moveType, range, solid } from '../../Defs.ts';
 import type { ServerGameAPI } from '../../GameAPI.ts';
 import { EntityAI, ATTACK_STATE } from '../../helper/AI.ts';
-import { entity, serializable } from '../../helper/MiscHelpers.ts';
+import { serializableObject, serializable } from '../../helper/MiscHelpers.ts';
 import BaseEntity from '../BaseEntity.ts';
 import { BackpackEntity } from '../Items.ts';
 import type { PathCornerEntity } from '../Misc.ts';
@@ -13,7 +13,7 @@ import { DamageHandler } from '../Weapons.ts';
 
 import type { ServerEdict, ServerEngineAPI } from '../../../../shared/GameInterfaces.ts';
 
-@entity
+@serializableObject
 export default abstract class BaseMonster extends BaseEntity {
   /** Health points for this monster class. */
   static _health = 0;
@@ -371,14 +371,14 @@ export default abstract class BaseMonster extends BaseEntity {
   }
 }
 
-@entity
+@serializableObject
 export abstract class WalkMonster extends BaseMonster {
   spawn(): void {
     super.spawn();
   }
 }
 
-@entity
+@serializableObject
 export abstract class FlyMonster extends BaseMonster {
   spawn(): void {
     super.spawn();
@@ -390,7 +390,7 @@ export abstract class FlyMonster extends BaseMonster {
   }
 }
 
-@entity
+@serializableObject
 export abstract class SwimMonster extends BaseMonster {
   spawn(): void {
     super.spawn();
@@ -402,7 +402,7 @@ export abstract class SwimMonster extends BaseMonster {
   }
 }
 
-@entity
+@serializableObject
 export class MeatSprayEntity extends BaseEntity {
   static classname = 'misc_gib_meatspray';
 

@@ -1,6 +1,6 @@
 import Vector from '../../../../shared/Vector.ts';
 
-import { entity, serializable } from '../../helper/MiscHelpers.ts';
+import { serializableObject, serializable } from '../../helper/MiscHelpers.ts';
 import BaseEntity from '../BaseEntity.ts';
 import { Sub } from '../Subs.ts';
 
@@ -33,7 +33,7 @@ export enum PropState {
 
 export { PropState as state };
 
-@entity
+@serializableObject
 export default abstract class BasePropEntity extends BaseEntity {
   /**
    * Either a CD track number or sound number.

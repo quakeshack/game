@@ -1,11 +1,11 @@
-import { entity, serializable } from '../helper/MiscHelpers.ts';
+import { serializableObject, serializable } from '../helper/MiscHelpers.ts';
 import type { ServerGameAPI } from '../GameAPI.ts';
 import BaseEntity from './BaseEntity.ts';
 import type { PlayerEntity } from './Player.ts';
 
 import { Precache as WeaponsPrecache } from './Weapons.ts';
 
-@entity
+@serializableObject
 export class BodyqueEntity extends BaseEntity {
   static classname = 'bodyque';
 
@@ -79,7 +79,7 @@ export function CopyToBodyQue(game: ServerGameAPI, entity: PlayerEntity): void {
   game.bodyque_head = nextBody instanceof BodyqueEntity ? nextBody : bodyqueHead;
 }
 
-@entity
+@serializableObject
 export class WorldspawnEntity extends BaseEntity {
   static classname = 'worldspawn';
 

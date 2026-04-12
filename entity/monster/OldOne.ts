@@ -2,7 +2,7 @@ import Vector from '../../../../shared/Vector.ts';
 
 import { channel, damage, moveType, solid, tentType } from '../../Defs.ts';
 import { EntityAI, NoopMonsterAI } from '../../helper/AI.ts';
-import { entity } from '../../helper/MiscHelpers.ts';
+import { serializableObject } from '../../helper/MiscHelpers.ts';
 import BaseEntity from '../BaseEntity.ts';
 import { IntermissionCameraEntity, MiscNullEntity } from '../Misc.ts';
 import { GibEntity, PlayerEntity } from '../Player.ts';
@@ -11,7 +11,7 @@ import BaseMonster from './BaseMonster.ts';
 /**
  * QUAKED monster_oldone (1 0 0) (-16 -16 -24) (16 16 32)
  */
-@entity
+@serializableObject
 export class OldOneMonster extends BaseMonster {
   static classname = 'monster_oldone';
   static _modelDefault = 'progs/oldone.mdl';
@@ -236,7 +236,7 @@ $frame shake15 shake16 shake17 shake18 shake19 shake20
       return;
     }
 
-    this.solid = solid.SOLID_SLIDEBOX;
+    this.solid = solid.SOLID_MESH;
     this.movetype = moveType.MOVETYPE_STEP;
 
     this.setModel('progs/oldone.mdl');

@@ -187,6 +187,20 @@ void describe('BossMonster state machine', () => {
 });
 
 void describe('BossMonster QC fixes', () => {
+  void test('spawn keeps the boss dormant but mesh-solid until awakened', () => {
+    const boss = createBossFixture(BossMonster);
+    let published = null;
+
+    boss.engine.eventBus.publish = (eventName, entity) => {
+      published = { eventName, entity };
+    };
+
+    boss.spawn();
+
+    assert.equal(boss.solid, solid.SOLID_MESH);
+    assert.deepEqual(published, { eventName: 'game.monster.spawned', entity: boss });
+  });
+
   void test('use wakes the boss with the skill-scaled health and lava splash', () => {
     const boss = createBossFixture(BossMonster, { skill: 0 });
     let stateName = null;

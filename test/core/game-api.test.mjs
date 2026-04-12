@@ -196,6 +196,7 @@ void describe('ServerGameAPI entity lifecycle', () => {
   void test('prepareEntity precaches after assigned initial data is applied', () => {
     class DeferredInitEntity extends BaseEntity {
       static classname = 'deferred_init_entity';
+      static serializableFields = ['initializerReady', 'constructorValue', 'precacheObservedValue'];
 
       constructor(edict, gameAPI) {
         super(edict, gameAPI);
@@ -204,11 +205,9 @@ void describe('ServerGameAPI entity lifecycle', () => {
 
       _declareFields() {
         super._declareFields();
-        this._serializer.startFields();
         this.initializerReady = 0;
         this.constructorValue = 0;
         this.precacheObservedValue = -1;
-        this._serializer.endFields();
       }
 
       _precache() {
