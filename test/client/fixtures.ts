@@ -124,6 +124,11 @@ export interface MockClientEngine {
   VID: MockVideoState;
   SCR: MockScreenState;
   CL: MockClientState;
+  PostProcess: {
+    setStack(stack: unknown): void;
+    clearStack(): void;
+    hasStack(): boolean;
+  };
 }
 
 /**
@@ -349,6 +354,11 @@ export function createMockClientEngine(
     },
     AppendConsoleText(text: string): void {
       appendedConsoleText.push(text);
+    },
+    PostProcess: {
+      setStack(_stack: unknown): void {},
+      clearStack(): void {},
+      hasStack(): boolean { return false; },
     },
     VID: {
       width: 320,
