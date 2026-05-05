@@ -119,15 +119,6 @@ const inventory: InventoryEntry[] = [
 ];
 
 /**
- * Assert that a named HUD texture is loaded before accessing it.
- * @returns The loaded texture.
- */
-function expectTexture(texture: HUDTexture, name: string): GLTexture {
-  console.assert(texture !== null, `${name} HUD texture must be loaded before use`);
-  return texture as GLTexture;
-}
-
-/**
  * Create a mutable texture group with every slot starting unloaded.
  * @returns Mutable texture group with unloaded slots.
  */
@@ -681,7 +672,7 @@ export class Q1HUD {
     const lines = formatCenterPrintLines(message);
 
     if (showFinaleLabel) {
-      const finaleLabel = expectTexture(labels.finale, 'finale');
+      const finaleLabel = labels.finale!;
       this.overlay.drawPic(this.overlay.alignCenterHorizontally(finaleLabel.width), 16, finaleLabel);
     }
 
@@ -822,7 +813,7 @@ export class Q1HUD {
    * Draws multiplayer scoreboard.
    */
   protected _drawScoreboard(): void {
-    const rankingLabel = expectTexture(labels.ranking, 'ranking');
+    const rankingLabel = labels.ranking!;
     const secondaryColor = new Vector(...this.engine.IndexToRGB(colors.HUD_RANKING_TEXT));
 
     this.overlay.drawPic(this.overlay.width - rankingLabel.width, 32, rankingLabel);
@@ -865,8 +856,8 @@ export class Q1HUD {
     if (message !== null) {
       this._drawIntermissionText(message, this.intermission.message === null);
     } else {
-      const completeLabel = expectTexture(labels.complete, 'complete');
-      const interLabel = expectTexture(labels.inter, 'inter');
+      const completeLabel = labels.complete!;
+      const interLabel = labels.inter!;
 
       // draw the default intermission screen
       this.overlay.drawPic(this.overlay.alignCenterHorizontally(completeLabel.width), 24, completeLabel);
@@ -1129,7 +1120,7 @@ export class Q1HUD {
         weapon.flashIcons.length = 0;
       }
 
-      weapon.iconWidth = expectTexture(weapon.icon, `${weapon.iconPrefix}_${weapon.iconSuffix}`).width;
+      weapon.iconWidth = weapon.icon!.width;
     }
 
     engineAPI.RegisterCommand('+showscores', (): void => {
