@@ -20,10 +20,6 @@ interface ModelIndexSet {
   eyes: number | null;
 }
 
-interface InvincibleSoundTimeMap {
-  [attackerEdictId: number]: number;
-}
-
 /**
  * Return a launch velocity scaled to the damage that caused the gib.
  * @returns Gib launch velocity.
@@ -339,7 +335,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
   @serializable invincible_finished = 0;
 
   /** Next invincibility sound time per attacking entity. */
-  @serializable invincible_sound_time: InvincibleSoundTimeMap = {}; // FIXME: needs to be a Map, otherwise save/load will not work with this
+  @serializable invincible_sound_time = new Map<number, number>();
 
   /** Time for the next quad damage sound tick while firing. */
   @serializable super_sound = 0;
@@ -394,8 +390,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     // Used to alert monsters that otherwise would let the player go.
     this.show_hostile = 0;
 
-    this.invincible_sound_time = {};
-    Serializer.makeSerializable(this.invincible_sound_time, this.engine);
+    this.invincible_sound_time = new Map<number, number>();
     this.clientdataFields = [...(this.constructor as typeof PlayerEntity).clientdataFields];
 
     this._damageHandler = new DamageHandler(this);
@@ -1479,7 +1474,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
         this.items &= ~items.IT_INVULNERABILITY;
         this.invincible_time = 0;
         this.invincible_finished = 0;
-        this.invincible_sound_time = {};
+        this.invincible_sound_time.clear();
       }
     }
 
@@ -1577,13 +1572,12 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     this.fixangle = true;
     this.view_ofs.setTo(0.0, 0.0, 22.0);
 
-    // FIXME: this needs to move somewhere else; setModel() also retriggers touches.
-    this.setModel('progs/eyes.mdl');
+    this.setModel('progs/eyes.mdl', false);
     this._modelIndex.eyes = this.modelindex;
-    this.setModel('progs/player.mdl');
+    this.setModel('progs/player.mdl', false);
     this._modelIndex.player = this.modelindex;
 
-    this.setSize(hull[0][0], hull[0][1]);
+    this.setSize(hull[0][0], hull[0][1], false);
 
     this._applySpawnParameters();
     this.setWeapon();
@@ -1651,20 +1645,12 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     }
   }
 
-  protected _playerJump(): void {
+  protected _playerJumpFeedback(): void {
     if ((this.flags & flags.FL_WATERJUMP) !== 0) {
       return;
     }
 
     if (this.waterlevel >= waterlevel.WATERLEVEL_WAIST) {
-      if (this.watertype === content.CONTENT_WATER) {
-        this.velocity[2] = 100;
-      } else if (this.watertype === content.CONTENT_SLIME) {
-        this.velocity[2] = 80;
-      } else {
-        this.velocity[2] = 50;
-      }
-
       if (this.swim_flag < this.game.time) {
         this.swim_flag = this.game.time + 1.0;
         this.startSound(channel.CHAN_BODY, Math.random() < 0.5 ? 'misc/water1.wav' : 'misc/water2.wav');
@@ -1673,27 +1659,19 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
       return;
     }
 
-    // In noclip, jump just moves upward without ground-state checks.
-    if (this.movetype !== moveType.MOVETYPE_NOCLIP) {
-      if ((this.flags & flags.FL_ONGROUND) === 0) {
-        return;
-      }
-
-      if ((this.flags & flags.FL_JUMPRELEASED) === 0) {
-        return; // do not pogo stick
-      }
-
-      this.flags &= ~flags.FL_JUMPRELEASED;
-      this.flags &= ~flags.FL_ONGROUND;
-      this.button2 = 0;
-
-      this.startSound(channel.CHAN_BODY, 'player/plyrjmp8.wav');
+    if (this.movetype === moveType.MOVETYPE_NOCLIP || (this.flags & flags.FL_ONGROUND) === 0) {
+      return;
     }
 
-    this.velocity[2] += 270.0;
+    if ((this.flags & flags.FL_JUMPRELEASED) === 0) {
+      return;
+    }
+
+    this.flags &= ~flags.FL_JUMPRELEASED;
+    this.startSound(channel.CHAN_BODY, 'player/plyrjmp8.wav');
   }
 
-  protected _playerWaterMove(): void {
+  protected _playerWaterEffects(): void {
     if (this.movetype === moveType.MOVETYPE_NOCLIP || this.health < 0) {
       return;
     }
@@ -1747,39 +1725,6 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
 
       this.flags |= flags.FL_INWATER;
       this._damageTime = 0;
-    }
-
-    if ((this.flags & flags.FL_WATERJUMP) === 0) {
-      this.velocity = this.velocity.subtract(this.velocity.copy().multiply(0.8 * this.waterlevel * this.game.frametime));
-    }
-  }
-
-  protected _playerWaterJump(): void {
-    if (this.waterlevel !== waterlevel.WATERLEVEL_WAIST) {
-      return;
-    }
-
-    // FIXME: this still fails on chris2.map, just like the original QuakeC.
-    const start = this.origin.copy();
-    start[2] += 8.0;
-
-    const { forward } = this.angles.angleVectors();
-    forward[2] = 0.0;
-    forward.normalize();
-    forward.multiply(24.0);
-
-    const end = start.copy().add(forward);
-    const traceWaist = this.traceline(start, end, true);
-    if (traceWaist.fraction < 1.0) {
-      start[2] += this.maxs[2] - 8.0;
-      end.set(start).add(forward);
-      const traceEye = this.traceline(start, end, true);
-      if (traceEye.fraction === 1.0) {
-        this.flags |= flags.FL_WATERJUMP;
-        this.velocity[2] = 225.0;
-        this.flags &= ~flags.FL_JUMPRELEASED;
-        this.teleport_time = this.game.time + 2.0;
-      }
     }
   }
 
@@ -1972,9 +1917,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
 
     this.game.checkRules(this);
 
-    // FIXME: player movement logic is also mirrored in Pmove and should be deduplicated.
-    this._playerWaterMove();
-    this._playerWaterJump();
+    this._playerWaterEffects();
 
     if (this.deadflag >= dead.DEAD_DEAD) {
       this._playerDeathThink();
@@ -1986,7 +1929,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     }
 
     if (this.button2) {
-      this._playerJump();
+      this._playerJumpFeedback();
     } else {
       this.flags |= flags.FL_JUMPRELEASED;
     }

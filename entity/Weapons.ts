@@ -124,7 +124,7 @@ export class Backpack {
   @serializable weapon: WeaponConfigKey | 0 = 0;
 }
 
-/** Do not use try this at home, kids. */
+/** This hack allows us to call the protected _runState method on entities. */
 interface EntityExposingRunStateHack {
   _runState(state: string | null): boolean;
 }
@@ -202,17 +202,15 @@ export class DamageInflictor<T extends BaseEntity = BaseEntity> extends EntityWr
   private _traceAttack(
     damagePoints: number,
     direction: Vector,
-    _angleVectors: DirectionalVectors,
+    angleVectors: DirectionalVectors,
     trace: TraceResult,
   ): void {
-    // FIXME: that velocity thing is out of whack
+    const velocity = direction.copy()
+      .add(angleVectors.up.copy().multiply(crandom()))
+      .add(angleVectors.right.copy().multiply(crandom()));
 
-    // const velocity = direction.copy()
-    //   .add(angleVectors.up.copy().multiply(crandom()))
-    //   .add(angleVectors.right.copy().multiply(crandom()));
-
-    // velocity.normalize();
-    // velocity.add(trace.plane.normal.copy().multiply(2.0)).multiply(40.0);
+    velocity.normalize();
+    velocity.add(trace.plane.normal.copy().multiply(2.0)).multiply(40.0);
 
     const origin = trace.point.copy().subtract(direction.copy().multiply(4.0));
     const traceEntity = trace.entity as BaseEntity | null;
@@ -222,7 +220,7 @@ export class DamageInflictor<T extends BaseEntity = BaseEntity> extends EntityWr
       const damageHandler = damageableEntity._damageHandler;
 
       if (damageHandler !== null) {
-        damageHandler.spawnBlood(damagePoints, origin); // , velocity);
+        damageHandler.spawnBlood(damagePoints, origin, velocity);
         this._addMultiDamage(traceEntity, damagePoints);
       }
     } else {
@@ -512,10 +510,13 @@ export class DamageHandler<T extends BaseEntity = BaseEntity> extends EntityWrap
     // check for invincibility and play protection sounds to indicate invincibility
     if (this._entity instanceof PlayerEntity && this._entity.invincible_finished >= this._game.time) {
       const inflictorEdictId = inflictorEntity.edictId;
+      const nextInvincibleSoundTime = inflictorEdictId !== undefined
+        ? (this._entity.invincible_sound_time.get(inflictorEdictId) ?? 0)
+        : 0;
 
-      if (inflictorEdictId !== undefined && (this._entity.invincible_sound_time[inflictorEdictId] || 0) < this._game.time) {
+      if (inflictorEdictId !== undefined && nextInvincibleSoundTime < this._game.time) {
         this._entity.startSound(channel.CHAN_ITEM, 'items/protect3.wav');
-        this._entity.invincible_sound_time[inflictorEdictId] = this._game.time + 2.0;
+        this._entity.invincible_sound_time.set(inflictorEdictId, this._game.time + 2.0);
       }
       return;
     }
@@ -770,9 +771,10 @@ export class Missile extends BaseProjectile {
 
     const damagePoints = 100 + Math.random() * 20;
     const damageableEntity = touchedByEntity as DamageableEntity;
+    const hitPoint = this.origin.copy();
 
     if (damageableEntity.takedamage && damageableEntity.health > 0) {
-      this.damage(damageableEntity, damagePoints, this.owner, this.origin); // FIXME: better hitpoint
+      this.damage(damageableEntity, damagePoints, this.owner, hitPoint);
     }
 
     // don't do radius damage to the other, because all the damage
@@ -819,9 +821,10 @@ export class BaseSpike extends BaseProjectile {
 
     const ctor = this.constructor as typeof BaseSpike;
     const damageableEntity = touchedByEntity as DamageableEntity;
+    const hitPoint = this.origin.copy();
 
     if (damageableEntity.takedamage && damageableEntity.health > 0) {
-      this.damage(damageableEntity, ctor._damage, this.owner, this.origin);
+      this.damage(damageableEntity, ctor._damage, this.owner, hitPoint);
     }
 
     console.assert(ctor._tentType !== null, 'BaseSpike subclasses must define a temp-entity type');

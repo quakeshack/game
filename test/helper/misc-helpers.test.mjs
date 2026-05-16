@@ -131,5 +131,23 @@ void describe('serializable / serializableObject decorators', () => {
       assert.equal(restored.test, 'foo');
       assert.equal(restored.test2, 123);
     });
+
+    void test('map fields round-trip as maps instead of plain objects', () => {
+      const original = {
+        invincible_sound_time: new Map([[1, 2], [7, 15]]),
+      };
+      const serializer = Serializer.makeSerializable(original, null);
+      const data = serializer.serialize();
+
+      const restored = {
+        invincible_sound_time: new Map(),
+      };
+      const restoredSerializer = Serializer.makeSerializable(restored, null);
+      restoredSerializer.deserialize(data);
+
+      assert.equal(restored.invincible_sound_time instanceof Map, true);
+      assert.equal(restored.invincible_sound_time.get(1), 2);
+      assert.equal(restored.invincible_sound_time.get(7), 15);
+    });
   });
 });

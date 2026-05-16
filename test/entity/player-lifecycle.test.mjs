@@ -217,7 +217,7 @@ void describe('PlayerEntity powerup timers', () => {
       invisible_finished: 0,
       invincible_finished: 19,
       invincible_time: 5,
-      invincible_sound_time: { 1: 9, 7: 15 },
+      invincible_sound_time: new Map([[1, 9], [7, 15]]),
       super_damage_finished: 0,
       radsuit_finished: 0,
       air_finished: 0,
@@ -234,7 +234,7 @@ void describe('PlayerEntity powerup timers', () => {
     assert.equal(player.items & items.IT_INVULNERABILITY, 0);
     assert.equal(player.invincible_finished, 0);
     assert.equal(player.invincible_time, 0);
-    assert.deepEqual(player.invincible_sound_time, {});
+    assert.equal(player.invincible_sound_time.size, 0);
   });
 
   void test('expiring biosuit keeps resetting air supply until the suit ends', () => {
