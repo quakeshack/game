@@ -521,7 +521,7 @@ export default abstract class BaseEntity {
   /**
    * Set the entity model and relink through the engine.
    */
-  setModel(modelname: string | null): void {
+  setModel(modelname: string | null, touchTriggers = true): void {
     if (modelname === null || modelname.length === 0) {
       this.modelindex = 0;
       this.model = null;
@@ -532,26 +532,26 @@ export default abstract class BaseEntity {
       this.engine.PrecacheModel(modelname);
     }
 
-    this.edict!.setModel(modelname);
+    this.edict!.setModel(modelname, touchTriggers);
   }
 
   /**
    * Clear the current model.
    */
-  unsetModel(resetSize = false): void {
+  unsetModel(resetSize = false, touchTriggers = true): void {
     this.modelindex = 0;
     this.model = null;
 
     if (resetSize) {
-      this.setSize(Vector.origin, Vector.origin);
+      this.setSize(Vector.origin, Vector.origin, touchTriggers);
     }
   }
 
   /**
    * Set the bounding box size.
    */
-  setSize(mins: Vector, maxs: Vector): void {
-    this.edict!.setMinMaxSize(mins, maxs);
+  setSize(mins: Vector, maxs: Vector, touchTriggers = true): void {
+    this.edict!.setMinMaxSize(mins, maxs, touchTriggers);
   }
 
   /**
