@@ -259,11 +259,34 @@ export class ClientGameAPI {
   loadGame(data: string): void {
     const parsedData = JSON.parse(data) as ClientGameSaveData;
     const serverInfoSnapshot = this.serverInfo as unknown as ServerInfoSnapshot;
+    const savedClientdata = { ...this.clientdata };
 
     Object.assign(this.clientdata, parsedData.clientdata);
     Object.assign(serverInfoSnapshot, parsedData.serverInfo);
 
+    this._emitClientdataFieldChanges(savedClientdata, true);
+
     this.hud.loadState(parsedData.hud);
+  }
+
+  /**
+   * Publish clientdata field events so game-side listeners can react to restored values.
+   * @param savedClientdata stored client data
+   * @param force will publish field changed event no matter if changed or not
+   */
+  protected _emitClientdataFieldChanges(savedClientdata: Partial<Id1Clientdata>, force = false): void {
+    const fields = Object.keys(this.clientdata) as Array<keyof Id1Clientdata>;
+
+    for (const field of fields) {
+      const value = this.clientdata[field];
+      const previousValue = savedClientdata[field] ?? null;
+
+      if (!force && Object.is(value, previousValue)) {
+        continue;
+      }
+
+      this.engine.eventBus.publish('client.clientdata.field-changed', field, value, previousValue);
+    }
   }
 
   static GetStartGameInterface(_engineAPI: ClientEngineAPI): StartGameInterface | null {

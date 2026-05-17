@@ -560,12 +560,17 @@ void describe('id1 client API', () => {
   void test('publishes client events and restores saved game state', () => {
     const engine = createMockClientEngine();
     const receivedEvents = [];
+    const receivedFieldChanges = [];
     const clientGame = new ClientGameAPI(engine);
 
     clientGame.init();
 
     engine.eventBus.subscribe(clientEventName(clientEvent.TEST_EVENT), (...args) => {
       receivedEvents.push(args);
+    });
+
+    engine.eventBus.subscribe('client.clientdata.field-changed', (...args) => {
+      receivedFieldChanges.push(args);
     });
 
     clientGame.clientdata.health = 33;
@@ -586,6 +591,14 @@ void describe('id1 client API', () => {
     assert.equal(clientGame.serverInfo.hostname, 'Old Name');
     assert.ok(clientGame.hud.damage.attackOrigin instanceof Vector);
     assert.deepEqual(Array.from(clientGame.hud.damage.attackOrigin), [4, 5, 6]);
+    assert.equal(receivedFieldChanges.some(([field]) => field === 'health'), true);
+
+    receivedFieldChanges.length = 0;
+    clientGame.loadGame(savedGame);
+
+    // loadGame force-replays field events even when values are unchanged so
+    // game-side listeners can rebuild state after restore.
+    assert.equal(receivedFieldChanges.some(([field]) => field === 'health'), true);
   });
 
   void test('updates the viewmodel and muzzleflash effects during the frame', () => {
