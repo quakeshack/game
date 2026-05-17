@@ -77,10 +77,53 @@ Beyond bugfixes and modernizing the architecture, this port introduces several n
 * **Custom Blood Colors**: Entities that take damage (`takedamage`) can define custom color indices for their "blood" particles or spray via the `bloodcolor` field (e.g., buttons and doors use `colors.DUST` instead of red blood).
 * **Client-Side Game Code Capabilities**: Unlike QuakeC, this port has an entire client-side framework (`ClientGameAPI`) that handles logic like drawing dynamic HUD elements, managing intermission screens, and rendering effects (e.g., screen flashes, decals, or gibbing models) independently of the server.
 * **Complex Serialization (`Serializer` + Decorators)**: The game state management supports detailed object serialization via `@serializableObject`/`@serializable` TC39 decorators. The serializer is not tied to `ServerEngineAPI`; it can be attached to entities, helper objects, or plain state bags, and only needs an engine reference when it has to resolve edict-backed entity references during load. This goes far beyond QuakeC's simple `parm0...15` spawn parameters.
-* **Feature Flags**: Built-in toggles (`featureFlags` array in `GameAPI.ts`) to enable modernized physics and gameplay behaviors that alter standard Quake conventions:
+* **Feature Flags**: Built-in toggles (`featureFlags` array in `GameAPI.ts`) to enable modernized physics and gameplay behaviors that alter standard Quake conventions. The `FeatureFlag` type is defined in `GameAPI.ts` and includes:
   * `improved-gib-physics`: Instead of a simple upward throw, gibs and player heads properly calculate momentum from the incoming impact, resulting in realistic physical forces applied correctly during explosions or deaths. Additionally applies blast momentum realistically to all entities (not just those walking).
   * `correct-ballistic-grenades`: Replaces hard-coded trajectories for Ogre grenades and Zombie gibs. It uses actual physics equations, gravity settings, and travel-time formulas to calculate perfect parabolic arcs towards the target limits.
   * `draw-bullet-hole-decals`: Enables a robust client-side event listener that automatically maps decal sprites (like `gfx/bhole1.png`) to surfaces hit by player bullet/hitscan attacks.
+  * `monsters-dangerous-liquids`: Enables monsters to take damage from environmental hazards like lava and slime, similar to how players are affected by them.
+
+### Feature Gates
+
+The `FeatureFlag` type in `GameAPI.ts` defines optional non-vanilla gameplay features that can be toggled on or off:
+
+```typescript
+type FeatureFlag =
+  'monsters-dangerous-liquids' |
+  'correct-ballistic-grenades' |
+  'draw-bullet-hole-decals' |
+  'improved-gib-physics';
+```
+
+**Using feature flags in your code:**
+
+```typescript
+import { featureFlags } from '../GameAPI.ts';
+
+// Check if a feature is enabled
+if (featureFlags.includes('improved-gib-physics')) {
+  // Apply realistic gib physics
+}
+
+// Or use the helper method on ServerGameAPI
+if (this.game.hasFeature('monsters-dangerous-liquids')) {
+  // Monster takes damage from lava
+}
+```
+
+To enable or disable feature flags, modify the `featureFlags` array in `GameAPI.ts`:
+
+```typescript
+export const featureFlags: FeatureFlag[] = [
+  'improved-gib-physics',
+  // Uncomment to enable:
+  // 'correct-ballistic-grenades',
+  // 'draw-bullet-hole-decals',
+  // 'monsters-dangerous-liquids',
+];
+```
+
+This allows mods to easily toggle experimental or alternative gameplay mechanics without branching code.
 
 ### Serializable Field Decorators
 

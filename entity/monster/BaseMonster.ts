@@ -1,7 +1,7 @@
 import Vector from '../../../../shared/Vector.ts';
 
-import { colors, damage, flags, moveType, range, solid } from '../../Defs.ts';
-import type { ServerGameAPI } from '../../GameAPI.ts';
+import { colors, content, damage, flags, moveType, range, solid, waterlevel } from '../../Defs.ts';
+import { featureFlags, type ServerGameAPI } from '../../GameAPI.ts';
 import { EntityAI, ATTACK_STATE } from '../../helper/AI.ts';
 import { serializableObject, serializable } from '../../helper/MiscHelpers.ts';
 import BaseEntity from '../BaseEntity.ts';
@@ -37,6 +37,9 @@ export default abstract class BaseMonster extends BaseEntity {
   @serializable goalentity: BaseEntity | null = null;
   @serializable cnt = 0;
   @serializable _ai!: EntityAI<BaseMonster>;
+
+  /** used by environmental interactions */
+  @serializable damagetime = 0;
 
   _damageHandler: DamageHandler | null = null;
   _sub: Sub | null = null;
@@ -76,6 +79,35 @@ export default abstract class BaseMonster extends BaseEntity {
   think(): void {
     this._ai.think();
     super.think();
+
+    this._handleEnvironment();
+  }
+
+  /**
+   * part of the generic thinking, allows handling of environmental effects
+   */
+  protected _handleEnvironment(): void {
+    // react to lava and slime
+    if (featureFlags.includes('monsters-dangerous-liquids')) {
+      const dangerousContents = content.CONTENT_LAVA | content.CONTENT_SLIME;
+
+      if (this.damagetime < this.game.time && this.waterlevel > waterlevel.WATERLEVEL_NONE && (this.watertype & dangerousContents)) {
+        this.damagetime = this.game.time + 1.0;
+        this._handleDangerousLiquidsDamage();
+      }
+    }
+  }
+
+  /**
+   * damagetime will be set by _handleEnvironment before entering, also this is feature gated already
+   */
+  protected _handleDangerousLiquidsDamage(): void {
+    // this calculation is the same as for players
+    const damageByType = this.watertype & content.CONTENT_LAVA ? 10 : 4;
+    const damageMultiplier = this.waterlevel;
+    const damage = damageByType * damageMultiplier;
+
+    this.damage(this, damage, null, null);
   }
 
   /**

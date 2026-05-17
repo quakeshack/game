@@ -42,7 +42,11 @@ import EntityRegistry from './helper/Registry.ts';
 import type { EntityClass } from './entity/BaseEntity.ts';
 import * as miscProps from './entity/props/Misc.ts';
 
-type FeatureFlag = 'correct-ballistic-grenades' | 'draw-bullet-hole-decals' | 'improved-gib-physics';
+type FeatureFlag =
+  'monsters-dangerous-liquids' |
+  'correct-ballistic-grenades' |
+  'draw-bullet-hole-decals' |
+  'improved-gib-physics';
 
 interface GameDefinedCvarMap {
   nomonster: Cvar | null;
