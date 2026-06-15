@@ -10,7 +10,7 @@ import { BaseClientEdictHandler } from '../../../shared/ClientEdict.ts';
 import Q from '../../../shared/Q.ts';
 import Vector from '../../../shared/Vector.ts';
 import { attn, content, damage, dead, effect, flags, moveType, solid, waterlevel } from '../Defs.ts';
-import { serializableObject, serializable, Serializer, type SerializableRecord } from '../helper/MiscHelpers.ts';
+import { serializableObject, serializable, Serializer, type SerializableRecord, indexed } from '../helper/MiscHelpers.ts';
 
 type ScheduledThinkCallback<T extends BaseEntity = BaseEntity> = (this: T, entity: T) => void;
 type TraceResult = ReturnType<ServerEngineAPI['Traceline']>;
@@ -139,8 +139,8 @@ export default abstract class BaseEntity {
   @serializable enemy: BaseEntity | null = null;
   @serializable goalentity: BaseEntity | null = null;
   @serializable killtarget: string | null = null;
-  @serializable target: string | null = null;
-  @serializable targetname: string | null = null;
+  @serializable @indexed target: string | null = null;
+  @serializable @indexed targetname: string | null = null;
   @serializable movedir = new Vector();
 
   @serializable deadflag = dead.DEAD_NO;
@@ -772,6 +772,52 @@ export default abstract class BaseEntity {
     return true;
   }
 
+  static #entityIndex: Record<string, Map<string, Set<BaseEntity>>> = {};
+
+  static flushEntityIndex() {
+    BaseEntity.#entityIndex = {};
+  }
+
+  static reindexEntity(field: string, prev: string, current: string, entity: BaseEntity): void {
+    // field --> prev --> remove entity from Set<BaseEntity>
+    // field --> value --> Set<BaseEntity>
+
+    // create the field index if it doesn't exist
+    if (!(field in BaseEntity.#entityIndex)) {
+      BaseEntity.#entityIndex[field] = new Map<string, Set<BaseEntity>>();
+    }
+
+    const isFreed = entity.edict?.free;
+
+    // delete the old value if it exists and we're not freed
+    if (BaseEntity.#entityIndex[field].has(prev)) {
+      const prevSet = BaseEntity.#entityIndex[field].get(prev)!;
+      prevSet.delete(entity);
+
+      if (prevSet.size === 0) {
+        BaseEntity.#entityIndex[field].delete(prev);
+      }
+    }
+
+    // add the new value if we're not freed
+    if (!isFreed) {
+      if (!BaseEntity.#entityIndex[field].has(current)) {
+        BaseEntity.#entityIndex[field].set(current, new Set<BaseEntity>());
+      }
+
+      const curSet = BaseEntity.#entityIndex[field].get(current)!;
+      curSet.add(entity);
+    }
+
+    // clean up the tree
+    if (BaseEntity.#entityIndex[field].size === 0) {
+      delete BaseEntity.#entityIndex[field];
+    }
+
+    // console.log('Reindexed entity', entity, 'field', field, 'prev', prev, 'current', current, 'freed', isFreed);
+    // console.log('BaseEntity.#entityIndex', BaseEntity.#entityIndex);
+  }
+
   /**
    * Find the next entity matching a field/value pair.
    */
@@ -820,9 +866,7 @@ export default abstract class BaseEntity {
    * Return the next best client target from the engine helper.
    */
   getNextBestClient(): BaseEntity | null {
-    const nextClient = this.edict!.getNextBestClient()?.entity as BaseEntity | null;
-
-    return nextClient;
+    return (this.edict!.getNextBestClient()?.entity || null) as BaseEntity | null;
   }
 
   /**

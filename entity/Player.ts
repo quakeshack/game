@@ -1,10 +1,10 @@
-import type { PlayerEntitySpawnParamsDynamic, SerializableType, ServerEdict, ServerEngineAPI } from '../../../shared/GameInterfaces.ts';
+import type { PlayerEntitySpawnParamsDynamic, SerializableType, ServerEngineAPI } from '../../../shared/GameInterfaces.ts';
 
 import { BaseClientEdictHandler } from '../../../shared/ClientEdict.ts';
 import Vector from '../../../shared/Vector.ts';
 
 import { attn, channel, clientEvent, colors, content, damage, dead, deathType, effect, flags, hull, items, moveType, solid, waterlevel } from '../Defs.ts';
-import { featureFlags } from '../GameAPI.ts';
+import { featureFlags } from '../featureFlags.ts';
 import { crandom, serializableObject, serializable, Serializer } from '../helper/MiscHelpers.ts';
 import BaseEntity from './BaseEntity.ts';
 import { BackpackEntity } from './Items.ts';
@@ -369,12 +369,6 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
 
   /** Cached model indices for the normal player model and invisibility eyes. */
   @serializable protected _modelIndex: ModelIndexSet = Serializer.makeSerializableObject({ player: null, eyes: null }, this.engine);
-
-  private get _requiredEdict(): ServerEdict {
-    const edict = this.edict;
-    console.assert(edict !== null, 'PlayerEntity requires a live edict');
-    return edict!;
-  }
 
   protected override _declareFields(): void {
     this._weapons = new PlayerWeapons(this);
@@ -844,19 +838,19 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
   }
 
   centerPrint(message: string): void {
-    this._requiredEdict.getClient()!.centerPrint(message);
+    this.edict!.getClient()!.centerPrint(message);
   }
 
   consolePrint(message: string): void {
-    this._requiredEdict.getClient()!.consolePrint(message);
+    this.edict!.getClient()!.consolePrint(message);
   }
 
   dispatchEvent(eventType: number, ...args: SerializableType[]): void {
-    this.engine.DispatchClientEvent(this._requiredEdict, false, eventType, ...args);
+    this.engine.DispatchClientEvent(this.edict!, false, eventType, ...args);
   }
 
   dispatchExpeditedEvent(eventType: number, ...args: SerializableType[]): void {
-    this.engine.DispatchClientEvent(this._requiredEdict, true, eventType, ...args);
+    this.engine.DispatchClientEvent(this.edict!, true, eventType, ...args);
   }
 
   protected _freshSpawnParameters(): void {
@@ -1069,15 +1063,16 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     const end = start.copy().add(forward.multiply(128.0));
     const mins = new Vector(-8.0, -8.0, -8.0);
     const maxs = new Vector(8.0, 8.0, 8.0);
-    const trace = this.engine.Traceline(start, end, false, this._requiredEdict, mins, maxs);
+    const trace = this.engine.Traceline(start, end, false, this.edict!, mins, maxs);
 
     if (trace.entity) {
-      const tracedEntity = trace.entity;
+      const tracedEntity = trace.entity as unknown as BaseEntity;
       this.startSound(channel.CHAN_BODY, 'misc/talk.wav');
-      this.centerPrint(tracedEntity.classname ?? 'unknown');
+      this.centerPrint(`${tracedEntity.classname ?? 'unknown'} (edict ${tracedEntity.edictId})`);
       console.debug('tracedEntity:', tracedEntity);
-      console.debug('trace:', trace);
     }
+
+    console.debug('trace:', trace);
   }
 
   private _testStuff(): void {
@@ -1094,7 +1089,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     const end = start.copy().add(forward.multiply(128.0));
     const mins = new Vector(-8.0, -8.0, -8.0);
     const maxs = new Vector(8.0, 8.0, 8.0);
-    const trace = this.engine.Traceline(start, end, false, this._requiredEdict, mins, maxs);
+    const trace = this.engine.Traceline(start, end, false, this.edict!, mins, maxs);
 
     if (trace.entity instanceof BaseEntity) {
       this.damage(trace.entity, 50000.0);

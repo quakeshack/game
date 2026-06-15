@@ -2,7 +2,7 @@ import type { ServerEngineAPI } from '../../../shared/GameInterfaces.ts';
 import Vector, { type DirectionalVectors } from '../../../shared/Vector.ts';
 
 import { attn, channel, clientEvent, colors, content, damage, decals, effect, flags, items, moveType, solid, tentType, waterlevel } from '../Defs.ts';
-import { featureFlags } from '../GameAPI.ts';
+import { featureFlags } from '../featureFlags.ts';
 import { crandom, EntityWrapper, serializableObject, serializable } from '../helper/MiscHelpers.ts';
 import BaseEntity, { type TraceResult } from './BaseEntity.ts';
 import BaseMonster from './monster/BaseMonster.ts';

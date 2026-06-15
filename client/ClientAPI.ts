@@ -5,9 +5,10 @@ import Vector from '../../../shared/Vector.ts';
 
 import { clientEvent, clientEventName, decals, effect, items } from '../Defs.ts';
 import { weaponConfig, type WeaponConfigKey } from '../entity/Weapons.ts';
-import { featureFlags, ServerGameAPI } from '../GameAPI.ts';
+import { featureFlags } from '../featureFlags.ts';
 import { Q1HUD, type HUDSaveState } from './HUD.ts';
 import { ServerInfo, type ServerInfoSnapshot } from './Sync.ts';
+import { ServerGameAPI } from '../GameAPI.ts';
 
 interface DecalSet {
   readonly axehit: GLTexture[];

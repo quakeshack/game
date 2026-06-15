@@ -12,6 +12,7 @@ import type {
 import { GibEntity, InfoPlayerStart, InfoPlayerStart2, InfoPlayerStartCoop, InfoPlayerStartDeathmatch, PlayerEntity, TelefragTriggerEntity } from './entity/Player.ts';
 import { BodyqueEntity, WorldspawnEntity } from './entity/Worldspawn.ts';
 import { spawnflags } from './Defs.ts';
+import { featureFlags, type FeatureFlag } from './featureFlags.ts';
 import * as misc from './entity/Misc.ts';
 import * as door from './entity/props/Doors.ts';
 import * as platform from './entity/props/Platforms.ts';
@@ -42,11 +43,8 @@ import EntityRegistry from './helper/Registry.ts';
 import type { EntityClass } from './entity/BaseEntity.ts';
 import * as miscProps from './entity/props/Misc.ts';
 
-type FeatureFlag =
-  'monsters-dangerous-liquids' |
-  'correct-ballistic-grenades' |
-  'draw-bullet-hole-decals' |
-  'improved-gib-physics';
+export { featureFlags };
+export type { FeatureFlag };
 
 interface GameDefinedCvarMap {
   nomonster: Cvar | null;
@@ -68,12 +66,6 @@ interface EngineCvarMap {
 type MutableServerEdict = Omit<ServerEdict, 'entity'> & {
   entity: BaseEntity | null;
 };
-
-export const featureFlags: FeatureFlag[] = [
-  // 'correct-ballistic-grenades', // enables zombie gib and ogre grenade trajectory fix
-  'improved-gib-physics',
-  // 'draw-bullet-hole-decals', // enables handling decal events upon bullet impacts
-];
 
 export const entityClasses: readonly EntityClass[] = [
   WorldspawnEntity,
@@ -726,6 +718,8 @@ export class ServerGameAPI {
 
     skill.set(Math.max(0, Math.min(3, Math.floor(skill.value))));
 
+    BaseEntity.flushEntityIndex();
+
     this.stats.subscribeToEvents();
     this._precacheResources();
     this._initNextMap();
@@ -738,6 +732,7 @@ export class ServerGameAPI {
 
     while (this._shutdownHooks.length > 0) {
       const shutdown = this._shutdownHooks.pop();
+
       if (shutdown === undefined) {
         continue;
       }

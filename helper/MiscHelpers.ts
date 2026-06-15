@@ -21,10 +21,13 @@ interface SerializableFieldsConstructor {
 let pendingSerializableFields: string[] = [];
 
 /**
- * TC39 field decorator that marks a class field as serializable.
+ * TC39 decorator that marks a class field or accessor as serializable.
  * Must be used together with @serializableObject on the enclosing class.
  */
-export function serializable(_value: undefined, context: ClassFieldDecoratorContext): void {
+export function serializable<This, Value>(
+  _value: undefined | ClassAccessorDecoratorTarget<This, Value>,
+  context: ClassFieldDecoratorContext<This, Value> | ClassAccessorDecoratorContext<This, Value>,
+): void {
   pendingSerializableFields.push(String(context.name));
 }
 
@@ -472,4 +475,38 @@ export class Serializer<T extends object> {
 
     return serializableObject as SerializableObject<TObject>;
   }
+}
+
+/**
+ * Marks a string field on an entity as indexed for efficient lookup by the engine.
+ */
+export function indexed<This extends BaseEntity, T>(
+  _value: undefined,
+  context: ClassFieldDecoratorContext<This, T>,
+): void {
+  context.addInitializer(function (this: This): void {
+    const entity = this as This & Record<PropertyKey, T>;
+    const propertyName = context.name;
+    const field = String(propertyName);
+    let currentValue = entity[propertyName];
+
+    Object.defineProperty(entity, propertyName, {
+      configurable: true,
+      enumerable: true,
+      get() {
+        return currentValue;
+      },
+      set(value: T) {
+        const prev = currentValue;
+
+        if (prev === value) {
+          return;
+        }
+
+        currentValue = value;
+
+        (entity.constructor as typeof BaseEntity).reindexEntity(field, String(prev), String(value), this);
+      },
+    });
+  });
 }

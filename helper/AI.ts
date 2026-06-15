@@ -261,15 +261,9 @@ abstract class PathCornerMarker extends BaseEntity {
  * @returns Normalized angle in degrees.
  */
 function anglemod(v: number): number {
-  while (v >= 360) {
-    v -= 360;
-  }
+  const normalized = v % 360;
 
-  while (v < 0) {
-    v += 360;
-  }
-
-  return v;
+  return normalized < 0 ? normalized + 360 : normalized;
 }
 
 export enum ATTACK_STATE {
@@ -408,6 +402,18 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
       a[2] = 0.0;
       const b = this._path[0].copy();
       b[2] = 0.0;
+
+      // if (this._game.time > this._enemyMetadata.nextPathUpdateTime) {
+      //   // dynamically test if the link is obstructed (e.g. closed doors)
+      //   const traversal = this._engine.EvaluateTraversalBetween(this._entity.origin, this._path[0], true);
+      //   if (traversal && !traversal.ok) {
+      //     console.debug(`${this._entity} found path to ${this._path[0]} obstructed: ${traversal.reason}, dropping path`);
+      //     this._path = [];
+      //     this._enemyMetadata.nextPathUpdateTime = 0.0;
+      //     return;
+      //   }
+      // }
+
       if (a.distanceTo(b) < 32 * 1.41) {
         const waypoint = this._path.shift();
         console.debug(`${this._entity} reached waypoint ${waypoint}, ${this._path.length} waypoints left`);
@@ -641,6 +647,11 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
   }
 
   _isVisible(target: BaseEntity): boolean {
+    // too far away, don't even bother tracing
+    if (target.origin.distanceTo(this._entity.origin) > 2048) {
+      return false;
+    }
+
     const trace = this._entity.tracelineToEntity(target, true);
 
     if (trace.contents.inOpen && trace.contents.inWater) {

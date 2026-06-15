@@ -1,7 +1,8 @@
 import Vector from '../../../../shared/Vector.ts';
 
 import { colors, content, damage, flags, moveType, range, solid, waterlevel } from '../../Defs.ts';
-import { featureFlags, type ServerGameAPI } from '../../GameAPI.ts';
+import type { ServerGameAPI } from '../../GameAPI.ts';
+import { featureFlags } from '../../featureFlags.ts';
 import { EntityAI, ATTACK_STATE } from '../../helper/AI.ts';
 import { serializableObject, serializable } from '../../helper/MiscHelpers.ts';
 import BaseEntity from '../BaseEntity.ts';
