@@ -6,6 +6,7 @@ import { serializableObject, serializable } from '../../helper/MiscHelpers.ts';
 import BaseEntity from '../BaseEntity.ts';
 import { FireballEntity } from '../Misc.ts';
 import { state } from '../props/BasePropEntity.ts';
+import { DoorEntity } from '../props/Doors.ts';
 import { Missile } from '../Weapons.ts';
 import BaseMonster from './BaseMonster.ts';
 
@@ -14,15 +15,8 @@ interface Combatant extends BaseEntity {
   velocity: Vector;
 }
 
-type ElectrodeState = (typeof state)[keyof typeof state];
-
-interface ElectrodeDoor extends BaseEntity {
-  state: ElectrodeState;
-  nextthink: number;
-  mins: Vector;
-  maxs: Vector;
-  absmin: Vector;
-  _doorGoDown?: (activatorEntity: BaseEntity) => void;
+interface DoorEntityHack { // ugly hack to reset visibility of _doorGoDown
+  _doorGoDown: (activatorEntity: BaseEntity) => void;
 }
 
 export class BossLavaball extends Missile {
@@ -322,15 +316,16 @@ export class EventLightningEntity extends BaseEntity {
 
   _lightningFire(): void {
     if (this.game.time >= this.lightning_end) {
-      const electrode1 = this._electrode1 as ElectrodeDoor | null;
-      const electrode2 = this._electrode2 as ElectrodeDoor | null;
+      const electrode1 = this._electrode1 as DoorEntityHack | null;
+      const electrode2 = this._electrode2 as DoorEntityHack | null;
       electrode1?._doorGoDown?.(this);
       electrode2?._doorGoDown?.(this);
       return;
     }
 
-    const electrode1 = this._electrode1 as ElectrodeDoor | null;
-    const electrode2 = this._electrode2 as ElectrodeDoor | null;
+    const electrode1 = this._electrode1 as DoorEntity | null;
+    const electrode2 = this._electrode2 as DoorEntity | null;
+
     if (electrode1 === null || electrode2 === null) {
       return;
     }
@@ -359,17 +354,17 @@ export class EventLightningEntity extends BaseEntity {
       return;
     }
 
-    this._electrode1 = this.findFirstEntityByFieldAndValue('target', 'lightning');
-    if (this._electrode1 !== null) {
-      this._electrode2 = this.findNextEntityByFieldAndValue('target', 'lightning', this._electrode1);
-    }
+    [this._electrode1, this._electrode2] = Array.from(this.findAllEntitiesByFieldAndValue('target', 'lightning'));
 
-    if (this._electrode1 === null || this._electrode2 === null) {
+    if (!(this._electrode1 instanceof DoorEntity) || !(this._electrode2 instanceof DoorEntity)) {
+      this.engine.ConsoleWarning('event_lightning: missing electrode doors');
+      this._electrode1 = null;
+      this._electrode2 = null;
       return;
     }
 
-    const electrode1 = this._electrode1 as ElectrodeDoor;
-    const electrode2 = this._electrode2 as ElectrodeDoor;
+    const electrode1 = this._electrode1 as DoorEntity;
+    const electrode2 = this._electrode2 as DoorEntity;
     const state1 = electrode1.state;
     const state2 = electrode2.state;
 
@@ -380,8 +375,8 @@ export class EventLightningEntity extends BaseEntity {
     }
 
     // Do not let the electrodes go back up until the bolt is done.
-    electrode1.nextthink = -1;
-    electrode2.nextthink = -1;
+    electrode1.resetThinking();
+    electrode2.resetThinking();
     this.lightning_end = this.game.time + 1;
 
     this.startSound(channel.CHAN_VOICE, 'misc/power.wav');
