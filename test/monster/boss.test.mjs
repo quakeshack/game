@@ -7,6 +7,7 @@ import { effect, moveType, solid, tentType } from '../../Defs.ts';
 await import('../../GameAPI.ts');
 
 const { BossLavaball, BossMonster, EventLightningEntity } = await import('../../entity/monster/Boss.ts');
+const { DoorEntity } = await import('../../entity/props/Doors.ts');
 
 const ELECTRODE_STATE_TOP = 0;
 
@@ -145,6 +146,7 @@ function createLightningFixture() {
     },
     StartSound() {},
     DispatchBeamEvent() {},
+    ConsoleWarning() {},
     eventBus: {
       publish() {},
     },
@@ -308,39 +310,35 @@ void describe('EventLightningEntity', () => {
     const boss = createBossFixture(BossMonster);
     boss.health = 3;
 
-    const electrode1 = {
-      state: ELECTRODE_STATE_TOP,
-      nextthink: 0,
-      mins: new Vector(-16, -16, -16),
-      maxs: new Vector(16, 16, 16),
-      absmin: new Vector(0, 0, 40),
-      _doorGoDown() {},
-    };
-    const electrode2 = {
-      state: ELECTRODE_STATE_TOP,
-      nextthink: 0,
-      mins: new Vector(-16, -16, -16),
-      maxs: new Vector(16, 16, 16),
-      absmin: new Vector(200, 0, 40),
-      _doorGoDown() {},
-    };
+    // Use Object.create so the electrodes pass instanceof DoorEntity checks inside use().
+    const electrode1 = Object.create(DoorEntity.prototype);
+    electrode1.state = ELECTRODE_STATE_TOP;
+    electrode1.nextthink = 0;
+    electrode1.mins = new Vector(-16, -16, -16);
+    electrode1.maxs = new Vector(16, 16, 16);
+    electrode1.absmin = new Vector(0, 0, 40);
+
+    const electrode2 = Object.create(DoorEntity.prototype);
+    electrode2.state = ELECTRODE_STATE_TOP;
+    electrode2.nextthink = 0;
+    electrode2.mins = new Vector(-16, -16, -16);
+    electrode2.maxs = new Vector(16, 16, 16);
+    electrode2.absmin = new Vector(200, 0, 40);
+
     boss.takeLightningDamage = (entity) => {
       damageCalls += 1;
       assert.equal(entity, activator);
     };
 
-    lightning.findFirstEntityByFieldAndValue = (fieldName, value) => {
+    lightning.findAllEntitiesByFieldAndValue = function*(fieldName, value) {
       if (fieldName === 'target' && value === 'lightning') {
-        return electrode1;
+        yield electrode1;
+        yield electrode2;
       }
+    };
+    lightning.findFirstEntityByFieldAndValue = (fieldName, value) => {
       if (fieldName === 'classname' && value === BossMonster.classname) {
         return boss;
-      }
-      return null;
-    };
-    lightning.findNextEntityByFieldAndValue = (fieldName, value, current) => {
-      if (fieldName === 'target' && value === 'lightning' && current === electrode1) {
-        return electrode2;
       }
       return null;
     };
