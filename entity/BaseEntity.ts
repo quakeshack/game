@@ -139,7 +139,9 @@ export default abstract class BaseEntity {
   @serializable enemy: BaseEntity | null = null;
   @serializable goalentity: BaseEntity | null = null;
   @serializable killtarget: string | null = null;
+  /** Sender. The target entity this entity will interact with. */
   @serializable @indexed target: string | null = null;
+  /** Recipient. The name of this entity for other entities to target. */
   @serializable @indexed targetname: string | null = null;
   @serializable movedir = new Vector();
 
