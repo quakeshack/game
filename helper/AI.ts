@@ -353,7 +353,16 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
 
   thinkNavigation(): void {
     const enemy = this._entity.enemy;
+
     if (enemy === null) {
+      return;
+    }
+
+    // The enemy’s edict may have been freed and its slot reused, nulling all its
+    // properties (including origin). BaseMonster.think() calls _ai.think() before
+    // super.think(), so the stale-ref cleanup in BaseEntity.think() hasn’t run yet.
+    if (enemy.edict === null || enemy.edict.free) {
+      this._entity.enemy = null;
       return;
     }
 
@@ -380,7 +389,7 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
 
     if (this._game.time > this._enemyMetadata.nextPathUpdateTime && !this._gameAI._sightEntityLastOrigin.isOrigin()) {
       this._engine.NavigateAsync(this._entity.origin, this._gameAI._sightEntityLastOrigin).then((newPath) => {
-        if (this._entity.edict === null) {
+        if (this._entity.edict === null || this._entity.edict.free) {
           return;
         }
 

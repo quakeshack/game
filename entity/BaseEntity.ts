@@ -725,7 +725,7 @@ export default abstract class BaseEntity {
     // remove all references to freed entities before running thinks
     for (const key of Object.keys(entityRecord)) {
       const value = entityRecord[key];
-      if (value instanceof BaseEntity && value.edict === null) {
+      if (value instanceof BaseEntity && (value.edict === null || value.edict.free)) {
         entityRecord[key] = null;
       }
     }
