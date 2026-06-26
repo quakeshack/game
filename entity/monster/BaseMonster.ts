@@ -90,9 +90,8 @@ export default abstract class BaseMonster extends BaseEntity {
   protected _handleEnvironment(): void {
     // react to lava and slime
     if (featureFlags.includes('monsters-dangerous-liquids')) {
-      const dangerousContents = content.CONTENT_LAVA | content.CONTENT_SLIME;
-
-      if (this.damagetime < this.game.time && this.waterlevel > waterlevel.WATERLEVEL_NONE && (this.watertype & dangerousContents)) {
+      if (this.damagetime < this.game.time && this.waterlevel > waterlevel.WATERLEVEL_NONE &&
+        (this.watertype === content.CONTENT_LAVA || this.watertype === content.CONTENT_SLIME)) {
         this.damagetime = this.game.time + 1.0;
         this._handleDangerousLiquidsDamage();
       }
@@ -104,7 +103,7 @@ export default abstract class BaseMonster extends BaseEntity {
    */
   protected _handleDangerousLiquidsDamage(): void {
     // this calculation is the same as for players
-    const damageByType = this.watertype & content.CONTENT_LAVA ? 10 : 4;
+    const damageByType = this.watertype === content.CONTENT_LAVA ? 10 : 4;
     const damageMultiplier = this.waterlevel;
     const damage = damageByType * damageMultiplier;
 

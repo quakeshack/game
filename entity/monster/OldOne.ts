@@ -6,6 +6,7 @@ import { serializableObject } from '../../helper/MiscHelpers.ts';
 import BaseEntity from '../BaseEntity.ts';
 import { IntermissionCameraEntity, MiscNullEntity } from '../Misc.ts';
 import { GibEntity, PlayerEntity } from '../Player.ts';
+import { TeleportTrainEntity } from '../props/Platforms.ts';
 import BaseMonster from './BaseMonster.ts';
 
 /**
@@ -110,14 +111,14 @@ $frame shake15 shake16 shake17 shake18 shake19 shake20
     this.game.intermission_running = 1;
 
     // Find the intermission spot.
-    const camera = this.findFirstEntityByFieldAndValue('classname', 'info_intermission');
+    const camera = this.findFirstEntityByFieldAndValue('classname', IntermissionCameraEntity.classname);
     console.assert(camera instanceof IntermissionCameraEntity, 'no info_intermission');
     const position = camera instanceof IntermissionCameraEntity ? camera : null;
 
-    const train = this.findFirstEntityByFieldAndValue('classname', 'misc_teleporttrain');
+    const train = this.findFirstEntityByFieldAndValue('classname', TeleportTrainEntity.classname);
     train?.remove();
 
-    let player = this.findFirstEntityByFieldAndValue('classname', 'player');
+    let player = this.findFirstEntityByFieldAndValue('classname', PlayerEntity.classname);
     while (player instanceof PlayerEntity) {
       player.view_ofs.clear();
       if (position !== null) {
@@ -134,7 +135,7 @@ $frame shake15 shake16 shake17 shake18 shake19 shake20
       if (position !== null) {
         player.setOrigin(position.origin);
       }
-      player = this.findNextEntityByFieldAndValue('classname', 'player', player);
+      player = this.findNextEntityByFieldAndValue('classname', PlayerEntity.classname, player);
     }
 
     // Wait for one second before the next finale step.
