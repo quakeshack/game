@@ -65,6 +65,7 @@ enum SerializedType {
   SERIALIZABLE = 'S',
   VECTOR = 'V',
   MAP = 'M',
+  SET = 'Z',
 }
 
 type SerializablePrimitive = string | number | boolean | null;
@@ -78,6 +79,7 @@ type SerializedFunction = [SerializedType.FUNCTION, string];
 type SerializedSerializable = [SerializedType.SERIALIZABLE, SerializableRecord];
 type SerializedVector = [SerializedType.VECTOR, ...number[]];
 type SerializedMap = [SerializedType.MAP, [string, SerializedToken][]];
+type SerializedSet = [SerializedType.SET, SerializedToken[]];
 type SerializedToken =
   | SerializedArray
   | SerializedEdictReference
@@ -87,7 +89,9 @@ type SerializedToken =
   | SerializedSerializable
   | SerializedSkip
   | SerializedVector
-  | SerializedMap;
+  | SerializedMap
+  | SerializedSet
+;
 
 type SerializableContainer = Record<string, unknown> & {
   _serializer?: Serializer<object>;
@@ -319,6 +323,9 @@ export class Serializer<T extends object> {
       case value instanceof Map:
         return [SerializedType.MAP, Array.from(value.entries()).map(([key, val]) => [key, this.#serializeValue(val)])];
 
+      case value instanceof Set:
+        return [SerializedType.SET, Array.from(value.values()).map((item) => this.#serializeValue(item))];
+
       case Array.isArray(value):
         return [SerializedType.ARRAY, value.map((item) => this.#serializeValue(item))];
 
@@ -385,6 +392,16 @@ export class Serializer<T extends object> {
         }
 
         return map;
+      }
+
+      case SerializedType.SET: {
+        const set = new Set<unknown>();
+
+        for (const item of value[1]) {
+          set.add(this.#deserializeValue(item));
+        }
+
+        return set;
       }
 
       case SerializedType.SERIALIZABLE: {
@@ -505,7 +522,9 @@ export function indexed<This extends BaseEntity, T>(
 
         currentValue = value;
 
-        (entity.constructor as typeof BaseEntity).reindexEntity(field, String(prev), String(value), this);
+        if (entity.game?.entityIndex) {
+          entity.game.entityIndex.reindexEntity(field, prev === null || prev === undefined ? null : String(prev), value === null || value === undefined ? null : String(value), this);
+        }
       },
     });
   });

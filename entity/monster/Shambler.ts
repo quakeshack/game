@@ -54,8 +54,8 @@ $frame death7 death8 death9 death10 death11
     return 'a Shambler';
   }
 
-  protected override _declareFields(): void {
-    super._declareFields();
+  protected override _initComponents(): void {
+    super._initComponents();
     this._damageInflictor = new DamageInflictor(this);
   }
 

@@ -629,8 +629,8 @@ export class BaseBarrelEntity extends BaseEntity {
   protected _damageInflictor: DamageInflictor<BaseBarrelEntity> | null = null;
   protected _explosion: Explosions<BaseBarrelEntity> | null = null;
 
-  protected override _declareFields(): void {
-    super._declareFields();
+  protected override _initComponents(): void {
+    super._initComponents();
     this._damageHandler = new DamageHandler(this);
     this._damageInflictor = new DamageInflictor(this);
     this._explosion = new Explosions(this);
@@ -763,8 +763,8 @@ export class TrapSpikeshooterEntity extends BaseEntity {
 
   @serializable wait = 0;
 
-  protected override _declareFields(): void {
-    super._declareFields();
+  protected override _initComponents(): void {
+    super._initComponents();
     this._sub ??= new Sub(this);
   }
 

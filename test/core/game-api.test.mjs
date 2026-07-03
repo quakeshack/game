@@ -203,8 +203,8 @@ void describe('ServerGameAPI entity lifecycle', () => {
         this.constructorValue = 3;
       }
 
-      _declareFields() {
-        super._declareFields();
+      _initComponents() {
+        super._initComponents();
         this.initializerReady = 0;
         this.constructorValue = 0;
         this.precacheObservedValue = -1;

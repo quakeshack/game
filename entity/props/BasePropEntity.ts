@@ -85,8 +85,8 @@ export default abstract class BasePropEntity extends BaseEntity {
    */
   @serializable speed = 0;
 
-  protected override _declareFields(): void {
-    super._declareFields();
+  protected override _initComponents(): void {
+    super._initComponents();
     // Movement helpers live on Sub during the transition away from QuakeC helpers.
     this._sub ??= new Sub(this);
   }

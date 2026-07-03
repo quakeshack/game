@@ -24,9 +24,8 @@ export class BaseTriggerEntity extends BaseEntity {
   @serializable wait = 0;
   @serializable delay = 0;
 
-  protected override _declareFields(): void {
-    super._declareFields();
-    this.takedamage = damage.DAMAGE_NO;
+  protected override _initComponents(): void {
+    super._initComponents();
     this._sub ??= new Sub(this);
     this._damageHandler = new DamageHandler(this);
   }
@@ -234,8 +233,8 @@ export class OnceTriggerEntity extends MultipleTriggerEntity {
 export class SecretTriggerEntity extends OnceTriggerEntity {
   static classname = 'trigger_secret';
 
-  protected override _declareFields(): void {
-    super._declareFields();
+  protected override _initComponents(): void {
+    super._initComponents();
     this.sounds = 1;
     this.message = 'You found a secret area!';
   }

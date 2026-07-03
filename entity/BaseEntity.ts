@@ -197,6 +197,16 @@ export default abstract class BaseEntity {
     return edict !== null ? edict.num : undefined;
   }
 
+  /**
+   * Construct a new entity instance and wires up APIs.
+   *
+   * It does NOT spawn them! It’s called by the GameAPI.
+   *
+   * Also, use _initComponents() to initialize components and set default values for fields,
+   * when they cannot be set at compile time.
+   * @param edict underlying edict
+   * @param gameAPI server game API
+   */
   constructor(edict: ServerEdict | null, gameAPI: ServerGameAPI) {
     this._edictRef = edict ? new WeakRef(edict) : null;
     this.engine = gameAPI.engine;
@@ -214,7 +224,7 @@ export default abstract class BaseEntity {
       return this;
     }
 
-    this._declareFields();
+    this._initComponents();
     this.#isInitialized = true;
 
     return this;
@@ -230,21 +240,22 @@ export default abstract class BaseEntity {
   }
 
   /**
-   * Legacy JS hook for declaring subclass fields before spawn.
-   * New TS subclasses should prefer typed class fields and static serializableFields.
-   * @deprecated Use serializer annotations instead and put your fields inside the class.
+   * Used to initialize components of that entity and sometimes set a default value for a field.
+   * You can wire up things like DamageHandler, Sub, and other components here.
    */
-  protected _declareFields(): void {
+  protected _initComponents(): void {
   }
 
   /**
    * Precache instance resources needed for this entity.
+   * This will only be called if the entity is placed in the map!
    */
   protected _precache(): void {
   }
 
   /**
    * Precache class-level resources needed for dynamic spawns.
+   * This will called no matter if the entity is spawned from the map or dynamically!
    */
   static _precache(_engineAPI: ServerEngineAPI): void {
   }
@@ -705,8 +716,18 @@ export default abstract class BaseEntity {
     const entityRecord = this as Record<string, unknown>;
 
     for (const property of Object.keys(entityRecord)) {
+      // decorated fields might need game and engine
+      if (property === 'game' || property === 'engine') {
+        continue;
+      }
+
       entityRecord[property] = null;
     }
+
+    this.game.entityIndex.freeEntity(this);
+
+    this.game = null!;
+    this.engine = null!;
   }
 
   /**
@@ -772,52 +793,6 @@ export default abstract class BaseEntity {
     }
 
     return true;
-  }
-
-  static #entityIndex: Record<string, Map<string, Set<BaseEntity>>> = {};
-
-  static flushEntityIndex() {
-    BaseEntity.#entityIndex = {};
-  }
-
-  static reindexEntity(field: string, prev: string, current: string, entity: BaseEntity): void {
-    // field --> prev --> remove entity from Set<BaseEntity>
-    // field --> value --> Set<BaseEntity>
-
-    // create the field index if it doesn't exist
-    if (!(field in BaseEntity.#entityIndex)) {
-      BaseEntity.#entityIndex[field] = new Map<string, Set<BaseEntity>>();
-    }
-
-    const isFreed = entity.edict?.free;
-
-    // delete the old value if it exists and we're not freed
-    if (BaseEntity.#entityIndex[field].has(prev)) {
-      const prevSet = BaseEntity.#entityIndex[field].get(prev)!;
-      prevSet.delete(entity);
-
-      if (prevSet.size === 0) {
-        BaseEntity.#entityIndex[field].delete(prev);
-      }
-    }
-
-    // add the new value if we're not freed
-    if (!isFreed) {
-      if (!BaseEntity.#entityIndex[field].has(current)) {
-        BaseEntity.#entityIndex[field].set(current, new Set<BaseEntity>());
-      }
-
-      const curSet = BaseEntity.#entityIndex[field].get(current)!;
-      curSet.add(entity);
-    }
-
-    // clean up the tree
-    if (BaseEntity.#entityIndex[field].size === 0) {
-      delete BaseEntity.#entityIndex[field];
-    }
-
-    // console.log('Reindexed entity', entity, 'field', field, 'prev', prev, 'current', current, 'freed', isFreed);
-    // console.log('BaseEntity.#entityIndex', BaseEntity.#entityIndex);
   }
 
   /**

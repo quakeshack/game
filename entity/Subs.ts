@@ -37,11 +37,6 @@ export { TriggerFieldFlag as triggerFieldFlags };
 export class TriggerFieldEntity extends BaseEntity {
   static classname = 'subs_triggerfield';
 
-  protected override _declareFields(): void {
-    super._declareFields();
-    this.flags = 0 as typeof this.flags;
-  }
-
   override spawn(): void {
     this.movetype = moveType.MOVETYPE_NONE;
     this.solid = solid.SOLID_TRIGGER;
@@ -97,8 +92,8 @@ export class DelayedThinkEntity extends BaseEntity {
   @serializable activator: BaseEntity | null = null;
   @serializable delay = 0;
 
-  protected override _declareFields(): void {
-    super._declareFields();
+  protected override _initComponents(): void {
+    super._initComponents();
     this._sub ??= new Sub(this);
   }
 

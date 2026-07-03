@@ -42,6 +42,7 @@ import GameStats from './helper/GameStats.ts';
 import EntityRegistry from './helper/Registry.ts';
 import type { EntityClass } from './entity/BaseEntity.ts';
 import * as miscProps from './entity/props/Misc.ts';
+import EntityIndex from './helper/EntityIndex.ts';
 
 export { featureFlags };
 export type { FeatureFlag };
@@ -265,6 +266,9 @@ export class ServerGameAPI {
 
   /** Functions to be called when shutting down the game. */
   _shutdownHooks: Array<() => void>;
+
+  /** Index for quickly looking up entities by their fields. */
+  readonly entityIndex = new EntityIndex();
 
   /**
    * Invoked by spawning a server or a changelevel. It will initialize the global game state.
@@ -603,6 +607,8 @@ export class ServerGameAPI {
       return false;
     }
 
+    this.entityIndex.reindexEntity('classname', null, edict.entity.classname, edict.entity as BaseEntity);
+
     edict.entity.spawn();
     return true;
   }
@@ -718,14 +724,14 @@ export class ServerGameAPI {
 
     skill.set(Math.max(0, Math.min(3, Math.floor(skill.value))));
 
-    BaseEntity.flushEntityIndex();
-
     this.stats.subscribeToEvents();
     this._precacheResources();
     this._initNextMap();
   }
 
   shutdown(_isCrashShutdown: boolean): void {
+    this.entityIndex.clear();
+
     this.bodyque_head = null;
     this.worldspawn = null;
     this.lastspawn = null;

@@ -56,9 +56,16 @@ source/game/id1/
 │   ├── Triggers.ts
 │   └── ...
 ├── helper/           # Helper classes (AI, utilities)
-│   └── MiscHelpers.ts # Serializer, decorators, EntityWrapper, plain-object save/load helpers
+│   ├── AI.ts         # EntityAI base and NoopMonsterAI
+│   ├── EntityIndex.ts # Spatial index helpers
+│   ├── GameStats.ts  # Frag/score tracking
+│   ├── MiscHelpers.ts # Serializer, decorators, EntityWrapper, plain-object save/load helpers
+│   └── Registry.ts   # EntityRegistry
 ├── client/           # Client-side code (HUD, effects)
+├── test/             # Unit tests
+├── featureFlags.ts   # FeatureFlag type and active flag array
 ├── GameAPI.ts        # Server game state and entity registry
+├── main.ts           # Module entry point
 └── Defs.ts           # Constants and enums
 ```
 
@@ -77,7 +84,7 @@ Beyond bugfixes and modernizing the architecture, this port introduces several n
 * **Custom Blood Colors**: Entities that take damage (`takedamage`) can define custom color indices for their "blood" particles or spray via the `bloodcolor` field (e.g., buttons and doors use `colors.DUST` instead of red blood).
 * **Client-Side Game Code Capabilities**: Unlike QuakeC, this port has an entire client-side framework (`ClientGameAPI`) that handles logic like drawing dynamic HUD elements, managing intermission screens, and rendering effects (e.g., screen flashes, decals, or gibbing models) independently of the server.
 * **Complex Serialization (`Serializer` + Decorators)**: The game state management supports detailed object serialization via `@serializableObject`/`@serializable` TC39 decorators. The serializer is not tied to `ServerEngineAPI`; it can be attached to entities, helper objects, or plain state bags, and only needs an engine reference when it has to resolve edict-backed entity references during load. This goes far beyond QuakeC's simple `parm0...15` spawn parameters.
-* **Feature Flags**: Built-in toggles (`featureFlags` array in `GameAPI.ts`) to enable modernized physics and gameplay behaviors that alter standard Quake conventions. The `FeatureFlag` type is defined in `GameAPI.ts` and includes:
+* **Feature Flags**: Built-in toggles (`featureFlags` array in `featureFlags.ts`) to enable modernized physics and gameplay behaviors that alter standard Quake conventions. The `FeatureFlag` type is defined in `featureFlags.ts` and includes:
   * `improved-gib-physics`: Instead of a simple upward throw, gibs and player heads properly calculate momentum from the incoming impact, resulting in realistic physical forces applied correctly during explosions or deaths. Additionally applies blast momentum realistically to all entities (not just those walking).
   * `correct-ballistic-grenades`: Replaces hard-coded trajectories for Ogre grenades and Zombie gibs. It uses actual physics equations, gravity settings, and travel-time formulas to calculate perfect parabolic arcs towards the target limits.
   * `draw-bullet-hole-decals`: Enables a robust client-side event listener that automatically maps decal sprites (like `gfx/bhole1.png`) to surfaces hit by player bullet/hitscan attacks.
@@ -85,45 +92,56 @@ Beyond bugfixes and modernizing the architecture, this port introduces several n
 
 ### Feature Gates
 
-The `FeatureFlag` type in `GameAPI.ts` defines optional non-vanilla gameplay features that can be toggled on or off:
+The `FeatureFlag` type in `featureFlags.ts` defines optional non-vanilla gameplay features that can be toggled on or off:
 
 ```typescript
 type FeatureFlag =
   'monsters-dangerous-liquids' |
   'correct-ballistic-grenades' |
+  'correct-touch-grenades' |
   'draw-bullet-hole-decals' |
   'improved-gib-physics';
 ```
 
-**Using feature flags in your code:**
+The `featureFlags.ts` module exports the live array. Only `'improved-gib-physics'` is on by default:
 
 ```typescript
-import { featureFlags } from '../GameAPI.ts';
+// featureFlags.ts (id1 defaults)
+export const featureFlags: FeatureFlag[] = [
+  // 'correct-ballistic-grenades', // parabolic ogre/zombie gib arcs
+  // 'correct-touch-grenades',     // grenades disappear on SKY contact
+  'improved-gib-physics',
+  // 'draw-bullet-hole-decals',    // decal events on bullet impacts
+];
+```
 
-// Check if a feature is enabled
+**Checking a flag in entity code:**
+
+```typescript
+import { featureFlags } from '../../featureFlags.ts';
+
 if (featureFlags.includes('improved-gib-physics')) {
   // Apply realistic gib physics
 }
 
-// Or use the helper method on ServerGameAPI
+// Or via the game API helper
 if (this.game.hasFeature('monsters-dangerous-liquids')) {
   // Monster takes damage from lava
 }
 ```
 
-To enable or disable feature flags, modify the `featureFlags` array in `GameAPI.ts`:
+**Enabling extra flags in a mod** — push into the live array early in your mod's entry point (see `hellwave/GameAPI.ts` for a real example):
 
 ```typescript
-export const featureFlags: FeatureFlag[] = [
-  'improved-gib-physics',
-  // Uncomment to enable:
-  // 'correct-ballistic-grenades',
-  // 'draw-bullet-hole-decals',
-  // 'monsters-dangerous-liquids',
-];
+import { featureFlags } from '../id1/featureFlags.ts';
+
+featureFlags.push(
+  'draw-bullet-hole-decals',
+  'monsters-dangerous-liquids',
+);
 ```
 
-This allows mods to easily toggle experimental or alternative gameplay mechanics without branching code.
+This allows mods to layer on top of id1 defaults without forking `featureFlags.ts`.
 
 ### Serializable Field Decorators
 
@@ -313,12 +331,13 @@ Most monsters extend `WalkMonster`, `FlyMonster`, or `SwimMonster` (which all ex
 ```typescript
 import { WalkMonster } from './BaseMonster.ts';
 import { serializableObject, serializable } from '../../helper/MiscHelpers.ts';
+import Vector from '../../../../shared/Vector.ts';
 
 @serializableObject
 export class MyMonster extends WalkMonster {
   static classname = 'monster_mymonster';
   static _health = 100;
-  static _size = [new Vector(-16, -16, -24), new Vector(16, 16, 40)];
+  static _size: [Vector, Vector] = [new Vector(-16, -16, -24), new Vector(16, 16, 40)];
   static _modelDefault = 'progs/mymonster.mdl';
 
   @serializable customField = 0;
@@ -337,6 +356,7 @@ Bosses like Chthon and Shub-Niggurath don't use the standard AI system. They are
 ```typescript
 import BaseEntity from '../BaseEntity.ts';
 import BaseMonster from './BaseMonster.ts';
+import { EntityAI, NoopMonsterAI } from '../../helper/AI.ts';
 import { serializableObject, serializable } from '../../helper/MiscHelpers.ts';
 
 @serializableObject
@@ -345,18 +365,17 @@ export class MyBoss extends BaseMonster {
 
   @serializable bossPhase = 0;
 
-  // Disable the AI system
-  _newEntityAI() {
-    return null;
+  // Return a no-op AI so the base class wiring stays intact but nothing runs
+  protected override _newEntityAI(): EntityAI<MyBoss> {
+    return new NoopMonsterAI(this);
   }
 
-  // Skip AI think but still process scheduled thinks for state machine
-  think() {
+  // Skip BaseMonster.think() (which would call _ai.think()) but still run scheduled thinks
+  override think(): void {
     BaseEntity.prototype.think.call(this);
   }
 
-  // Custom spawn - don't call _postSpawn() which sets up AI
-  spawn() {
+  override spawn(): void {
     if (this.game.deathmatch) {
       this.remove();
       return;
@@ -375,34 +394,41 @@ export class MyBoss extends BaseMonster {
 
 Define states using `_defineState(stateName, frameId, nextState, callback)`:
 
-```javascript
-static _initStates() {
-  this._states = {};
+```typescript
+static override _initStates(): void {
+  this._resetStates();
 
   // Simple state
   this._defineState('boss_idle1', 'walk1', 'boss_idle2', function () {});
 
-  // State with callback
-  this._defineState('boss_attack1', 'attack1', 'boss_attack2', function () {
-    this._bossFace();  // 'this' is the entity instance
+  // State with callback ('this' inside the callback is the entity instance)
+  this._defineState('boss_attack1', 'attack1', 'boss_attack2', function (this: MyBoss) {
+    this._bossFace();
   });
 
-  // Looping state (nextState points to itself)
+  // Looping state (nextState points back to itself)
   this._defineState('boss_wait', 'idle1', 'boss_wait', function () {});
 }
 ```
 
 #### Registering New Entities
 
-Add your entity class to `GameAPI.ts`:
+For a mod, extend `ServerGameAPI` and supply a new `_entityRegistry` that spreads the id1 classes and adds your own. See `hellwave/GameAPI.ts` for a complete real-world example:
 
-```javascript
+```typescript
+import { entityClasses as id1EntityClasses, ServerGameAPI as id1ServerGameAPI } from '../id1/GameAPI.ts';
+import type { EntityClass } from '../id1/entity/BaseEntity.ts';
+import EntityRegistry from '../id1/helper/Registry.ts';
 import { MyBoss } from './entity/monster/MyBoss.ts';
 
 const entityClasses = [
-  // ... existing entities
+  ...id1EntityClasses,
   MyBoss,
-];
+] satisfies readonly EntityClass[];
+
+class MyModGameAPI extends id1ServerGameAPI {
+  static _entityRegistry = new EntityRegistry(entityClasses);
+}
 ```
 
 ### Spawn Parameters

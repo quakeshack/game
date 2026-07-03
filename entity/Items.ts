@@ -77,7 +77,7 @@ export abstract class BaseItemEntity extends BaseEntity {
   /** Optional nickname. */
   @serializable netname: string | null = null;
 
-  protected override _declareFields(): void {
+  protected override _initComponents(): void {
     this._sub ??= new Sub(this);
   }
 
@@ -753,11 +753,6 @@ export class SigilEntity extends BaseItemEntity {
   //   return this.constructor.classname;
   // }
 
-  protected override _declareFields(): void {
-    super._declareFields();
-    this.noise = 'misc/runekey.wav';
-  }
-
   protected override _precache(): void {
     this.engine.PrecacheSound('misc/runekey.wav');
 
@@ -807,6 +802,7 @@ export class SigilEntity extends BaseItemEntity {
     this.setSize(new Vector(-16.0, -16.0, -24.0), new Vector(16.0, 16.0, 32.0));
 
     this.netname = 'the rune';
+    this.noise = 'misc/runekey.wav';
   }
 }
 

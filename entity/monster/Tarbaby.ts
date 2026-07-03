@@ -42,8 +42,8 @@ $frame exp
 
   private _damageInflictor!: DamageInflictor;
 
-  protected override _declareFields(): void {
-    super._declareFields();
+  protected override _initComponents(): void {
+    super._initComponents();
     this._damageInflictor = new DamageInflictor(this);
   }
 

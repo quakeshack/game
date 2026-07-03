@@ -41,7 +41,7 @@ export { DoorFlag as flag };
 @serializableObject
 export abstract class BaseDoorEntity extends BasePropEntity {
   @serializable _linkedDoor: BaseDoorEntity | null = null;
-  @serializable _triggerField: BaseEntity | null = null;
+  @serializable _triggerField: TriggerFieldEntity | null = null;
   @serializable noise4: string | null = null;
   @serializable health = 0;
   @serializable items = 0;
@@ -58,7 +58,7 @@ export abstract class BaseDoorEntity extends BasePropEntity {
     this.startSound(channel.CHAN_VOICE, soundName);
   }
 
-  protected _spawnTriggerField(mins: Vector, maxs: Vector): BaseEntity | null {
+  protected _spawnTriggerField(mins: Vector, maxs: Vector): TriggerFieldEntity | null {
     const edict = this.engine.SpawnEntity(TriggerFieldEntity.classname, {
       owner: this,
       mins,

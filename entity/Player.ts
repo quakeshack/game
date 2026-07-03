@@ -370,24 +370,11 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
   /** Cached model indices for the normal player model and invisibility eyes. */
   @serializable protected _modelIndex: ModelIndexSet = Serializer.makeSerializableObject({ player: null, eyes: null }, this.engine);
 
-  protected override _declareFields(): void {
+  protected override _initComponents(): void {
     this._weapons = new PlayerWeapons(this);
-
-    // client data visibility fields still live on BaseEntity, but the player owns their gameplay semantics
-    this.view_ofs = new Vector();
-    this.punchangle = new Vector();
-    this.v_angle = new Vector();
-    this.fixangle = false;
-    this.idealpitch = 0;
-
-    // set to time+0.2 whenever a client fires a weapon or takes damage.
-    // Used to alert monsters that otherwise would let the player go.
-    this.show_hostile = 0;
-
-    this.invincible_sound_time = new Map<number, number>();
-    this.clientdataFields = [...(this.constructor as typeof PlayerEntity).clientdataFields];
-
     this._damageHandler = new DamageHandler(this);
+
+    this.clientdataFields = [...(this.constructor as typeof PlayerEntity).clientdataFields];
   }
 
   static override _precache(engineAPI: ServerEngineAPI): void {

@@ -2,7 +2,8 @@ import type { ServerEngineAPI } from '../../../../shared/GameInterfaces.ts';
 
 import Vector from '../../../../shared/Vector.ts';
 
-import { attn, channel, damage, moveType, solid } from '../../Defs.ts';
+import { attn, channel, content, damage, moveType, solid } from '../../Defs.ts';
+import { featureFlags } from '../../featureFlags.ts';
 import { QuakeEntityAI } from '../../helper/AI.ts';
 import { serializableObject, serializable } from '../../helper/MiscHelpers.ts';
 import BaseEntity from '../BaseEntity.ts';
@@ -487,6 +488,16 @@ export class ZombieGibGrenade extends BaseEntity {
     if (this._alreadyMissed) {
       this.remove();
       return;
+    }
+
+    // CR: non-Vanilla behavior: if the gib hits the sky, it should be removed
+    if (featureFlags.includes('correct-touch-grenades')) {
+      const pointContents = this.engine.DeterminePointContents(this.origin) as content;
+
+      if (pointContents === content.CONTENT_SKY) {
+        this.remove();
+        return;
+      }
     }
 
     if (other.equals(this.owner)) {
