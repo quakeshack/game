@@ -885,3 +885,17 @@ export default abstract class BaseEntity {
     this._serializer.deserialize(data as SerializableRecord);
   }
 }
+
+/**
+ * Checks if an entity is valid and its edict is still alive.
+ * Use this to avoid accessing properties of entities that have been removed from the game.
+ * @param entity to be tested entity
+ * @returns true, if entity and connected edict are still valid
+ */
+export function isValid(entity: BaseEntity | null | undefined): entity is BaseEntity {
+  if (!(entity instanceof BaseEntity) || !entity.edict || entity.edict.isFree()) {
+    return false;
+  }
+
+  return true;
+}

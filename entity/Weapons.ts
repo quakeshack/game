@@ -4,7 +4,7 @@ import Vector, { type DirectionalVectors } from '../../../shared/Vector.ts';
 import { attn, channel, clientEvent, colors, content, damage, decals, effect, flags, items, moveType, solid, tentType, waterlevel } from '../Defs.ts';
 import { featureFlags } from '../featureFlags.ts';
 import { crandom, EntityWrapper, serializableObject, serializable } from '../helper/MiscHelpers.ts';
-import BaseEntity, { type TraceResult } from './BaseEntity.ts';
+import BaseEntity, { type TraceResult, isValid } from './BaseEntity.ts';
 import BaseMonster from './monster/BaseMonster.ts';
 import { PlayerEntity } from './Player.ts';
 
@@ -657,6 +657,12 @@ export class BaseProjectile extends BaseEntity {
 
     const owner = this.owner;
     console.assert(owner !== null, 'Needs an owner');
+
+    // should not happen, but it did twice
+    if (!isValid(owner)) {
+      this.lazyRemove();
+      return;
+    }
 
     // direction
     if (owner instanceof PlayerEntity) {

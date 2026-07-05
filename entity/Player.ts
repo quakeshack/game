@@ -6,7 +6,7 @@ import Vector from '../../../shared/Vector.ts';
 import { attn, channel, clientEvent, colors, content, damage, dead, deathType, effect, flags, hull, items, moveType, solid, waterlevel } from '../Defs.ts';
 import { featureFlags } from '../featureFlags.ts';
 import { crandom, serializableObject, serializable, Serializer } from '../helper/MiscHelpers.ts';
-import BaseEntity from './BaseEntity.ts';
+import BaseEntity, { isValid } from './BaseEntity.ts';
 import { BackpackEntity } from './Items.ts';
 import { BubbleSpawnerEntity, InfoNotNullEntity, IntermissionCameraEntity, TeleportEffectEntity } from './Misc.ts';
 import BaseMonster, { MeatSprayEntity } from './monster/BaseMonster.ts';
@@ -2093,7 +2093,7 @@ export class TelefragTriggerEntity extends BaseEntity {
     }
 
     if (touchedByEntity instanceof PlayerEntity) {
-      if (!(this.owner instanceof PlayerEntity) && this.owner instanceof BaseEntity) {
+      if (!(this.owner instanceof PlayerEntity) && isValid(this.owner)) {
         this.damage(this.owner, 50000.0);
         return;
       }

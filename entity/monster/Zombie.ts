@@ -328,11 +328,13 @@ $frame cruc_1 cruc_2 cruc_3 cruc_4 cruc_5 cruc_6
   _standUp(): void {
     this.health = ZombieMonster._health;
     this.startSound(channel.CHAN_BODY, 'zombie/z_idle.wav', 1.0, attn.ATTN_IDLE);
-    this.solid = solid.SOLID_SLIDEBOX;
 
     if (!this.walkMove(0, 0)) {
       this._runState('zombie_paine11');
+      return;
     }
+
+    this.solid = solid.SOLID_SLIDEBOX; // only turn back into a slidebox when it’s safe to move around
   }
 
   override thinkStand(): void {

@@ -4,9 +4,9 @@ import Vector from '../../../shared/Vector.ts';
 
 import { channel, clientEvent, flags, items, moveType, solid, tentType, worldType } from '../Defs.ts';
 import { serializableObject, serializable } from '../helper/MiscHelpers.ts';
-import BaseEntity from './BaseEntity.ts';
+import BaseEntity, { isValid } from './BaseEntity.ts';
 import { PlayerEntity as RuntimePlayerEntity } from './Player.ts';
-import type { PlayerEntity } from './Player.ts';
+import { PlayerEntity } from './Player.ts';
 import { Sub } from './Subs.ts';
 
 interface HealthItemConfiguration {
@@ -869,17 +869,16 @@ export class HealthItemEntity extends BaseItemEntity {
   _takeHealth(): void {
     const player = this.owner as PlayerEntity | null;
     console.assert(player !== null, 'Megahealth requires an owning player');
-    if (player === null) {
-      return;
-    }
 
-    if (player.health > player.max_health) {
-      player.health--;
-      this._scheduleThink(this.game.time + 1.0, () => { this._takeHealth(); });
-      return;
-    }
+    if (isValid(player) && player instanceof PlayerEntity) {
+      if (player.health > player.max_health) {
+        player.health--;
+        this._scheduleThink(this.game.time + 1.0, () => { this._takeHealth(); });
+        return;
+      }
 
-    player.items &= ~items.IT_SUPERHEALTH;
+      player.items &= ~items.IT_SUPERHEALTH;
+    }
 
     this.owner = null;
 

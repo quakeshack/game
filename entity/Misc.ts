@@ -5,7 +5,7 @@ import Vector from '../../../shared/Vector.ts';
 
 import { attn, channel, colors, content, damage, effect, moveType, solid, tentType, waterlevel } from '../Defs.ts';
 import { crandom, serializableObject, serializable } from '../helper/MiscHelpers.ts';
-import BaseEntity from './BaseEntity.ts';
+import BaseEntity, { isValid } from './BaseEntity.ts';
 import BaseMonster from './monster/BaseMonster.ts';
 import { PlayerEntity } from './Player.ts';
 import { Sub } from './Subs.ts';
@@ -325,6 +325,11 @@ export class FireballEntity extends BaseEntity {
   override spawn(): void {
     console.assert(this.owner instanceof FireballSpawnerEntity, 'misc_fireball_fireball must have a misc_fireball as owner');
 
+    if (!isValid(this.owner)) {
+      this.remove();
+      return;
+    }
+
     this.solid = solid.SOLID_TRIGGER;
     this.movetype = moveType.MOVETYPE_TOSS;
     this.effects |= effect.EF_FULLBRIGHT;
@@ -394,7 +399,7 @@ export class DebugMarkerEntity extends BaseEntity {
     this.setSize(new Vector(-4.0, -4.0, -4.0), new Vector(4.0, 4.0, 4.0));
     this.setModel('progs/s_light.spr');
 
-    if (this.owner instanceof PlayerEntity) {
+    if (isValid(this.owner) && this.owner instanceof PlayerEntity) {
       this.owner.centerPrint(`marker set at ${this.origin}`);
       this._scheduleThink(this.game.time + 5.0, () => {
         this.remove();
