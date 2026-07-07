@@ -6,6 +6,7 @@ import { channel, items, solid, tentType, worldType } from '../../Defs.ts';
 await import('../../GameAPI.ts');
 
 const { default: BaseEntity } = await import('../../entity/BaseEntity.ts');
+const { PlayerEntity } = await import('../../entity/Player.ts');
 const {
   BackpackEntity,
   HealthItemEntity,
@@ -160,11 +161,10 @@ void describe('Items', () => {
       removed = true;
     };
 
-    const player = {
-      health: 101,
-      max_health: 100,
-      items: items.IT_SUPERHEALTH,
-    };
+    const player = new PlayerEntity({ isFree: () => false }, gameAPI).initializeEntity();
+    player.health = 101;
+    player.max_health = 100;
+    player.items = items.IT_SUPERHEALTH;
 
     megaHealth._afterTouch(player);
 

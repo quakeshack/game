@@ -200,7 +200,9 @@ void describe('ZombieMonster QC fixes', () => {
     zombie._standUp();
 
     assert.equal(zombie.health, 60);
-    assert.equal(zombie.solid, solid.SOLID_SLIDEBOX);
+    // Only turn back into a slidebox once it's actually safe to move around, otherwise the
+    // zombie would get stuck solid inside whatever is blocking it.
+    assert.equal(zombie.solid, solid.SOLID_NOT);
     assert.equal(stateName, 'zombie_paine11');
   });
 

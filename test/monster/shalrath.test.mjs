@@ -19,6 +19,9 @@ function createMonsterFixture(MonsterClass) {
   const edict = {
     num: 1,
     entity: null,
+    isFree() {
+      return false;
+    },
     freeEdict() {},
     setOrigin() {},
     setModel() {},
