@@ -150,4 +150,70 @@ void describe('PlayerEntity weapon selection', () => {
     assert.equal(player.items & items.IT_ROCKET_LAUNCHER, items.IT_ROCKET_LAUNCHER);
     assert.deepEqual(selectedWeapons, [items.IT_ROCKET_LAUNCHER]);
   });
+
+  void test('applyBackpack does not switch weapons when only collecting ammo for an owned weapon', () => {
+    const selectedWeapons = [];
+    const player = {
+      ...createWeaponSelectionPlayer({
+        ammo_shells: 10,
+        ammo_rockets: 5,
+        items: items.IT_AXE | items.IT_SHOTGUN | items.IT_ROCKET_LAUNCHER,
+        weapon: items.IT_ROCKET_LAUNCHER,
+      }),
+      constructor: PlayerEntity,
+      game: { deathmatch: false },
+      setWeapon(weapon) {
+        selectedWeapons.push(weapon);
+        this.weapon = weapon;
+      },
+    };
+
+    // item_shells pickup: no item flags, but tags along a preferred weapon (the shotgun)
+    // the player already owns.
+    const changed = PlayerEntity.prototype.applyBackpack.call(player, {
+      ammo_shells: 10,
+      ammo_nails: 0,
+      ammo_rockets: 0,
+      ammo_cells: 0,
+      items: 0,
+      weapon: items.IT_SHOTGUN,
+    });
+
+    assert.equal(changed, true);
+    assert.equal(player.ammo_shells, 20);
+    assert.deepEqual(selectedWeapons, []);
+    assert.equal(player.weapon, items.IT_ROCKET_LAUNCHER);
+  });
+
+  void test('applyBackpack does not switch weapons when re-collecting an already-owned weapon', () => {
+    const selectedWeapons = [];
+    const player = {
+      ...createWeaponSelectionPlayer({
+        ammo_rockets: 5,
+        items: items.IT_AXE | items.IT_ROCKET_LAUNCHER,
+        weapon: items.IT_AXE,
+      }),
+      constructor: PlayerEntity,
+      game: { deathmatch: false },
+      setWeapon(weapon) {
+        selectedWeapons.push(weapon);
+        this.weapon = weapon;
+      },
+    };
+
+    // Walking over another rocket launcher pickup while already owning one still tops up ammo.
+    const changed = PlayerEntity.prototype.applyBackpack.call(player, {
+      ammo_shells: 0,
+      ammo_nails: 0,
+      ammo_rockets: 5,
+      ammo_cells: 0,
+      items: items.IT_ROCKET_LAUNCHER,
+      weapon: items.IT_ROCKET_LAUNCHER,
+    });
+
+    assert.equal(changed, true);
+    assert.equal(player.ammo_rockets, 10);
+    assert.deepEqual(selectedWeapons, []);
+    assert.equal(player.weapon, items.IT_AXE);
+  });
 });

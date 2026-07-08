@@ -990,25 +990,30 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
       backpackUsed = true;
     }
 
+    const hadItems = this.items;
+
     if ((this.items & backpack.items) !== backpack.items) {
       this.items |= backpack.items;
       backpackUsed = true;
     }
 
     // QuakeC weapon_touch / BackpackTouch weapon switching logic.
+    // Only auto-switch when this pickup actually granted a weapon the player didn't already
+    // own — plain ammo refills or re-collecting an already-owned weapon must not force a switch.
     const pickupWeapon = isWeaponConfigKey(backpack.weapon) ? backpack.weapon : 0;
-    const newWeapon = pickupWeapon || this.weapon;
-    if (newWeapon !== 0 && backpackUsed) {
+    const isNewWeapon = pickupWeapon !== 0 && (hadItems & pickupWeapon) === 0 && (this.items & pickupWeapon) !== 0;
+
+    if (isNewWeapon) {
       if (!this.game.deathmatch) {
-        // Singleplayer and coop always switch to the picked weapon.
-        this.setWeapon(newWeapon);
+        // Singleplayer and coop always switch to a freshly picked-up weapon.
+        this.setWeapon(pickupWeapon);
       } else {
         // Deathmatch only switches when the pickup outranks the current weapon.
         const currentConfig = weaponConfig.get(this.weapon as WeaponConfigKey);
-        const newConfig = weaponConfig.get(newWeapon as WeaponConfigKey);
+        const newConfig = weaponConfig.get(pickupWeapon as WeaponConfigKey);
 
         if (currentConfig && newConfig && newConfig.priority > currentConfig.priority) {
-          this.setWeapon(newWeapon);
+          this.setWeapon(pickupWeapon);
         }
       }
     }
