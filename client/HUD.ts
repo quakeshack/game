@@ -118,6 +118,18 @@ const inventory: InventoryEntry[] = [
   { item: items.IT_SIGIL4, icon: null, iconInactive: null, flashIcons: [], iconWidth: 0, iconSuffix: 'SIGIL4', iconPrefix: 'SB' },
 ];
 
+const miniInventory: InventoryEntry[] = [
+  // keys
+  { item: items.IT_KEY1, icon: null, iconInactive: null, flashIcons: [], iconWidth: 0, iconSuffix: 'KEY1', iconPrefix: 'SB' },
+  { item: items.IT_KEY2, icon: null, iconInactive: null, flashIcons: [], iconWidth: 0, iconSuffix: 'KEY2', iconPrefix: 'SB' },
+
+  // runes
+  { item: items.IT_SIGIL1, icon: null, iconInactive: null, flashIcons: [], iconWidth: 0, iconSuffix: 'SIGIL1', iconPrefix: 'SB' },
+  { item: items.IT_SIGIL2, icon: null, iconInactive: null, flashIcons: [], iconWidth: 0, iconSuffix: 'SIGIL2', iconPrefix: 'SB' },
+  { item: items.IT_SIGIL3, icon: null, iconInactive: null, flashIcons: [], iconWidth: 0, iconSuffix: 'SIGIL3', iconPrefix: 'SB' },
+  { item: items.IT_SIGIL4, icon: null, iconInactive: null, flashIcons: [], iconWidth: 0, iconSuffix: 'SIGIL4', iconPrefix: 'SB' },
+];
+
 /**
  * Create a mutable texture group with every slot starting unloaded.
  * @returns Mutable texture group with unloaded slots.
@@ -752,21 +764,41 @@ export class Q1HUD {
         this.sbar.drawNumber(248, 0, Math.max(0, ammo), 3, ammo <= 10 ? 1 : 0);
       }
     }
+
+    if (isFullscreen) {
+      // Draw inventory (keys, sigils)
+      this._drawMiniInventory();
+    }
+  }
+
+  /**
+   * Draws a mini inventory bar for fullscreen viewsize.
+   */
+  protected _drawMiniInventory() {
+    for (let i = 0; i < miniInventory.length; i++) {
+      const miniInventoryEntry = miniInventory[i];
+
+      if ((this.game.clientdata.items & miniInventoryEntry.item) !== 0) {
+        this.sbar.drawPic(this.sbar.width + 8 + i * 16, 8, miniInventoryEntry.icon);
+      }
+    }
   }
 
   /**
    * Draws inventory.
    */
-  protected _drawInventory(offsetY = 0): void {
+  protected _drawInventory(offsetY = 0, drawBackground = true): void {
     const clientdata = this.game.clientdata;
 
-    this.sbar.drawPic(0, offsetY, backgrounds.inventorybar);
+    if (drawBackground) {
+      this.sbar.drawPic(0, offsetY, backgrounds.inventorybar);
 
-    // Draw ammo slots
-    for (let i = 0; i < ammoSlots.length; i++) {
-      const ammoSlot = ammoSlots[i] as AmmoSlot;
-      if (clientdata[ammoSlot] > 0) {
-        this.sbar.drawSmallNumber((6 * i + 1) * 8 - 2, -24, clientdata[ammoSlot]);
+      // Draw ammo slots
+      for (let i = 0; i < ammoSlots.length; i++) {
+        const ammoSlot = ammoSlots[i] as AmmoSlot;
+        if (clientdata[ammoSlot] > 0) {
+          this.sbar.drawSmallNumber((6 * i + 1) * 8 - 2, -24, clientdata[ammoSlot]);
+        }
       }
     }
 
@@ -957,19 +989,23 @@ export class Q1HUD {
       this._drawCrosshair();
     }
 
+    const { viewsize } = this.engine.SCR;
+
     if (shouldShowScoreboard) {
       if (this.engine.CL.maxclients > 1) {
         this._drawScoreboard();
-      } else {
-        if (this.engine.SCR.viewsize <= 100) {
-          this._drawInventory(-24);
+
+        if (viewsize > 100) {
+          this._drawInventory(-24, viewsize !== 120);
         }
+      } else {
+        this._drawInventory(-24);
         this._drawMiniInfo();
         return;
       }
     }
 
-    if (this.engine.SCR.viewsize <= 100) {
+    if (viewsize <= 100) {
       this._drawInventory(-24);
     }
 
@@ -1106,21 +1142,21 @@ export class Q1HUD {
     labels.inter = engineAPI.LoadPicFromLump('inter');
     labels.finale = engineAPI.LoadPicFromLump('finale');
 
-    for (const weapon of inventory) {
-      if (weapon.iconPrefix === 'INV') {
-        weapon.icon = engineAPI.LoadPicFromWad(`INV2_${weapon.iconSuffix}`);
-        weapon.iconInactive = engineAPI.LoadPicFromWad(`INV_${weapon.iconSuffix}`);
-        weapon.flashIcons.length = 0;
+    for (const inventoryItem of [inventory, miniInventory].flat()) {
+      if (inventoryItem.iconPrefix === 'INV') {
+        inventoryItem.icon = engineAPI.LoadPicFromWad(`INV2_${inventoryItem.iconSuffix}`);
+        inventoryItem.iconInactive = engineAPI.LoadPicFromWad(`INV_${inventoryItem.iconSuffix}`);
+        inventoryItem.flashIcons.length = 0;
         for (let flashFrame = 0; flashFrame < 5; flashFrame++) {
-          weapon.flashIcons.push(engineAPI.LoadPicFromWad(`INVA${flashFrame + 1}_${weapon.iconSuffix}`));
+          inventoryItem.flashIcons.push(engineAPI.LoadPicFromWad(`INVA${flashFrame + 1}_${inventoryItem.iconSuffix}`));
         }
       } else {
-        weapon.icon = engineAPI.LoadPicFromWad(`${weapon.iconPrefix}_${weapon.iconSuffix}`);
-        weapon.iconInactive = weapon.icon; // no inactive icon for keys
-        weapon.flashIcons.length = 0;
+        inventoryItem.icon = engineAPI.LoadPicFromWad(`${inventoryItem.iconPrefix}_${inventoryItem.iconSuffix}`);
+        inventoryItem.iconInactive = inventoryItem.icon; // no inactive icon for keys
+        inventoryItem.flashIcons.length = 0;
       }
 
-      weapon.iconWidth = weapon.icon!.width;
+      inventoryItem.iconWidth = inventoryItem.icon!.width;
     }
 
     engineAPI.RegisterCommand('+showscores', (): void => {
