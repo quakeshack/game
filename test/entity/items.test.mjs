@@ -12,6 +12,7 @@ const {
   HealthItemEntity,
   ItemShellsEntity,
   SilverKeyEntity,
+  SuperDamageEntity,
 } = await import('../../entity/Items.ts');
 
 /**
@@ -184,5 +185,41 @@ void describe('Items', () => {
     assert.equal(player.items & items.IT_SUPERHEALTH, 0);
     assert.equal(megaHealth.owner, null);
     assert.equal(removed, true);
+  });
+
+  void test('_collectItems names a newly granted item but stays silent for one already owned', () => {
+    const key = new SilverKeyEntity(null, createMockGameAPI()).initializeEntity();
+    key.items = items.IT_KEY1;
+
+    assert.deepEqual(key._collectItems({}, items.IT_AXE), ['Silver Key']);
+    assert.deepEqual(key._collectItems({}, items.IT_AXE | items.IT_KEY1), []);
+  });
+
+  void test('picking up a powerup reports its name instead of "an empty item"', () => {
+    const gameAPI = createMockGameAPI();
+    const quad = new SuperDamageEntity(null, gameAPI).initializeEntity();
+    const dispatched = [];
+
+    quad._sub = { useTargets() {} };
+    quad.remove = () => {};
+    quad.items = items.IT_QUAD;
+
+    const player = new PlayerEntity({ isFree: () => false }, gameAPI).initializeEntity();
+    player.health = 100;
+    player.items = items.IT_AXE | items.IT_SHOTGUN;
+    player.startSound = () => {};
+    player.dispatchExpeditedEvent = (eventType, ...args) => {
+      dispatched.push({ eventType, args });
+    };
+
+    quad.touch(player);
+
+    assert.equal(dispatched.length, 1);
+    const [itemEntity, itemNames, netname] = dispatched[0].args;
+    assert.equal(itemEntity, quad.edict);
+    assert.deepEqual(itemNames, ['Quad Damage']);
+    // SuperDamageEntity never sets its own netname, so the client must fall back to itemNames
+    // rather than reporting "You found an empty item."
+    assert.equal(netname, null);
   });
 });

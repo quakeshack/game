@@ -125,13 +125,20 @@ export abstract class BaseItemEntity extends BaseEntity {
     return playerEntity.applyBackpack(this);
   }
 
-  protected _collectItems(playerEntity: PlayerEntity): string[] {
+  /**
+   * Describes what was newly granted by this pickup.
+   * @param playerEntity The player who picked up the item.
+   * @param priorItems The player's item flags from before this pickup was applied, used to tell
+   *                    apart newly granted items from ones the player already owned.
+   * @returns Human-readable names of the items newly granted by this pickup.
+   */
+  protected _collectItems(playerEntity: PlayerEntity, priorItems: number): string[] {
     const collectedItems: string[] = [];
 
     // check if this items is new in player's inventory
-    if (this.items > 0 && (playerEntity.items & this.items) !== this.items) {
+    if (this.items > 0 && (priorItems & this.items) !== this.items) {
       for (const [item, name] of Object.entries(itemNames)) {
-        if (((this.items & ~playerEntity.items) & Number(item)) !== 0) { // only mention new items
+        if (((this.items & ~priorItems) & Number(item)) !== 0) { // only mention new items
           collectedItems.push(name);
         }
       }
@@ -146,13 +153,14 @@ export abstract class BaseItemEntity extends BaseEntity {
     }
 
     const player = otherEntity as PlayerEntity;
+    const priorItems = player.items;
 
     // let the player consume this backpack
     if (!this._pickup(player)) {
       return; // player's inventory is already full
     }
 
-    const collectedItems = this._collectItems(player);
+    const collectedItems = this._collectItems(player, priorItems);
 
     player.startSound(channel.CHAN_ITEM, this.noise);
     player.dispatchExpeditedEvent(clientEvent.ITEM_PICKED, this.edict, collectedItems, this.netname, this.items);
@@ -201,8 +209,8 @@ export class BackpackEntity extends BaseItemEntity {
     engineAPI.PrecacheModel('progs/backpack.mdl');
   }
 
-  protected override _collectItems(playerEntity: PlayerEntity): string[] {
-    const collectedItems = super._collectItems(playerEntity);
+  protected override _collectItems(playerEntity: PlayerEntity, priorItems: number): string[] {
+    const collectedItems = super._collectItems(playerEntity, priorItems);
 
     if (this.ammo_shells > 0) {
       collectedItems.push(`${this.ammo_shells} shells`);
@@ -319,8 +327,8 @@ export class ItemShellsEntity extends BaseAmmoEntity {
     return super._pickup(playerEntity);
   }
 
-  protected override _collectItems(playerEntity: PlayerEntity): string[] {
-    const collectedItems = super._collectItems(playerEntity);
+  protected override _collectItems(playerEntity: PlayerEntity, priorItems: number): string[] {
+    const collectedItems = super._collectItems(playerEntity, priorItems);
 
     if (this.ammo_shells > 0) {
       collectedItems.push(`${this.ammo_shells} shells`);
@@ -359,8 +367,8 @@ export class ItemSpikesEntity extends BaseAmmoEntity {
     this.ammo_nails = ammo;
   }
 
-  protected override _collectItems(playerEntity: PlayerEntity): string[] {
-    const collectedItems = super._collectItems(playerEntity);
+  protected override _collectItems(playerEntity: PlayerEntity, priorItems: number): string[] {
+    const collectedItems = super._collectItems(playerEntity, priorItems);
 
     if (this.ammo_nails > 0) {
       collectedItems.push(`${this.ammo_nails} nails`);
@@ -387,8 +395,8 @@ export class ItemRocketsEntity extends BaseAmmoEntity {
     this.ammo_rockets = ammo;
   }
 
-  protected override _collectItems(playerEntity: PlayerEntity): string[] {
-    const collectedItems = super._collectItems(playerEntity);
+  protected override _collectItems(playerEntity: PlayerEntity, priorItems: number): string[] {
+    const collectedItems = super._collectItems(playerEntity, priorItems);
 
     if (this.ammo_rockets > 0) {
       collectedItems.push(`${this.ammo_rockets} rockets`);
@@ -415,8 +423,8 @@ export class ItemCellsEntity extends BaseAmmoEntity {
     this.ammo_cells = ammo;
   }
 
-  protected override _collectItems(playerEntity: PlayerEntity): string[] {
-    const collectedItems = super._collectItems(playerEntity);
+  protected override _collectItems(playerEntity: PlayerEntity, priorItems: number): string[] {
+    const collectedItems = super._collectItems(playerEntity, priorItems);
 
     if (this.ammo_cells > 0) {
       collectedItems.push(`${this.ammo_cells} cells`);
