@@ -1190,16 +1190,16 @@ export class Q1HUD {
       }
     }
 
-    for (const weapon of inventory) {
-      addTexture(textures, weapon.icon);
-      addTexture(textures, weapon.iconInactive);
-      for (const flashIcon of weapon.flashIcons) {
+    for (const inventoryItem of [inventory, miniInventory].flat()) {
+      addTexture(textures, inventoryItem.icon);
+      addTexture(textures, inventoryItem.iconInactive);
+      for (const flashIcon of inventoryItem.flashIcons) {
         addTexture(textures, flashIcon);
       }
-      weapon.icon = null;
-      weapon.iconInactive = null;
-      weapon.flashIcons.length = 0;
-      weapon.iconWidth = 0;
+      inventoryItem.icon = null;
+      inventoryItem.iconInactive = null;
+      inventoryItem.flashIcons.length = 0;
+      inventoryItem.iconWidth = 0;
     }
 
     for (const texture of textures) {
