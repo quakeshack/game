@@ -2,7 +2,7 @@ import type { ServerEngineAPI } from '../../../../shared/GameInterfaces.ts';
 
 import Vector from '../../../../shared/Vector.ts';
 
-import { channel, solid, tentType } from '../../Defs.ts';
+import { channel, effect, solid, tentType } from '../../Defs.ts';
 import { QuakeEntityAI } from '../../helper/AI.ts';
 import { serializableObject } from '../../helper/MiscHelpers.ts';
 import type BaseEntity from '../BaseEntity.ts';
@@ -332,6 +332,12 @@ export class KnightSpike extends BaseSpike {
     }
 
     super._precache(engineAPI);
+  }
+
+  override spawn() {
+    super.spawn();
+
+    this.effects |= effect.EF_DIMLIGHT;
   }
 }
 

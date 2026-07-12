@@ -4,7 +4,7 @@ import type BaseEntity from '../BaseEntity.ts';
 
 import Vector from '../../../../shared/Vector.ts';
 
-import { attn, channel, colors, damage, items, moveType, solid, worldType } from '../../Defs.ts';
+import { attn, channel, colors, damage, effect, items, moveType, solid, worldType } from '../../Defs.ts';
 import { serializableObject, serializable } from '../../helper/MiscHelpers.ts';
 import { itemNames } from '../Items.ts';
 import { PlayerEntity } from '../Player.ts';
@@ -626,6 +626,7 @@ export class SecretDoorEntity extends BaseDoorEntity {
     this.angles.clear();
     this.solid = solid.SOLID_BSP;
     this.movetype = moveType.MOVETYPE_PUSH;
+    this.effects |= effect.EF_NOSHADOW;
 
     this.setModel(this.model);
     this.setOrigin(this.origin);
