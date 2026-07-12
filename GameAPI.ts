@@ -43,6 +43,7 @@ import EntityRegistry from './helper/Registry.ts';
 import type { EntityClass } from './entity/BaseEntity.ts';
 import * as miscProps from './entity/props/Misc.ts';
 import EntityIndex from './helper/EntityIndex.ts';
+import * as toolEntities from './entity/scripting/Tools.ts';
 
 export { featureFlags };
 export type { FeatureFlag };
@@ -76,6 +77,7 @@ export const entityClasses: readonly EntityClass[] = [
   misc.InfoNotNullEntity,
   misc.MiscNullEntity,
   misc.IntermissionCameraEntity,
+  misc.AreaPortalEntity,
   InfoPlayerStart,
   InfoPlayerStart2,
   InfoPlayerStartCoop,
@@ -192,6 +194,7 @@ export const entityClasses: readonly EntityClass[] = [
   item.WeaponThunderbolt,
   misc.MiscModelEntity,
   miscProps.FogEntity,
+  toolEntities.EntityRemover,
 ];
 
 @serializableObject

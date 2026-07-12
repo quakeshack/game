@@ -43,6 +43,20 @@ export class MiscNullEntity extends InfoNotNullEntity {
 }
 
 /**
+ * QUAKED func_areaportal (0 0 0) ?
+ *
+ * This is a non-visible object that divides the world into
+ * areas that are seperated when this portal is not activated.
+ * Usually enclosed in the middle of a door.
+ */
+@serializableObject
+export class AreaPortalEntity extends BaseEntity {
+  static classname = 'func_areaportal';
+
+  @serializable style = 0;
+}
+
+/**
  * QUAKED info_intermission (1 0.5 0.5) (-16 -16 -16) (16 16 16)
  * This is the camera point for the intermission.
  * Use mangle instead of angle, so you can set pitch or roll as well as yaw. 'pitch roll yaw'
