@@ -9,6 +9,7 @@ import { featureFlags } from '../featureFlags.ts';
 import { Q1HUD, type HUDSaveState } from './HUD.ts';
 import { ServerInfo, type ServerInfoSnapshot } from './Sync.ts';
 import { ServerGameAPI } from '../GameAPI.ts';
+import Id1Menu from './Menu.ts';
 
 interface DecalSet {
   readonly axehit: GLTexture[];
@@ -300,6 +301,7 @@ export class ClientGameAPI {
 
   static Init(engineAPI: ClientEngineAPI): void {
     Q1HUD.Init(engineAPI);
+    Id1Menu.Init(engineAPI);
   }
 
   static Shutdown(engineAPI: ClientEngineAPI): void {

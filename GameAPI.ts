@@ -1,4 +1,5 @@
 import type {
+  CommonEngineAPI,
   Cvar,
   EdictData,
   MapDetails,
@@ -675,7 +676,7 @@ export class ServerGameAPI {
     return [
       {
         label: 'Start deathmatch',
-        callback: (engineAPI: ServerEngineAPI): void => {
+        callback: (engineAPI: CommonEngineAPI): void => {
           engineAPI.AppendConsoleText(`
           hostname "Quake Deathmatch"
           deathmatch 1
@@ -687,7 +688,7 @@ export class ServerGameAPI {
       },
       {
         label: 'Start co-op game',
-        callback: (engineAPI: ServerEngineAPI): void => {
+        callback: (engineAPI: CommonEngineAPI): void => {
           engineAPI.AppendConsoleText(`
           hostname "Quake Cooperative"
           deathmatch 0
