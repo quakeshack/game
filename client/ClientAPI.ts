@@ -299,13 +299,24 @@ export class ClientGameAPI {
     return ServerGameAPI._entityRegistry.get(classname)?.clientEdictHandler || null;
   }
 
-  static Init(engineAPI: ClientEngineAPI): void {
-    Q1HUD.Init(engineAPI);
+  /**
+   * The HUD class whose static `Init`/`Shutdown` should run as part of this game module's
+   * lifecycle. Mods that subclass `Q1HUD` (e.g. Hellwave's `HellwaveHUD`) override this so their
+   * own static setup (asset loads, command registration) actually runs -- `Init`/`Shutdown`
+   * dispatch through it rather than referencing `Q1HUD` directly.
+   * @returns The HUD class to initialize/shut down.
+   */
+  protected static _getHUDClass(): typeof Q1HUD {
+    return Q1HUD;
+  }
+
+  static Init(this: typeof ClientGameAPI, engineAPI: ClientEngineAPI): void {
+    this._getHUDClass().Init(engineAPI);
     Id1Menu.Init(engineAPI);
   }
 
-  static Shutdown(engineAPI: ClientEngineAPI): void {
-    Q1HUD.Shutdown(engineAPI);
+  static Shutdown(this: typeof ClientGameAPI, engineAPI: ClientEngineAPI): void {
+    this._getHUDClass().Shutdown(engineAPI);
   }
 
   static IsServerCompatible(version: number[]): boolean {

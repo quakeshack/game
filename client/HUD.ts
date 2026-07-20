@@ -444,8 +444,8 @@ export class MessageBag {
 export class Q1HUD {
   readonly _serializer: Serializer<Q1HUD>;
 
-  /** +showscores/-showscores */
-  protected static _showScoreboard = false;
+  /** +showscores/-showscores, toggled via the `hud.showscores` event. */
+  protected _showScoreboard = false;
 
   @serializable protected stats: ClientStats | null = null;
   @serializable protected messageBag: MessageBag | null = null;
@@ -524,6 +524,11 @@ export class Q1HUD {
     this.engine.eventBus.subscribe('client.disconnected', (): void => {
       this._clearIntermission();
       this.inventoryFlashStartedAt.clear();
+    });
+
+    // +showscores/-showscores, published by the commands registered in the static Init().
+    this.engine.eventBus.subscribe('hud.showscores', (showScoreboard: boolean): void => {
+      this._showScoreboard = showScoreboard;
     });
 
     // subscribe to viewsize resize events
@@ -960,7 +965,7 @@ export class Q1HUD {
   }
 
   draw(): void {
-    const shouldShowScoreboard = Q1HUD._showScoreboard || this.game.clientdata.health <= 0;
+    const shouldShowScoreboard = this._showScoreboard || this.game.clientdata.health <= 0;
 
     if (this.intermission.running) {
       if (this.engine.CL.maxclients > 1) {
@@ -1160,10 +1165,10 @@ export class Q1HUD {
     }
 
     engineAPI.RegisterCommand('+showscores', (): void => {
-      this._showScoreboard = true;
+      engineAPI.eventBus.publish('hud.showscores', true);
     });
     engineAPI.RegisterCommand('-showscores', (): void => {
-      this._showScoreboard = false;
+      engineAPI.eventBus.publish('hud.showscores', false);
     });
 
     Gfx.loadAssets(engineAPI);
