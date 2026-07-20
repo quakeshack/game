@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { createMockClientEngine } from './fixtures.ts';
+import { captureRegisteredPages, createMockClientEngine } from './fixtures.ts';
 
 await import('../../GameAPI.ts');
 
@@ -9,33 +9,16 @@ const { K } = await import('../../../../shared/Keys.ts');
 const { default: Id1Menu } = await import('../../client/Menu.ts');
 
 /**
- * Wrap `engine.Menu.RegisterPage` to capture every registered page by name, so tests can
- * inspect a page's actual items/handlers instead of only observing it through Push/IsOpen.
- * @param {ReturnType<typeof createMockClientEngine>} engine mock engine
- * @returns {Map<string, object>} registered pages by name
- */
-function captureRegisteredPages(engine) {
-  const registered = new Map();
-  const originalRegisterPage = engine.Menu.RegisterPage.bind(engine.Menu);
-
-  engine.Menu.RegisterPage = (name, page) => {
-    registered.set(name, page);
-    originalRegisterPage(name, page);
-  };
-
-  return registered;
-}
-
-/**
  * Initialize Id1Menu against a fresh mock engine and let any pending microtasks (e.g. the
  * async menuplyr translate-texture load) settle.
+ * @param {import('../../client/Menu.ts').Id1MenuOptions} [options] options forwarded to Id1Menu.Init
  * @returns {Promise<{ engine: ReturnType<typeof createMockClientEngine>, pages: Map<string, object> }>} engine and captured pages
  */
-async function initId1Menu() {
+async function initId1Menu(options) {
   const engine = createMockClientEngine();
   const pages = captureRegisteredPages(engine);
 
-  Id1Menu.Init(engine);
+  Id1Menu.Init(engine, options);
   await Promise.resolve();
 
   return { engine, pages };
@@ -276,5 +259,60 @@ void describe('Id1Menu.Init', () => {
     const labels = launchServerPage.items.map((item) => item.label);
     assert.ok(labels.includes('Private Session'));
     assert.ok(labels.some((label) => label?.startsWith('dm3 near')));
+  });
+});
+
+void describe('Id1Menu.Init with classicFrontend: false', () => {
+  void test('registers only the shared utility pages, not the classic single-player front end', async () => {
+    const { pages } = await initId1Menu({ classicFrontend: false });
+
+    assert.deepEqual([...pages.keys()].sort(), ['alert', 'keys', 'options', 'quit']);
+  });
+
+  void test('does not set a root page, leaving that to the mod that replaces the front end', async () => {
+    const engine = createMockClientEngine();
+    let rootPageName = null;
+    engine.Menu.SetRootPage = (name) => { rootPageName = name; };
+
+    Id1Menu.Init(engine, { classicFrontend: false });
+    await Promise.resolve();
+
+    assert.equal(rootPageName, null);
+  });
+
+  void test('options page still has its titlePic/logoPic and toggles cl_forwardspeed for Always Run', async () => {
+    const { pages } = await initId1Menu({ classicFrontend: false });
+    const optionsPage = pages.get('options');
+    const alwaysRun = optionsPage.items.find((item) => item.label === 'Always Run');
+
+    assert.equal(optionsPage.titlePic?.name, 'p_option');
+    assert.equal(optionsPage.logoPic?.name, 'qplaque');
+
+    alwaysRun.toggle();
+
+    assert.equal(alwaysRun.isOn(), true);
+  });
+
+  void test('keys page still has its titlePic and one KeyBindItem per bindable command', async () => {
+    const { pages } = await initId1Menu({ classicFrontend: false });
+    const keysPage = pages.get('keys');
+
+    assert.equal(keysPage.titlePic?.name, 'ttl_cstm');
+    assert.ok(keysPage.items.length > 0);
+    assert.ok(keysPage.items.some((item) => item.command === '+attack'));
+  });
+
+  void test('host.quit-requested still opens the quit page', async () => {
+    const { engine } = await initId1Menu({ classicFrontend: false });
+
+    engine.eventBus.publish('host.quit-requested');
+    assert.equal(engine.Menu.IsOpen('quit'), true);
+  });
+
+  void test('host.alert still opens the alert page', async () => {
+    const { engine } = await initId1Menu({ classicFrontend: false });
+
+    engine.eventBus.publish('host.alert', { title: 'Host Error', message: 'boom', severity: 'error' });
+    assert.equal(engine.Menu.IsOpen('alert'), true);
   });
 });

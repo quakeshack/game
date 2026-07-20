@@ -41,18 +41,33 @@ const quitMessage: QuitMessage[] = [
 
 interface MenuPics {
   qplaque: MenuPic;
-  ttl_main: MenuPic;
-  mainmenu: MenuPic;
-  ttl_sgl: MenuPic;
-  sp_menu: MenuPic;
-  p_load: MenuPic;
-  p_save: MenuPic;
-  p_multi: MenuPic;
-  bigbox: MenuPic;
-  menuplyr: MenuPic;
   p_option: MenuPic;
   ttl_cstm: MenuPic;
-  help_pages: MenuPic[];
+  // Only loaded when `classicFrontend` is enabled (see `Id1MenuOptions`) -- read with `!` inside
+  // the classic-only page builders, which only ever run alongside the load below.
+  ttl_main?: MenuPic;
+  mainmenu?: MenuPic;
+  ttl_sgl?: MenuPic;
+  sp_menu?: MenuPic;
+  p_load?: MenuPic;
+  p_save?: MenuPic;
+  p_multi?: MenuPic;
+  bigbox?: MenuPic;
+  menuplyr?: MenuPic;
+  help_pages?: MenuPic[];
+}
+
+/**
+ * Options for `Id1Menu.Init`.
+ */
+export interface Id1MenuOptions {
+  /**
+   * Whether to build id1's classic single-player front end (main/singleplayer/load/save/
+   * multiplayer/launch_server/help pages, and the pics/sound only they use). Total-conversion
+   * mods that replace the main menu (e.g. hellwave) should pass `false` -- they still get the
+   * shared options/keys/quit/alert pages, which every mod needs.
+   */
+  readonly classicFrontend?: boolean;
 }
 
 let pics: MenuPics = null!;
@@ -76,48 +91,55 @@ export default class Id1Menu {
   static #loadSlotItems: SaveSlotItem[] = [];
   static #saveSlotItems: SaveSlotItem[] = [];
 
-  static Init(engineAPI: ClientEngineAPI): void {
+  static Init(engineAPI: ClientEngineAPI, options: Id1MenuOptions = {}): void {
+    const { classicFrontend = true } = options;
     const { Menu } = engineAPI;
 
     pics = {
       qplaque: engineAPI.LoadPicFromLump('qplaque'),
-      ttl_main: engineAPI.LoadPicFromLump('ttl_main'),
-      mainmenu: engineAPI.LoadPicFromLump('mainmenu'),
-      ttl_sgl: engineAPI.LoadPicFromLump('ttl_sgl'),
-      sp_menu: engineAPI.LoadPicFromLump('sp_menu'),
-      p_load: engineAPI.LoadPicFromLump('p_load'),
-      p_save: engineAPI.LoadPicFromLump('p_save'),
-      p_multi: engineAPI.LoadPicFromLump('p_multi'),
-      bigbox: engineAPI.LoadPicFromLump('bigbox'),
-      menuplyr: engineAPI.LoadPicFromLump('menuplyr'),
       p_option: engineAPI.LoadPicFromLump('p_option'),
       ttl_cstm: engineAPI.LoadPicFromLump('ttl_cstm'),
-      help_pages: ['help0', 'help1', 'help2', 'help3', 'help4', 'help5'].map((name) => engineAPI.LoadPicFromLump(name)),
     };
 
-    // The player-color translate texture needs the raw LMP bytes parsed first, so it can't be
-    // ready synchronously like the deferred pics above -- populated a little later, well before
-    // the multiplayer setup screen (the only page that uses it) is reachable.
-    Menu.LoadTranslatablePic('menuplyr').then((pic) => {
-      pics.menuplyr = pic;
-    }).catch((error: Error) => {
-      engineAPI.ConsoleError(`failed to load menuplyr translate texture: ${error.message}\n`);
-    });
+    if (classicFrontend) {
+      pics.ttl_main = engineAPI.LoadPicFromLump('ttl_main');
+      pics.mainmenu = engineAPI.LoadPicFromLump('mainmenu');
+      pics.ttl_sgl = engineAPI.LoadPicFromLump('ttl_sgl');
+      pics.sp_menu = engineAPI.LoadPicFromLump('sp_menu');
+      pics.p_load = engineAPI.LoadPicFromLump('p_load');
+      pics.p_save = engineAPI.LoadPicFromLump('p_save');
+      pics.p_multi = engineAPI.LoadPicFromLump('p_multi');
+      pics.bigbox = engineAPI.LoadPicFromLump('bigbox');
+      pics.menuplyr = engineAPI.LoadPicFromLump('menuplyr');
+      pics.help_pages = ['help0', 'help1', 'help2', 'help3', 'help4', 'help5'].map((name) => engineAPI.LoadPicFromLump(name));
 
-    sfxMenu2 = engineAPI.LoadSound('misc/menu2.wav');
+      // The player-color translate texture needs the raw LMP bytes parsed first, so it can't be
+      // ready synchronously like the deferred pic above -- populated a little later, well before
+      // the multiplayer setup screen (the only page that uses it) is reachable.
+      Menu.LoadTranslatablePic('menuplyr').then((pic) => {
+        pics.menuplyr = pic;
+      }).catch((error: Error) => {
+        engineAPI.ConsoleError(`failed to load menuplyr translate texture: ${error.message}\n`);
+      });
 
-    Id1Menu.#buildMainPage(engineAPI);
-    Id1Menu.#buildSinglePlayerPage(engineAPI);
-    Id1Menu.#buildLoadSavePages(engineAPI);
-    Id1Menu.#buildMultiplayerPage(engineAPI);
-    Id1Menu.#buildLaunchServerPage(engineAPI);
+      sfxMenu2 = engineAPI.LoadSound('misc/menu2.wav');
+
+      Id1Menu.#buildMainPage(engineAPI);
+      Id1Menu.#buildSinglePlayerPage(engineAPI);
+      Id1Menu.#buildLoadSavePages(engineAPI);
+      Id1Menu.#buildMultiplayerPage(engineAPI);
+      Id1Menu.#buildLaunchServerPage(engineAPI);
+      Id1Menu.#buildHelpPage(engineAPI);
+    }
+
     Id1Menu.#buildOptionsPage(engineAPI);
     Id1Menu.#buildKeysPage(engineAPI);
-    Id1Menu.#buildHelpPage(engineAPI);
     Id1Menu.#buildQuitPage(engineAPI);
     Id1Menu.#buildAlertPage(engineAPI);
 
-    Menu.SetRootPage('main');
+    if (classicFrontend) {
+      Menu.SetRootPage('main');
+    }
 
     // Host.EndGame/Host.Error report faults via the event bus (see docs/events.md#host)
     // instead of calling into the menu system directly -- id1 decides how to present them.
@@ -332,9 +354,9 @@ export default class Id1Menu {
       customDraw: (page) => {
         page.layout?.draw(page.items, page.cursor);
 
-        Menu.DrawPic(160, 56, pics.bigbox);
+        Menu.DrawPic(160, 56, pics.bigbox!);
         Menu.DrawPicTranslate(
-          172, 64, pics.menuplyr,
+          172, 64, pics.menuplyr!,
           (top << 4) + (top >= 8 ? 4 : 11),
           (bottom << 4) + (bottom >= 8 ? 4 : 11),
         );
@@ -544,24 +566,27 @@ export default class Id1Menu {
     const { Menu } = engineAPI;
     const { MenuPage: MenuPageClass } = Menu;
 
+    // Only called when classicFrontend is enabled, alongside the pics.help_pages load in Init.
+    const helpPages = pics.help_pages!;
+
     let pageIndex = 0;
 
     const helpPage = new MenuPageClass({
       onEscape: () => { Menu.Pop(); },
       onEnter: () => { pageIndex = 0; },
       customDraw: () => {
-        Menu.DrawPic(0, 0, pics.help_pages[pageIndex]);
+        Menu.DrawPic(0, 0, helpPages[pageIndex]);
       },
       customHandleInput: (key, _page, defaultHandleInput) => {
         if (key === K.UPARROW || key === K.RIGHTARROW) {
           engineAPI.PlaySound(sfxMenu2);
-          pageIndex = (pageIndex + 1) % pics.help_pages.length;
+          pageIndex = (pageIndex + 1) % helpPages.length;
           return true;
         }
 
         if (key === K.DOWNARROW || key === K.LEFTARROW) {
           engineAPI.PlaySound(sfxMenu2);
-          pageIndex = (pageIndex - 1 + pics.help_pages.length) % pics.help_pages.length;
+          pageIndex = (pageIndex - 1 + helpPages.length) % helpPages.length;
           return true;
         }
 

@@ -325,6 +325,24 @@ export function createMockSound(name: string): MockSound {
 }
 
 /**
+ * Wrap `engine.Menu.RegisterPage` to capture every registered page by name, so tests can
+ * inspect a page's actual items/handlers instead of only observing it through Push/IsOpen.
+ * @param engine Mock client engine.
+ * @returns Registered pages by name.
+ */
+export function captureRegisteredPages(engine: MockClientEngine): Map<string, MenuPage> {
+  const registered = new Map<string, MenuPage>();
+  const originalRegisterPage = engine.Menu.RegisterPage.bind(engine.Menu);
+
+  engine.Menu.RegisterPage = (name: string, page: MenuPage): void => {
+    registered.set(name, page);
+    originalRegisterPage(name, page);
+  };
+
+  return registered;
+}
+
+/**
  * Create a self-contained `ClientEngineAPI.Menu` mock: real widget/layout classes (see the
  * import comment above for why that's safe) plus a from-scratch page-registry/navigation-stack
  * implementation mirroring `MenuStack`'s push/pop/clear semantics, without depending on the

@@ -9,7 +9,7 @@ import { featureFlags } from '../featureFlags.ts';
 import { Q1HUD, type HUDSaveState } from './HUD.ts';
 import { ServerInfo, type ServerInfoSnapshot } from './Sync.ts';
 import { ServerGameAPI } from '../GameAPI.ts';
-import Id1Menu from './Menu.ts';
+import Id1Menu, { type Id1MenuOptions } from './Menu.ts';
 
 interface DecalSet {
   readonly axehit: GLTexture[];
@@ -310,9 +310,19 @@ export class ClientGameAPI {
     return Q1HUD;
   }
 
+  /**
+   * Options passed to `Id1Menu.Init`. Mods that replace id1's classic single-player front end
+   * (e.g. Hellwave's `HellwaveMenu`) override this to skip building the pages/assets they never
+   * navigate to.
+   * @returns The menu init options for this mod.
+   */
+  protected static _getMenuInitOptions(): Id1MenuOptions {
+    return {};
+  }
+
   static Init(this: typeof ClientGameAPI, engineAPI: ClientEngineAPI): void {
     this._getHUDClass().Init(engineAPI);
-    Id1Menu.Init(engineAPI);
+    Id1Menu.Init(engineAPI, this._getMenuInitOptions());
   }
 
   static Shutdown(this: typeof ClientGameAPI, engineAPI: ClientEngineAPI): void {
