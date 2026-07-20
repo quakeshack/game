@@ -6,7 +6,7 @@ import Vector from '../../../../shared/Vector.ts';
 // code can't import them: construction and activate()/deactivate() never touch the engine
 // registry (only actually drawing/playing a sound would), so `Id1Menu.Init()` can register real
 // pages against this mock without needing a full GL/audio stack.
-import { Action, ColorPicker, Image, KeyBindItem, Label, MenuItem, SaveSlotItem, Slider, Spacer, Textbox, Toggle } from '../../../../engine/client/menu/MenuItem.ts';
+import { Action, ColorPicker, Image, KeyBindItem, Label, MenuItem, NumberInput, SaveSlotItem, Slider, Spacer, Textbox, Toggle } from '../../../../engine/client/menu/MenuItem.ts';
 import { DialogPage, GridLayout, ImageBasedLayout, ListLayout, ListPage, MenuPage, VerticalLayout } from '../../../../engine/client/menu/MenuPage.ts';
 
 type CommandHandler = (...args: string[]) => void | Promise<void>;
@@ -44,6 +44,7 @@ interface MockMenuAPI {
   ToggleConsole(): void;
   ForceQuit(): void;
   StartSingleplayerGame(): void;
+  StartMultiplayerGame(mapname: string): void;
   IsOpen(name?: string): boolean;
   Depth(): number;
   IsEmpty(): boolean;
@@ -68,6 +69,7 @@ interface MockMenuAPI {
   Spacer: typeof Spacer;
   Image: typeof Image;
   ColorPicker: typeof ColorPicker;
+  NumberInput: typeof NumberInput;
   SaveSlotItem: typeof SaveSlotItem;
   KeyBindItem: typeof KeyBindItem;
   MenuPage: typeof MenuPage;
@@ -357,6 +359,7 @@ export function createMockMenuAPI(): MockMenuAPI {
     ToggleConsole(): void {},
     ForceQuit(): void {},
     StartSingleplayerGame(): void {},
+    StartMultiplayerGame(_mapname: string): void {},
     IsOpen(name?: string): boolean {
       if (name === undefined) {
         return current() !== null;
@@ -409,6 +412,7 @@ export function createMockMenuAPI(): MockMenuAPI {
     Spacer,
     Image,
     ColorPicker,
+    NumberInput,
     SaveSlotItem,
     KeyBindItem,
     MenuPage,
