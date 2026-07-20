@@ -61,6 +61,7 @@ interface MockMenuAPI {
   DrawPicTranslate(x: number, y: number, pic: MockTexture, top: number, bottom: number): void;
   DrawTextBox(x: number, y: number, width: number, lines: number): void;
   DrawSlider(x: number, y: number, range: number): void;
+  DrawBitmapString(cx: number, cy: number, str: string, font: MockBitmapFont, variant?: number): void;
   Action: typeof Action;
   Label: typeof Label;
   Slider: typeof Slider;
@@ -106,6 +107,25 @@ export interface MockTexture {
   free(): void;
   lockTextureMode(mode: string): MockTexture;
   wrapClamped(): MockTexture;
+}
+
+export interface MockBitmapFontConfig {
+  charset: string;
+  glyphWidth: number;
+  glyphHeight: number;
+  cellWidth: number;
+  cellHeight: number;
+  variants?: number;
+}
+
+export interface MockBitmapFont {
+  charset: string;
+  glyphWidth: number;
+  glyphHeight: number;
+  cellWidth: number;
+  cellHeight: number;
+  variants: number;
+  measure(str: string): number;
 }
 
 export interface MockSound {
@@ -180,6 +200,7 @@ export interface MockClientEngine {
   LoadPicFromWad(name: string): MockTexture;
   LoadPicFromLump(name: string): MockTexture;
   LoadPicFromFile(name: string): Promise<MockTexture>;
+  LoadBitmapFont(filename: string, config: MockBitmapFontConfig): Promise<MockBitmapFont>;
   LoadSound(name: string): MockSound;
   PlaySound(sound: MockSound): void;
   RegisterCommand(name: string, handler: CommandHandler): void;
@@ -266,6 +287,25 @@ export function createMockTexture(name: string, width = 24, height = 24): MockTe
     },
     wrapClamped(): MockTexture {
       return this;
+    },
+  };
+}
+
+/**
+ * Create a mock bitmap font atlas, mirroring the shape of a real `BitmapFont` closely enough for
+ * tests that only need to verify a font gets attached/passed around, not actually drawn.
+ * @returns Mock bitmap font.
+ */
+export function createMockBitmapFont(config: MockBitmapFontConfig): MockBitmapFont {
+  return {
+    charset: config.charset,
+    glyphWidth: config.glyphWidth,
+    glyphHeight: config.glyphHeight,
+    cellWidth: config.cellWidth,
+    cellHeight: config.cellHeight,
+    variants: config.variants ?? 1,
+    measure(str: string): number {
+      return str.length * config.cellWidth;
     },
   };
 }
@@ -404,6 +444,7 @@ export function createMockMenuAPI(): MockMenuAPI {
     DrawPicTranslate(): void {},
     DrawTextBox(): void {},
     DrawSlider(): void {},
+    DrawBitmapString(): void {},
     Action,
     Label,
     Slider,
@@ -525,6 +566,9 @@ export function createMockClientEngine(
     },
     LoadPicFromFile(name: string): Promise<MockTexture> {
       return Promise.resolve(createMockTexture(name, 320, 200));
+    },
+    LoadBitmapFont(_filename: string, config: MockBitmapFontConfig): Promise<MockBitmapFont> {
+      return Promise.resolve(createMockBitmapFont(config));
     },
     LoadSound(name: string): MockSound {
       const sound = createMockSound(name);
