@@ -8,6 +8,7 @@ import Vector from '../../../../shared/Vector.ts';
 // pages against this mock without needing a full GL/audio stack.
 import { Action, ColorPicker, Image, KeyBindItem, Label, MenuItem, NumberInput, SaveSlotItem, Slider, Spacer, Textbox, Toggle } from '../../../../engine/client/menu/MenuItem.ts';
 import { DialogPage, GridLayout, ImageBasedLayout, ListLayout, ListPage, MenuPage, VerticalLayout } from '../../../../engine/client/menu/MenuPage.ts';
+import { MenuViewport } from '../../../../engine/client/menu/MenuViewport.ts';
 
 type CommandHandler = (...args: string[]) => void | Promise<void>;
 type CvarInput = string | number | boolean;
@@ -54,6 +55,8 @@ interface MockMenuAPI {
   LoadTranslatablePic(lumpName: string): Promise<MockTexture>;
   readonly mouseX: number;
   readonly mouseY: number;
+  toScreenPosition(x: number, y: number): { x: number; y: number };
+  readonly viewportScale: number;
   Print(cx: number, cy: number, str: string): void;
   PrintWhite(cx: number, cy: number, str: string): void;
   DrawCharacter(cx: number, cy: number, num: number): void;
@@ -80,6 +83,7 @@ interface MockMenuAPI {
   ImageBasedLayout: typeof ImageBasedLayout;
   ListLayout: typeof ListLayout;
   GridLayout: typeof GridLayout;
+  MenuViewport: typeof MenuViewport;
 }
 
 interface MockClientScore {
@@ -455,6 +459,17 @@ export function createMockMenuAPI(): MockMenuAPI {
     },
     mouseX: 0,
     mouseY: 0,
+    // Resolved against the mock engine's default VID size (320x200, see baseEngine.VID below) --
+    // reflects whichever page is current, the same way the real M does, so a page that sets its
+    // own (e.g. wider) viewport gets a matching scale/position here too.
+    toScreenPosition(x: number, y: number): { x: number; y: number } {
+      const viewport = current()?.viewport ?? MenuViewport.classic;
+      return viewport.toScreen(viewport.resolve(320, 200), x, y);
+    },
+    get viewportScale(): number {
+      const viewport = current()?.viewport ?? MenuViewport.classic;
+      return viewport.resolve(320, 200).scale;
+    },
     Print(): void {},
     PrintWhite(): void {},
     DrawCharacter(): void {},
@@ -481,6 +496,7 @@ export function createMockMenuAPI(): MockMenuAPI {
     ImageBasedLayout,
     ListLayout,
     GridLayout,
+    MenuViewport,
   };
 }
 
