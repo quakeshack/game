@@ -1,4 +1,4 @@
-import type { ClientEngineAPI, HostAlertEvent, KeyBindItem, MenuPage, MenuPic, SaveSlotItem } from '../../../shared/GameInterfaces.ts';
+import type { ClientEngineAPI, DiscoveredSession, HostAlertEvent, KeyBindItem, MenuPage, MenuPic, SaveSlotItem } from '../../../shared/GameInterfaces.ts';
 
 import { K } from '../../../shared/Keys.ts';
 import { ServerGameAPI } from '../GameAPI.ts';
@@ -390,38 +390,36 @@ export default class Id1Menu {
     const { Action, Label, Spacer, Toggle, MenuPage: MenuPageClass, VerticalLayout } = Menu;
 
     let staticItemCount = 0;
+    let unsubscribeSessions: (() => void) | null = null;
 
     const addRefreshSessionsButton = (page: MenuPage): void => {
       page.items.push(new Spacer());
       page.items.push(new Action({
         label: 'Refresh Sessions',
-        action: async () => { await refreshSessions(page); },
+        // The list already updates live; this just asks the master server for a fresh snapshot
+        // over the existing channel, for a player who wants to force it rather than wait.
+        action: () => { engineAPI.Multiplayer.RequestSessionsRefresh(); },
       }));
     };
 
-    const refreshSessions = async (page: MenuPage): Promise<void> => {
-      if (page.items.length > staticItemCount) {
-        page.items.length = staticItemCount;
-      }
+    // Replaces everything past the static items with a single status Label -- used for the
+    // loading/error states, neither of which have session rows of their own.
+    const showSessionsMessage = (page: MenuPage, label: string): void => {
+      page.items.length = staticItemCount;
+      page.items.push(new Label({ label }));
+      addRefreshSessionsButton(page);
+    };
 
-      page.items.push(new Label({ label: 'Finding sessions...' }));
+    // Rebuilds everything past the static items from a live session list -- called on every push
+    // from SubscribeSessions (the initial snapshot, and every add/update/remove diff thereafter).
+    const showSessions = (page: MenuPage, sessions: DiscoveredSession[]): void => {
+      page.items.length = staticItemCount;
+      page.items.push(new Spacer());
+      page.items.push(new Label({ label: 'Online Sessions:' }));
 
-      try {
-        const sessions = await engineAPI.Multiplayer.ListSessions();
-
-        // `page` is always the same `launchServerPage` instance -- there's no concurrent call
-        // this could race with.
-        // eslint-disable-next-line require-atomic-updates
-        page.items.length = staticItemCount;
-        page.items.push(new Spacer());
-        page.items.push(new Label({ label: 'Online Sessions:' }));
-
-        if (sessions.length === 0) {
-          page.items.push(new Label({ label: 'No sessions found.' }));
-          addRefreshSessionsButton(page);
-          return;
-        }
-
+      if (sessions.length === 0) {
+        page.items.push(new Label({ label: 'No sessions found.' }));
+      } else {
         for (const session of sessions) {
           const players = `${session.currentPlayers}/${session.maxPlayers}`;
 
@@ -433,53 +431,68 @@ export default class Id1Menu {
             },
           }));
         }
-
-        addRefreshSessionsButton(page);
-      } catch (error: unknown) {
-        const lastItem = page.items[page.items.length - 1];
-        if (lastItem && lastItem.label === 'Finding sessions...') {
-          page.items.length = staticItemCount + 1;
-        }
-        page.items.push(new Label({ label: 'Unable to fetch sessions' }));
-        addRefreshSessionsButton(page);
-        console.error('Failed to fetch sessions:', error);
       }
+
+      addRefreshSessionsButton(page);
     };
 
     const launchServerPage: MenuPage = new MenuPageClass({
       layout: new VerticalLayout({ startY: 40, spacing: 8, labelX: 48, cursorX: 32 }),
       onEnter: () => {
-        if (staticItemCount > 0) {
-          return;
-        }
+        if (staticItemCount === 0) {
+          launchServerPage.items.push(new Label({ label: 'Start Game:' }));
 
-        launchServerPage.items.push(new Label({ label: 'Start Game:' }));
-
-        launchServerPage.items.push(new Toggle({
-          label: 'Private Session',
-          cvar: 'sv_public',
-          onValue: 0,
-          offValue: 1,
-          onLabel: 'yes',
-          offLabel: 'no',
-        }));
-
-        const serverActions = ServerGameAPI.GetStartServerList();
-        for (const serverAction of serverActions ?? []) {
-          launchServerPage.items.push(new Action({
-            label: serverAction.label,
-            action: () => {
-              Menu.Close();
-              serverAction.callback(engineAPI);
-            },
+          launchServerPage.items.push(new Toggle({
+            label: 'Private Session',
+            cvar: 'sv_public',
+            onValue: 0,
+            offValue: 1,
+            onLabel: 'yes',
+            offLabel: 'no',
           }));
+
+          const serverActions = ServerGameAPI.GetStartServerList();
+          for (const serverAction of serverActions ?? []) {
+            launchServerPage.items.push(new Action({
+              label: serverAction.label,
+              action: () => {
+                Menu.Close();
+                serverAction.callback(engineAPI);
+              },
+            }));
+          }
+
+          launchServerPage.items.push(new Spacer());
+
+          staticItemCount = launchServerPage.items.length;
         }
 
-        launchServerPage.items.push(new Spacer());
-
-        staticItemCount = launchServerPage.items.length;
-
-        void refreshSessions(launchServerPage);
+        // Re-subscribes on every entry (not just the first) since onExit below always tears the
+        // previous subscription down -- otherwise a second visit to this page would be left with
+        // no live channel at all.
+        unsubscribeSessions = engineAPI.Multiplayer.SubscribeSessions(
+          (sessions) => { showSessions(launchServerPage, sessions); },
+          (status) => {
+            switch (status) {
+              case 'connecting':
+                showSessionsMessage(launchServerPage, 'Finding sessions...');
+                break;
+              case 'reconnecting':
+                showSessionsMessage(launchServerPage, 'Unable to fetch sessions');
+                break;
+              case 'unavailable':
+                showSessionsMessage(launchServerPage, 'Unable to fetch sessions');
+                console.error('Failed to subscribe to sessions: signaling unavailable');
+                break;
+              default:
+                break;
+            }
+          },
+        );
+      },
+      onExit: () => {
+        unsubscribeSessions?.();
+        unsubscribeSessions = null;
       },
       onEscape: () => { Menu.Close(); },
     });

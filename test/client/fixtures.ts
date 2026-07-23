@@ -22,12 +22,16 @@ interface MockSaveSlotInfo {
 
 interface MockDiscoveredSession {
   readonly sessionId: string;
+  readonly hostname: string;
   readonly map: string;
   readonly currentPlayers: number;
   readonly maxPlayers: number;
   readonly colo: string | null;
   readonly country: string | null;
+  readonly settings: Readonly<Record<string, string | number | boolean>>;
 }
+
+type MockSessionDiscoveryStatus = 'connecting' | 'live' | 'reconnecting' | 'unavailable';
 
 interface MockMenuAPI {
   RegisterPage(name: string, page: MenuPage): void;
@@ -241,6 +245,11 @@ export interface MockClientEngine {
   };
   Multiplayer: {
     ListSessions(): Promise<MockDiscoveredSession[]>;
+    SubscribeSessions(
+      onSessions: (sessions: MockDiscoveredSession[]) => void,
+      onStatus?: (status: MockSessionDiscoveryStatus) => void,
+    ): () => void;
+    RequestSessionsRefresh(): void;
   };
 }
 
@@ -344,6 +353,70 @@ export function captureRegisteredPages(engine: MockClientEngine): Map<string, Me
   };
 
   return registered;
+}
+
+export interface MockSessionDiscoveryChannel {
+  /** Pass as `Multiplayer.SubscribeSessions` in a `createMockClientEngine`/rig override. */
+  SubscribeSessions(
+    onSessions: (sessions: MockDiscoveredSession[]) => void,
+    onStatus?: (status: MockSessionDiscoveryStatus) => void,
+  ): () => void;
+  /** Pushes a fresh session list to every currently-subscribed listener (simulates a live diff). */
+  push(sessions: MockDiscoveredSession[]): void;
+  /** Pushes a status update to every currently-subscribed listener. */
+  setStatus(status: MockSessionDiscoveryStatus): void;
+  /** How many times `SubscribeSessions` has been called in total (e.g. how many times a page was entered). */
+  readonly subscribeCount: number;
+  /** How many subscribers are currently active (not yet unsubscribed). */
+  readonly activeSubscriberCount: number;
+}
+
+/**
+ * Create a controllable stand-in for `SessionDiscovery`'s real-time `/browser` channel --
+ * `SubscribeSessions` delivers `initialSessions` (and a `'live'` status) synchronously to whoever
+ * subscribes, and the returned controller lets a test simulate later diffs (`push`) or connection
+ * status changes (`setStatus`) without needing a real WebSocket.
+ * @returns Controller plus the `SubscribeSessions` mock to pass as a `Multiplayer` override.
+ */
+export function createMockSessionsChannel(initialSessions: MockDiscoveredSession[] = []): MockSessionDiscoveryChannel {
+  interface Listener {
+    readonly onSessions: (sessions: MockDiscoveredSession[]) => void;
+    readonly onStatus?: (status: MockSessionDiscoveryStatus) => void;
+  }
+
+  const listeners = new Set<Listener>();
+  let subscribeCount = 0;
+
+  return {
+    SubscribeSessions(
+      onSessions: (sessions: MockDiscoveredSession[]) => void,
+      onStatus?: (status: MockSessionDiscoveryStatus) => void,
+    ): () => void {
+      subscribeCount += 1;
+      const listener: Listener = { onSessions, onStatus };
+      listeners.add(listener);
+      onStatus?.('live');
+      onSessions(initialSessions);
+
+      return () => { listeners.delete(listener); };
+    },
+    push(sessions: MockDiscoveredSession[]): void {
+      for (const listener of listeners) {
+        listener.onSessions(sessions);
+      }
+    },
+    setStatus(status: MockSessionDiscoveryStatus): void {
+      for (const listener of listeners) {
+        listener.onStatus?.(status);
+      }
+    },
+    get subscribeCount(): number {
+      return subscribeCount;
+    },
+    get activeSubscriberCount(): number {
+      return listeners.size;
+    },
+  };
 }
 
 /**
@@ -722,6 +795,15 @@ export function createMockClientEngine(
       ListSessions(): Promise<MockDiscoveredSession[]> {
         return Promise.resolve([]);
       },
+      SubscribeSessions(
+        onSessions: (sessions: MockDiscoveredSession[]) => void,
+        onStatus?: (status: MockSessionDiscoveryStatus) => void,
+      ): () => void {
+        onStatus?.('live');
+        onSessions([]);
+        return () => {};
+      },
+      RequestSessionsRefresh(): void {},
     },
   };
 

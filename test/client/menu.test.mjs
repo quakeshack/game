@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { captureRegisteredPages, createMockClientEngine } from './fixtures.ts';
+import { captureRegisteredPages, createMockClientEngine, createMockSessionsChannel } from './fixtures.ts';
 
 await import('../../GameAPI.ts');
 
@@ -247,18 +247,58 @@ void describe('Id1Menu.Init', () => {
 
   void test('launch_server page builds its static items and lists sessions on entry', async () => {
     const { engine, pages } = await initId1Menu();
-    engine.Multiplayer.ListSessions = () => Promise.resolve([
-      { sessionId: 'abc', map: 'dm3', currentPlayers: 2, maxPlayers: 8, colo: 'sea', country: 'US' },
+    const channel = createMockSessionsChannel([
+      { sessionId: 'abc', hostname: 'UNNAMED', map: 'dm3', currentPlayers: 2, maxPlayers: 8, colo: 'sea', country: 'US', settings: {} },
     ]);
+    engine.Multiplayer.SubscribeSessions = channel.SubscribeSessions;
 
     const launchServerPage = pages.get('launch_server');
     launchServerPage.onEnter();
-    await Promise.resolve();
-    await Promise.resolve();
 
     const labels = launchServerPage.items.map((item) => item.label);
     assert.ok(labels.includes('Private Session'));
     assert.ok(labels.some((label) => label?.startsWith('dm3 near')));
+  });
+
+  void test('launch_server page re-subscribes on every entry and unsubscribes on exit', async () => {
+    const { engine, pages } = await initId1Menu();
+    const channel = createMockSessionsChannel([]);
+    engine.Multiplayer.SubscribeSessions = channel.SubscribeSessions;
+
+    const launchServerPage = pages.get('launch_server');
+
+    launchServerPage.onEnter();
+    assert.equal(channel.subscribeCount, 1);
+    assert.equal(channel.activeSubscriberCount, 1);
+
+    launchServerPage.onExit();
+    assert.equal(channel.activeSubscriberCount, 0);
+
+    // Static items (Start Game/Toggle/server actions/Spacer) are only built once, but the second
+    // entry still needs a fresh subscription -- otherwise a second visit would show a stale list
+    // with no live channel behind it at all.
+    launchServerPage.onEnter();
+    assert.equal(channel.subscribeCount, 2);
+    assert.equal(channel.activeSubscriberCount, 1);
+
+    launchServerPage.onExit();
+    assert.equal(channel.activeSubscriberCount, 0);
+  });
+
+  void test('Refresh Sessions requests a fresh snapshot over the live channel instead of re-fetching', async () => {
+    const { engine, pages } = await initId1Menu();
+    let refreshRequests = 0;
+    engine.Multiplayer.SubscribeSessions = createMockSessionsChannel([]).SubscribeSessions;
+    engine.Multiplayer.RequestSessionsRefresh = () => { refreshRequests += 1; };
+
+    const launchServerPage = pages.get('launch_server');
+    launchServerPage.onEnter();
+
+    const refreshButton = launchServerPage.items.at(-1);
+    assert.equal(refreshButton.label, 'Refresh Sessions');
+
+    refreshButton.action();
+    assert.equal(refreshRequests, 1);
   });
 });
 
