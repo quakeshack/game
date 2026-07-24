@@ -29,6 +29,8 @@ interface MockDiscoveredSession {
   readonly colo: string | null;
   readonly country: string | null;
   readonly settings: Readonly<Record<string, string | number | boolean>>;
+  readonly ping: number | null;
+  readonly pingUnreachable: boolean;
 }
 
 type MockSessionDiscoveryStatus = 'connecting' | 'live' | 'reconnecting' | 'unavailable';
