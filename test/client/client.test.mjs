@@ -193,6 +193,38 @@ void describe('id1 client HUD state', () => {
     }
   });
 
+  void test('+showscores/-showscores toggle the scoreboard through draw()', () => {
+    const engine = createMockClientEngine();
+
+    Q1HUD.Init(engine);
+
+    try {
+      const game = {
+        clientdata: createClientdata(),
+        serverInfo: new ServerInfo(engine),
+      };
+      const hud = new Q1HUD(game, engine);
+
+      hud.init();
+
+      engine.drawPics.length = 0;
+      hud.draw();
+      assert.equal(engine.drawPics.some(({ pic }) => pic.name === 'SCOREBAR'), false);
+
+      void engine.commands.get('+showscores')();
+      engine.drawPics.length = 0;
+      hud.draw();
+      assert.equal(engine.drawPics.some(({ pic }) => pic.name === 'SCOREBAR'), true);
+
+      void engine.commands.get('-showscores')();
+      engine.drawPics.length = 0;
+      hud.draw();
+      assert.equal(engine.drawPics.some(({ pic }) => pic.name === 'SCOREBAR'), false);
+    } finally {
+      Q1HUD.Shutdown(engine);
+    }
+  });
+
   void test('draws finale text from center-print during intermission', () => {
     const engine = createMockClientEngine();
 

@@ -2,8 +2,95 @@ import type { ClientEdict, ClientEventValue } from '../../../../shared/GameInter
 
 import Vector from '../../../../shared/Vector.ts';
 
+// Real widget/layout classes -- safe to use directly in this mock even though production game
+// code can't import them: construction and activate()/deactivate() never touch the engine
+// registry (only actually drawing/playing a sound would), so `Id1Menu.Init()` can register real
+// pages against this mock without needing a full GL/audio stack.
+import { Action, ColorPicker, Image, KeyBindItem, Label, MenuItem, NumberInput, SaveSlotItem, Slider, Spacer, Textbox, Toggle } from '../../../../engine/client/menu/MenuItem.ts';
+import { DialogPage, GridLayout, ImageBasedLayout, ListLayout, ListPage, MenuPage, VerticalLayout } from '../../../../engine/client/menu/MenuPage.ts';
+import { MenuViewport } from '../../../../engine/client/menu/MenuViewport.ts';
+
 type CommandHandler = (...args: string[]) => void | Promise<void>;
 type CvarInput = string | number | boolean;
+
+interface MockSaveSlotInfo {
+  readonly index: number;
+  readonly label: string;
+  readonly mapname: string | null;
+  readonly hasData: boolean;
+}
+
+interface MockDiscoveredSession {
+  readonly sessionId: string;
+  readonly hostname: string;
+  readonly map: string;
+  readonly currentPlayers: number;
+  readonly maxPlayers: number;
+  readonly colo: string | null;
+  readonly country: string | null;
+  readonly settings: Readonly<Record<string, string | number | boolean>>;
+  readonly ping: number | null;
+  readonly pingUnreachable: boolean;
+}
+
+type MockSessionDiscoveryStatus = 'connecting' | 'live' | 'reconnecting' | 'unavailable';
+
+interface MockMenuAPI {
+  RegisterPage(name: string, page: MenuPage): void;
+  UnregisterPage(name: string): void;
+  SetRootPage(name: string): void;
+  Open(name: string): void;
+  Push(name: string): void;
+  Pop(): void;
+  PopTo(depth: number): void;
+  PopToRoot(): void;
+  Replace(name: string): void;
+  Close(): void;
+  Clear(): void;
+  ForceClose(): void;
+  ToggleConsole(): void;
+  ForceQuit(): void;
+  StartSingleplayerGame(): void;
+  StartMultiplayerGame(mapname: string): void;
+  IsOpen(name?: string): boolean;
+  Depth(): number;
+  IsEmpty(): boolean;
+  GetPreviousPage(): MenuPage | null;
+  AddItem(pageName: string, item: MenuItem, index?: number): void;
+  RemoveItem(pageName: string, item: MenuItem): void;
+  LoadTranslatablePic(lumpName: string): Promise<MockTexture>;
+  readonly mouseX: number;
+  readonly mouseY: number;
+  toScreenPosition(x: number, y: number): { x: number; y: number };
+  readonly viewportScale: number;
+  Print(cx: number, cy: number, str: string): void;
+  PrintWhite(cx: number, cy: number, str: string): void;
+  DrawCharacter(cx: number, cy: number, num: number): void;
+  DrawPic(x: number, y: number, pic: MockTexture): void;
+  DrawPicTranslate(x: number, y: number, pic: MockTexture, top: number, bottom: number): void;
+  DrawTextBox(x: number, y: number, width: number, lines: number): void;
+  DrawSlider(x: number, y: number, range: number): void;
+  DrawBitmapString(cx: number, cy: number, str: string, font: MockBitmapFont, variant?: number): void;
+  Action: typeof Action;
+  Label: typeof Label;
+  Slider: typeof Slider;
+  Toggle: typeof Toggle;
+  Textbox: typeof Textbox;
+  Spacer: typeof Spacer;
+  Image: typeof Image;
+  ColorPicker: typeof ColorPicker;
+  NumberInput: typeof NumberInput;
+  SaveSlotItem: typeof SaveSlotItem;
+  KeyBindItem: typeof KeyBindItem;
+  MenuPage: typeof MenuPage;
+  DialogPage: typeof DialogPage;
+  ListPage: typeof ListPage;
+  VerticalLayout: typeof VerticalLayout;
+  ImageBasedLayout: typeof ImageBasedLayout;
+  ListLayout: typeof ListLayout;
+  GridLayout: typeof GridLayout;
+  MenuViewport: typeof MenuViewport;
+}
 
 interface MockClientScore {
   isActive: boolean;
@@ -30,6 +117,25 @@ export interface MockTexture {
   free(): void;
   lockTextureMode(mode: string): MockTexture;
   wrapClamped(): MockTexture;
+}
+
+export interface MockBitmapFontConfig {
+  charset: string;
+  glyphWidth: number;
+  glyphHeight: number;
+  cellWidth: number;
+  cellHeight: number;
+  variants?: number;
+}
+
+export interface MockBitmapFont {
+  charset: string;
+  glyphWidth: number;
+  glyphHeight: number;
+  cellWidth: number;
+  cellHeight: number;
+  variants: number;
+  measure(str: string): number;
 }
 
 export interface MockSound {
@@ -59,6 +165,7 @@ interface MockClientState {
   levelname: string;
   maxclients: number;
   time: number;
+  connected: boolean;
   viewangles: Vector;
   vieworigin: Vector;
   score(index: number): MockClientScore;
@@ -103,11 +210,14 @@ export interface MockClientEngine {
   LoadPicFromWad(name: string): MockTexture;
   LoadPicFromLump(name: string): MockTexture;
   LoadPicFromFile(name: string): Promise<MockTexture>;
+  LoadBitmapFont(filename: string, config: MockBitmapFontConfig): Promise<MockBitmapFont>;
   LoadSound(name: string): MockSound;
+  PlaySound(sound: MockSound): void;
   RegisterCommand(name: string, handler: CommandHandler): void;
   UnregisterCommand(name: string): void;
   RegisterCvar(name: string, value: string): MockCvar;
   GetCvar(name: string): MockCvar;
+  SetCvar(name: string, value: string): MockCvar;
   ConsoleDebug(message: string): void;
   ConsoleError(message: string): void;
   ConsolePrint(message: string, color?: Vector): void;
@@ -124,10 +234,24 @@ export interface MockClientEngine {
   VID: MockVideoState;
   SCR: MockScreenState;
   CL: MockClientState;
+  SV: { active: boolean };
   PostProcess: {
     setStack(stack: unknown): void;
     clearStack(): void;
     hasStack(): boolean;
+  };
+  Menu: MockMenuAPI;
+  SaveSlots: {
+    List(maxSlots: number): MockSaveSlotInfo[];
+    Delete(index: number): void;
+  };
+  Multiplayer: {
+    ListSessions(): Promise<MockDiscoveredSession[]>;
+    SubscribeSessions(
+      onSessions: (sessions: MockDiscoveredSession[]) => void,
+      onStatus?: (status: MockSessionDiscoveryStatus) => void,
+    ): () => void;
+    RequestSessionsRefresh(): void;
   };
 }
 
@@ -183,6 +307,25 @@ export function createMockTexture(name: string, width = 24, height = 24): MockTe
 }
 
 /**
+ * Create a mock bitmap font atlas, mirroring the shape of a real `BitmapFont` closely enough for
+ * tests that only need to verify a font gets attached/passed around, not actually drawn.
+ * @returns Mock bitmap font.
+ */
+export function createMockBitmapFont(config: MockBitmapFontConfig): MockBitmapFont {
+  return {
+    charset: config.charset,
+    glyphWidth: config.glyphWidth,
+    glyphHeight: config.glyphHeight,
+    cellWidth: config.cellWidth,
+    cellHeight: config.cellHeight,
+    variants: config.variants ?? 1,
+    measure(str: string): number {
+      return str.length * config.cellWidth;
+    },
+  };
+}
+
+/**
  * Create a mock sound object.
  * @returns Mock sound.
  */
@@ -193,6 +336,242 @@ export function createMockSound(name: string): MockSound {
     play(): void {
       this.playCount += 1;
     },
+  };
+}
+
+/**
+ * Wrap `engine.Menu.RegisterPage` to capture every registered page by name, so tests can
+ * inspect a page's actual items/handlers instead of only observing it through Push/IsOpen.
+ * @param engine Mock client engine.
+ * @returns Registered pages by name.
+ */
+export function captureRegisteredPages(engine: MockClientEngine): Map<string, MenuPage> {
+  const registered = new Map<string, MenuPage>();
+  const originalRegisterPage = engine.Menu.RegisterPage.bind(engine.Menu);
+
+  engine.Menu.RegisterPage = (name: string, page: MenuPage): void => {
+    registered.set(name, page);
+    originalRegisterPage(name, page);
+  };
+
+  return registered;
+}
+
+export interface MockSessionDiscoveryChannel {
+  /** Pass as `Multiplayer.SubscribeSessions` in a `createMockClientEngine`/rig override. */
+  SubscribeSessions(
+    onSessions: (sessions: MockDiscoveredSession[]) => void,
+    onStatus?: (status: MockSessionDiscoveryStatus) => void,
+  ): () => void;
+  /** Pushes a fresh session list to every currently-subscribed listener (simulates a live diff). */
+  push(sessions: MockDiscoveredSession[]): void;
+  /** Pushes a status update to every currently-subscribed listener. */
+  setStatus(status: MockSessionDiscoveryStatus): void;
+  /** How many times `SubscribeSessions` has been called in total (e.g. how many times a page was entered). */
+  readonly subscribeCount: number;
+  /** How many subscribers are currently active (not yet unsubscribed). */
+  readonly activeSubscriberCount: number;
+}
+
+/**
+ * Create a controllable stand-in for `SessionDiscovery`'s real-time `/browser` channel --
+ * `SubscribeSessions` delivers `initialSessions` (and a `'live'` status) synchronously to whoever
+ * subscribes, and the returned controller lets a test simulate later diffs (`push`) or connection
+ * status changes (`setStatus`) without needing a real WebSocket.
+ * @returns Controller plus the `SubscribeSessions` mock to pass as a `Multiplayer` override.
+ */
+export function createMockSessionsChannel(initialSessions: MockDiscoveredSession[] = []): MockSessionDiscoveryChannel {
+  interface Listener {
+    readonly onSessions: (sessions: MockDiscoveredSession[]) => void;
+    readonly onStatus?: (status: MockSessionDiscoveryStatus) => void;
+  }
+
+  const listeners = new Set<Listener>();
+  let subscribeCount = 0;
+
+  return {
+    SubscribeSessions(
+      onSessions: (sessions: MockDiscoveredSession[]) => void,
+      onStatus?: (status: MockSessionDiscoveryStatus) => void,
+    ): () => void {
+      subscribeCount += 1;
+      const listener: Listener = { onSessions, onStatus };
+      listeners.add(listener);
+      onStatus?.('live');
+      onSessions(initialSessions);
+
+      return () => { listeners.delete(listener); };
+    },
+    push(sessions: MockDiscoveredSession[]): void {
+      for (const listener of listeners) {
+        listener.onSessions(sessions);
+      }
+    },
+    setStatus(status: MockSessionDiscoveryStatus): void {
+      for (const listener of listeners) {
+        listener.onStatus?.(status);
+      }
+    },
+    get subscribeCount(): number {
+      return subscribeCount;
+    },
+    get activeSubscriberCount(): number {
+      return listeners.size;
+    },
+  };
+}
+
+/**
+ * Create a self-contained `ClientEngineAPI.Menu` mock: real widget/layout classes (see the
+ * import comment above for why that's safe) plus a from-scratch page-registry/navigation-stack
+ * implementation mirroring `MenuStack`'s push/pop/clear semantics, without depending on the
+ * real `MenuStack` -- which touches `M.entersound`/`IN.ReleasePointerLock()` on every
+ * push/pop, and this fixture deliberately never touches the engine registry at all.
+ * @returns Mock Menu API.
+ */
+export function createMockMenuAPI(): MockMenuAPI {
+  const pages = new Map<string, MenuPage>();
+  const stack: MenuPage[] = [];
+
+  const current = (): MenuPage | null => (stack.length > 0 ? stack[stack.length - 1] : null);
+
+  const push = (pageOrName: MenuPage | string): void => {
+    current()?.deactivate();
+    const page = typeof pageOrName === 'string' ? pages.get(pageOrName) ?? null : pageOrName;
+    if (!page) {
+      return;
+    }
+    stack.push(page);
+    page.activate();
+  };
+
+  const pop = (): MenuPage | null => {
+    if (stack.length === 0) {
+      return null;
+    }
+    const page = stack.pop()!;
+    page.deactivate();
+    current()?.activate();
+    return page;
+  };
+
+  const clear = (): void => {
+    while (stack.length > 0) {
+      pop();
+    }
+  };
+
+  const popTo = (depth: number): void => {
+    while (stack.length > depth && stack.length > 0) {
+      pop();
+    }
+  };
+
+  return {
+    RegisterPage(name: string, page: MenuPage): void {
+      pages.set(name, page);
+    },
+    UnregisterPage(name: string): void {
+      pages.delete(name);
+    },
+    SetRootPage(): void {
+      // Not consumed elsewhere in this mock -- nothing needs to know which page is root,
+      // since `ToggleMenu_f`/`Menu_Main_f`-style root navigation is engine-internal and never
+      // exercised through `ClientEngineAPI.Menu` directly.
+    },
+    Open(name: string): void { push(name); },
+    Push(name: string): void { push(name); },
+    Pop(): void { pop(); },
+    PopTo(depth: number): void { popTo(depth); },
+    PopToRoot(): void { popTo(1); },
+    Replace(name: string): void {
+      if (stack.length > 0) {
+        pop();
+      }
+      push(name);
+    },
+    Close(): void { clear(); },
+    Clear(): void { clear(); },
+    ForceClose(): void { clear(); },
+    ToggleConsole(): void {},
+    ForceQuit(): void {},
+    StartSingleplayerGame(): void {},
+    StartMultiplayerGame(_mapname: string): void {},
+    IsOpen(name?: string): boolean {
+      if (name === undefined) {
+        return current() !== null;
+      }
+      return current() === (pages.get(name) ?? null);
+    },
+    Depth(): number { return stack.length; },
+    IsEmpty(): boolean { return stack.length === 0; },
+    GetPreviousPage(): MenuPage | null {
+      return stack.length > 1 ? stack[stack.length - 2] : null;
+    },
+    AddItem(pageName: string, item: MenuItem, index?: number): void {
+      const page = pages.get(pageName);
+      if (!page) {
+        return;
+      }
+      if (index === undefined) {
+        page.items.push(item);
+      } else {
+        page.items.splice(index, 0, item);
+      }
+    },
+    RemoveItem(pageName: string, item: MenuItem): void {
+      const page = pages.get(pageName);
+      if (!page) {
+        return;
+      }
+      const index = page.items.indexOf(item);
+      if (index !== -1) {
+        page.items.splice(index, 1);
+      }
+    },
+    LoadTranslatablePic(lumpName: string): Promise<MockTexture> {
+      return Promise.resolve(createMockTexture(lumpName));
+    },
+    mouseX: 0,
+    mouseY: 0,
+    // Resolved against the mock engine's default VID size (320x200, see baseEngine.VID below) --
+    // reflects whichever page is current, the same way the real M does, so a page that sets its
+    // own (e.g. wider) viewport gets a matching scale/position here too.
+    toScreenPosition(x: number, y: number): { x: number; y: number } {
+      const viewport = current()?.viewport ?? MenuViewport.classic;
+      return viewport.toScreen(viewport.resolve(320, 200), x, y);
+    },
+    get viewportScale(): number {
+      const viewport = current()?.viewport ?? MenuViewport.classic;
+      return viewport.resolve(320, 200).scale;
+    },
+    Print(): void {},
+    PrintWhite(): void {},
+    DrawCharacter(): void {},
+    DrawPic(): void {},
+    DrawPicTranslate(): void {},
+    DrawTextBox(): void {},
+    DrawSlider(): void {},
+    DrawBitmapString(): void {},
+    Action,
+    Label,
+    Slider,
+    Toggle,
+    Textbox,
+    Spacer,
+    Image,
+    ColorPicker,
+    NumberInput,
+    SaveSlotItem,
+    KeyBindItem,
+    MenuPage,
+    DialogPage,
+    ListPage,
+    VerticalLayout,
+    ImageBasedLayout,
+    ListLayout,
+    GridLayout,
+    MenuViewport,
   };
 }
 
@@ -297,10 +676,16 @@ export function createMockClientEngine(
     LoadPicFromFile(name: string): Promise<MockTexture> {
       return Promise.resolve(createMockTexture(name, 320, 200));
     },
+    LoadBitmapFont(_filename: string, config: MockBitmapFontConfig): Promise<MockBitmapFont> {
+      return Promise.resolve(createMockBitmapFont(config));
+    },
     LoadSound(name: string): MockSound {
       const sound = createMockSound(name);
       sounds.push(sound);
       return sound;
+    },
+    PlaySound(sound: MockSound): void {
+      sound.play();
     },
     RegisterCommand(name: string, handler: CommandHandler): void {
       commands.set(name, handler);
@@ -313,6 +698,9 @@ export function createMockClientEngine(
     },
     GetCvar(name: string): MockCvar {
       return getOrCreateCvar(name, '0');
+    },
+    SetCvar(name: string, value: string): MockCvar {
+      return getOrCreateCvar(name, '0').set(value);
     },
     ConsoleDebug(_message: string): void {
     },
@@ -382,6 +770,7 @@ export function createMockClientEngine(
       levelname: 'e1m1',
       maxclients: 1,
       time: 0,
+      connected: false,
       viewangles: new Vector(),
       vieworigin: new Vector(),
       score(): MockClientScore {
@@ -393,6 +782,30 @@ export function createMockClientEngine(
           colors: 0,
         };
       },
+    },
+    SV: {
+      active: false,
+    },
+    Menu: createMockMenuAPI(),
+    SaveSlots: {
+      List(maxSlots: number): MockSaveSlotInfo[] {
+        return Array.from({ length: maxSlots }, (_, index) => ({ index, label: 'Empty slot', mapname: null, hasData: false }));
+      },
+      Delete(_index: number): void {},
+    },
+    Multiplayer: {
+      ListSessions(): Promise<MockDiscoveredSession[]> {
+        return Promise.resolve([]);
+      },
+      SubscribeSessions(
+        onSessions: (sessions: MockDiscoveredSession[]) => void,
+        onStatus?: (status: MockSessionDiscoveryStatus) => void,
+      ): () => void {
+        onStatus?.('live');
+        onSessions([]);
+        return () => {};
+      },
+      RequestSessionsRefresh(): void {},
     },
   };
 
