@@ -245,6 +245,24 @@ void describe('Id1Menu.Init', () => {
     assert.equal(engine.Menu.IsEmpty(), true);
   });
 
+  void test('multiplayer join only sends name/color console commands when they actually changed', async () => {
+    const { engine, pages } = await initId1Menu();
+    engine.SetCvar('_cl_name', 'Ranger');
+    engine.SetCvar('_cl_color', String((3 << 4) + 5));
+    const multiplayerPage = pages.get('multiplayer');
+    const joinAction = multiplayerPage.items[multiplayerPage.items.length - 1];
+
+    engine.CL.connected = true; // so action() just closes the menu instead of pushing launch_server
+    multiplayerPage.onEnter(); // pre-fills name/color from the cvars above, unmodified since
+
+    joinAction.action();
+
+    // Neither field changed from what onEnter pre-filled -- a regression here (e.g. always
+    // sending `color` even when unchanged) would spam the console with no-op commands on every
+    // join/accept, not just when the player actually edited something.
+    assert.deepEqual(engine.appendedConsoleText, []);
+  });
+
   void test('launch_server page builds its static items and lists sessions on entry', async () => {
     const { engine, pages } = await initId1Menu();
     const channel = createMockSessionsChannel([

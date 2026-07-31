@@ -661,12 +661,12 @@ export default class Id1Menu {
         return { centerX: boxX + totalWidth / 2, y: boxBottom + 8 };
       },
       customHandleInput: (key, _page, defaultHandleInput) => {
-        if (key === 110 as K) { // 'n'
+        if (key === 'n'.charCodeAt(0) as K) {
           Menu.Pop();
           return true;
         }
 
-        if (key === 121 as K) { // 'y'
+        if (key === 'y'.charCodeAt(0) as K) {
           confirmQuit();
           return true;
         }
