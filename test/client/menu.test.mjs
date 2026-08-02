@@ -192,7 +192,7 @@ void describe('Id1Menu.Init', () => {
   void test('host.quit-requested opens the quit page once', async () => {
     const { engine } = await initId1Menu();
 
-    engine.eventBus.publish('host.quit-requested');
+    engine.moduleEventBus.publish('host.quit-requested');
     assert.equal(engine.Menu.IsOpen('quit'), true);
   });
 
@@ -200,12 +200,24 @@ void describe('Id1Menu.Init', () => {
     const { engine, pages } = await initId1Menu();
     const alertPage = pages.get('alert');
 
-    engine.eventBus.publish('host.alert', { title: 'Host Error', message: 'boom', severity: 'error' });
+    engine.moduleEventBus.publish('host.alert', { title: 'Host Error', message: 'boom', severity: 'error' });
 
     assert.equal(engine.Menu.IsOpen('alert'), true);
 
     alertPage.onConfirm();
     assert.equal(engine.Menu.IsEmpty(), true);
+  });
+
+  void test('host.alert still opens the alert page after the per-connection eventBus is wiped', async () => {
+    // Id1Menu subscribes on moduleEventBus specifically because engine.eventBus (CL.state's
+    // per-connection bus) gets fully cleared on every disconnect/reconnect -- simulate that here
+    // to prove the subscription doesn't live there and so isn't affected.
+    const { engine } = await initId1Menu();
+
+    engine.eventBus.unsubscribeAll();
+    engine.moduleEventBus.publish('host.alert', { title: 'Host Error', message: 'boom', severity: 'error' });
+
+    assert.equal(engine.Menu.IsOpen('alert'), true);
   });
 
   void test('multiplayer page pre-fills name/color from cvars and toggles the join label by connection state', async () => {
@@ -363,14 +375,14 @@ void describe('Id1Menu.Init with classicFrontend: false', () => {
   void test('host.quit-requested still opens the quit page', async () => {
     const { engine } = await initId1Menu({ classicFrontend: false });
 
-    engine.eventBus.publish('host.quit-requested');
+    engine.moduleEventBus.publish('host.quit-requested');
     assert.equal(engine.Menu.IsOpen('quit'), true);
   });
 
   void test('host.alert still opens the alert page', async () => {
     const { engine } = await initId1Menu({ classicFrontend: false });
 
-    engine.eventBus.publish('host.alert', { title: 'Host Error', message: 'boom', severity: 'error' });
+    engine.moduleEventBus.publish('host.alert', { title: 'Host Error', message: 'boom', severity: 'error' });
     assert.equal(engine.Menu.IsOpen('alert'), true);
   });
 });

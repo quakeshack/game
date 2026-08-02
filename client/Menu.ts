@@ -141,9 +141,14 @@ export default class Id1Menu {
       Menu.SetRootPage('main');
     }
 
-    // Host.EndGame/Host.Error report faults via the event bus (see docs/events.md#host)
-    // instead of calling into the menu system directly -- id1 decides how to present them.
-    engineAPI.eventBus.subscribe('host.alert', (event: HostAlertEvent): void => {
+    // Host.EndGame/Host.Error report faults via the event bus (see docs/events.md#host) instead
+    // of calling into the menu system directly -- id1 decides how to present them. Subscribed on
+    // `engineAPI.moduleEventBus` rather than `engineAPI.eventBus`, since these two pages (like the
+    // rest of the pages registered above) live for the whole game module's lifetime, not a single
+    // connection -- `engineAPI.eventBus` gets fully wiped on every disconnect/reconnect, which
+    // would silently drop a subscription made here (this runs once, at boot) by the time the very
+    // first connection attempt fails (e.g. a rejected "server is full").
+    engineAPI.moduleEventBus.subscribe('host.alert', (event: HostAlertEvent): void => {
       if (Menu.IsOpen('alert')) {
         return;
       }
@@ -154,7 +159,7 @@ export default class Id1Menu {
 
     // The `quit` command asks for confirmation this way rather than calling into the menu
     // system directly -- see docs/events.md#host.
-    engineAPI.eventBus.subscribe('host.quit-requested', (): void => {
+    engineAPI.moduleEventBus.subscribe('host.quit-requested', (): void => {
       if (!Menu.IsOpen('quit')) {
         Menu.Open('quit');
       }

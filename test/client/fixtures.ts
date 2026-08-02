@@ -147,6 +147,7 @@ export interface MockSound {
 export interface MockEventBus {
   subscribe(eventName: string, handler: (...args: readonly ClientEventValue[]) => void): () => void;
   publish(eventName: string, ...args: readonly ClientEventValue[]): void;
+  unsubscribeAll(): void;
 }
 
 interface MockViewRect {
@@ -194,6 +195,7 @@ interface MockClientEngineOptions {
 
 export interface MockClientEngine {
   eventBus: MockEventBus;
+  moduleEventBus: MockEventBus;
   sounds: MockSound[];
   commands: Map<string, CommandHandler>;
   consolePrints: Array<{ message: string; color: Vector }>;
@@ -278,6 +280,10 @@ export function createEventBus(): MockEventBus {
       for (const handler of listeners.get(eventName) ?? []) {
         handler(...args);
       }
+    },
+
+    unsubscribeAll(): void {
+      listeners.clear();
     },
   };
 }
@@ -584,6 +590,7 @@ export function createMockClientEngine(
   options: MockClientEngineOptions = {},
 ): MockClientEngine {
   const eventBus = createEventBus();
+  const moduleEventBus = createEventBus();
   const sounds: MockSound[] = [];
   const commands = new Map<string, CommandHandler>();
   const consolePrints: Array<{ message: string; color: Vector }> = [];
@@ -648,6 +655,7 @@ export function createMockClientEngine(
 
   const baseEngine: MockClientEngine = {
     eventBus,
+    moduleEventBus,
     sounds,
     commands,
     consolePrints,
