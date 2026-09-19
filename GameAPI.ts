@@ -6,6 +6,7 @@ import type {
   SerializedData,
   ServerEdict,
   ServerEngineAPI,
+  ServerGameInterface,
   ServerInfoField,
   StartServerListEntry,
 } from '../../shared/GameInterfaces.ts';
@@ -199,7 +200,7 @@ export const entityClasses: readonly EntityClass[] = [
 ];
 
 @serializableObject
-export class ServerGameAPI {
+export class ServerGameAPI implements ServerGameInterface {
   static _entityRegistry: EntityRegistry = new EntityRegistry(entityClasses);
 
   /**

@@ -1,4 +1,4 @@
-import type { GameModuleIdentification } from '../../engine/common/GameModule.ts';
+import type { GameModuleIdentification, GameModuleInterface } from '../../shared/GameInterfaces.ts';
 
 import { gameCapabilities } from '../../shared/Defs.ts';
 import { ServerGameAPI } from './GameAPI.ts';
@@ -18,3 +18,6 @@ export {
   ClientGameAPI,
   ServerGameAPI,
 };
+
+// Compile-time check only: fails the typecheck when this module drifts from the engine's contract.
+({ identification, ServerGameAPI, ClientGameAPI }) satisfies GameModuleInterface;

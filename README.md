@@ -65,7 +65,7 @@ source/game/id1/
 ├── test/             # Unit tests
 ├── featureFlags.ts   # FeatureFlag type and active flag array
 ├── GameAPI.ts        # Server game state and entity registry
-├── main.ts           # Module entry point
+├── main.ts           # Module entry point (exports identification and both API classes, asserts the engine contract)
 └── Defs.ts           # Constants and enums
 ```
 
@@ -304,20 +304,23 @@ These base classes make it easy to create new entities with common behaviors:
 * Access through methods
   * Engine will communicate with the game through `ServerGameAPI` calling methods like `ClientConnect` and `ClientDisconnect`, but also with entities directly through methods such as `touch` and `think`.
   * Game will communicate mainly through the `ServerEngineAPI` object which is augmented by lots of methods declared on `BaseEntity`.
+* The contract
+  * The methods and fields the engine relies on are `ServerGameInterface` (server) and `ClientGameInterface` (client) in the engine's `source/shared/GameInterfaces.ts`. `ServerGameAPI` and `ClientGameAPI` declare `implements` on them and `main.ts` asserts `satisfies GameModuleInterface`, so `npm run typecheck` reports any drift. The engine's `docs/game-module-contract.md` has the call order and says who writes which field.
+  * Anything not listed there is internal to the game. For example the static `GetMapList()` and `GetStartServerList()` helpers are only called by the game's own menus, never by the engine.
 
 ### Loading the GameModule
 
 **Server-side initialization:**
-1. `GameModule.Init` imports the active server game module
+1. `GameModule.Init` (called from `Host.Init`) imports the active game module and checks its shape
 2. `ServerGameAPI.Init()` is called (static) - register console variables here
-3. When server spawns, `new ServerGameAPI(engineAPI)` is instantiated
-4. Map loads, entities spawn via `entityRegistry`
+3. Every time a map is loaded (`map`, `changelevel`, `restart`, loading a savegame), `new ServerGameAPI(engineAPI)` creates a fresh instance
+4. The engine prepares the player entities and calls `init(mapname, serverflags)`, then the map's entities spawn via `entityRegistry`
 
 **Client-side initialization:**
-1. `CL.Init` imports the client game code
-2. `ClientGameAPI.Init()` is called (static) - client-side setup
-3. When connecting, `new ClientGameAPI(engineAPI)` is instantiated
-4. HUD and effects are initialized
+1. `ClientGameAPI.Init()` is called (static) - client-side setup, e.g. registering menu pages
+2. `ClientGameAPI.GetStartGameInterface()` is called (static) - optionally overrides how a game is started
+3. Every time the server announces a map (on connect and on every changelevel), `IsServerCompatible()` is asked and `new ClientGameAPI(engineAPI)` creates a fresh instance
+4. `init()` runs once the map's models and sounds have loaded - HUD and effects are initialized
 
 
 ### Porting QuakeC Monsters
@@ -433,19 +436,20 @@ class MyModGameAPI extends id1ServerGameAPI {
 
 ### Spawn Parameters
 
-There’s a way to store information across maps. This is done by Spawn Parameters. Classic Quake uses `SetSpawnParms`, `SetNewParms`, `SetChangeParms, `parm0..15`.
+There’s a way to store information across maps. This is done by Spawn Parameters. Classic Quake used `SetSpawnParms`, `SetNewParms`, `SetChangeParms` and the `parm1`..`parm16` globals. Those hooks no longer exist in the engine contract.
 
-QuakeShack uses a modern spawn-parameter API instead of the classic flow:
+QuakeShack uses a modern spawn-parameter API instead of the classic flow. The engine calls these on the **player entity** (`PlayerEntitySpawnParamsDynamic` in the engine's `source/shared/GameInterfaces.ts`):
 
-* Engine can call:
-  * `saveSpawnParameters(): string` for clients
-  * `restoreSpawnParameters(data: string)` for clients
+* `saveSpawnParameters(): string` when a level change is about to happen
+* `restoreSpawnParameters(data)` when the player spawns into a map (`data` is `null` for a player without saved parameters)
 
 That API will allow for more complex serialization/deserialization of spawn parameters.
 
+The `parm1`..`parm16` fields on `ServerGameAPI` are leftovers of the classic flow. Nothing reads them, but they are still `@serializable`, so removing them changes the savegame format.
+
 ### Game Lifecycle
 
-A game is limited by a map. Every map starts a new game. The engine may restore saved spawn parameters for the connecting player before the normal client lifecycle continues.
+A game is limited by a map. Every map starts a new game: each map load creates a fresh `ServerGameAPI`, and `shutdown()` is not called on the old one when a `changelevel` replaces it (it is called when the server shuts down). The engine may restore saved spawn parameters for the connecting player before the normal client lifecycle continues.
 
 ### Frame Lifecyle
 
@@ -453,7 +457,7 @@ The server has to run every edict and it will run every edict, when certain cond
 
 #### Server Think
 
-* `ServerGameAPI.StartFrame`
+* `ServerGameAPI.startFrame`
 * Server goes over all active entities, for each of them:
   * if it’s a player, it will go the Player Think route instead
   * it will execute physics engine code
@@ -478,6 +482,10 @@ The server has to run every edict and it will run every edict, when certain cond
   * Spawn parameters are restored by invoking `restoreSpawnParameters`.
   * `ServerGameAPI.ClientConnect`
   * `ServerGameAPI.PutClientInServer`
+  * (`ClientConnect` and `PutClientInServer` are skipped while a savegame is being restored.)
 
-* When a client disconnects or drops, the server is calling:
+* When the client reports that it finished loading (`begin`), the server calls the optional `ServerGameAPI.ClientBegin`. id1 does not need it, so it does not implement it.
+
+* When a spawned client disconnects, is kicked, or the server shuts down, the server is calling:
   * `ServerGameAPI.ClientDisconnect`
+  * It is not called for a client that never finished spawning, nor for a client the engine drops because its connection failed.

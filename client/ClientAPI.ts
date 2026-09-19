@@ -1,5 +1,5 @@
 import type { BaseClientEdictHandler } from '../../../shared/ClientEdict.ts';
-import type { ClientdataMap, ClientEngineAPI, ClientEventValue, GLTexture, RefDef, StartGameInterface } from '../../../shared/GameInterfaces.ts';
+import type { ClientdataMap, ClientEngineAPI, ClientEventValue, ClientGameInterface, GLTexture, RefDef, StartGameInterface } from '../../../shared/GameInterfaces.ts';
 
 import Vector from '../../../shared/Vector.ts';
 
@@ -45,7 +45,7 @@ export interface Id1Clientdata extends ClientdataMap {
 /**
  * Client-side game interface for id1.
  */
-export class ClientGameAPI {
+export class ClientGameAPI implements ClientGameInterface {
   /** current player’s data */
   clientdata: Id1Clientdata = {
     health: 100,
