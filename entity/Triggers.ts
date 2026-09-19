@@ -365,7 +365,7 @@ export class TeleportTriggerEntity extends BaseTriggerEntity {
 
     this._sub?.useTargets(touchedByEntity);
 
-    // Put a tfog where the player was.
+    // Put a tfog where the player/NPC was.
     this.engine.SpawnEntity(TeleportEffectEntity.classname, { origin: touchedByEntity.origin });
 
     console.assert(this.target !== null, 'trigger_teleport requires a target');
@@ -386,13 +386,14 @@ export class TeleportTriggerEntity extends BaseTriggerEntity {
     this.engine.SpawnEntity(TeleportEffectEntity.classname, {
       origin: forward.copy().multiply(32.0).add(target.origin),
     });
+
     // Spawn an ephemeral telefrag trigger.
     this.engine.SpawnEntity(TelefragTriggerEntity.classname, {
       origin: target.origin,
       owner: touchedByEntity,
     });
 
-    // Move the player and lock him down for a little while.
+    // Telefrag kicked in, just give the player/NPC a slight push along the forward vector.
     if (!touchedByEntity.health) {
       touchedByEntity.origin.set(target.origin);
       touchedByEntity.velocity.set(
@@ -405,12 +406,10 @@ export class TeleportTriggerEntity extends BaseTriggerEntity {
     touchedByEntity.angles.set(directionAngles);
     touchedByEntity.angles[2] = 0.0;
 
+    // Move the player and lock him down for a little while.
     if (touchedByEntity instanceof PlayerEntity) {
       touchedByEntity.fixangle = true;
       touchedByEntity.teleport_time = this.game.time + 0.7;
-      if ((touchedByEntity.flags & flags.FL_ONGROUND) !== 0) {
-        touchedByEntity.flags &= ~flags.FL_ONGROUND;
-      }
       touchedByEntity.velocity.set(forward.multiply(300));
     }
 
