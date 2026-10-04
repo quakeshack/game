@@ -14,6 +14,8 @@ const clientApiModule = await import('../../client/ClientAPI.ts');
 const { ClientStats, ServerInfo } = syncModule;
 const { Q1HUD } = hudModule;
 const { ClientGameAPI } = clientApiModule;
+const { GibClientEdictHandler } = await import('../../client/entity/Gibs.ts');
+const { AirBubblesClientEdictHandler, BubbleClientEdictHandler } = await import('../../client/entity/Bubbles.ts');
 
 /**
  * Create a minimal clientdata map for HUD and client API tests.
@@ -678,4 +680,48 @@ void describe('id1 client API', () => {
     assert.equal(dlight.minlight, 32);
     assert.equal(dlight.die, 10.2);
   });
+
+  void test('spawns a persistent client-only gib when EMIT_GIB arrives, and resolves its handler', () => {
+    const engine = createMockClientEngine();
+    const clientGame = new ClientGameAPI(engine);
+
+    clientGame.init();
+
+    engine.eventBus.publish(clientEventName(clientEvent.EMIT_GIB), 'progs/gib2.mdl', new Vector(1, 2, 3), new Vector(4, 5, 6));
+
+    assert.equal(engine.spawnedClientEntities.length, 1);
+
+    const [gib] = engine.spawnedClientEntities;
+    assert.equal(gib.classname, 'client_gib');
+    assert.deepEqual(gib.options, {});
+    assert.equal(gib.model.name, 'progs/gib2.mdl');
+    assert.deepEqual([...gib.origin], [1, 2, 3]);
+    assert.deepEqual([...gib.velocity], [4, 5, 6]);
+    // a fresh ClientEdict starts with Infinity angles, which would poison the tumble's quaternion math
+    assert.deepEqual([...gib.angles], [0, 0, 0]);
+    assert.equal(gib.spawned, true);
+
+    assert.equal(ClientGameAPI.GetClientEdictHandler('client_gib'), GibClientEdictHandler);
+  });
+
+  void test('spawns delayed client-only bubbles when EMIT_BUBBLES arrives, and resolves their handler', () => {
+    const engine = createMockClientEngine();
+    const clientGame = new ClientGameAPI(engine);
+
+    clientGame.init();
+
+    engine.eventBus.publish(clientEventName(clientEvent.EMIT_BUBBLES), new Vector(10, 20, 30), 3);
+
+    assert.equal(engine.spawnedClientEntities.length, 3);
+    assert.ok(engine.spawnedClientEntities.every((bubble) => bubble.classname === 'client_bubble'));
+    assert.ok(engine.spawnedClientEntities.every((bubble) => bubble.model.name === 'progs/s_bubble.spr'));
+    assert.ok(engine.spawnedClientEntities.every((bubble) => bubble.spawned === true));
+
+    assert.equal(ClientGameAPI.GetClientEdictHandler('client_bubble'), BubbleClientEdictHandler);
+  });
+
+  void test('resolves the air_bubbles map entity to its client handler', () => {
+    assert.equal(ClientGameAPI.GetClientEdictHandler('air_bubbles'), AirBubblesClientEdictHandler);
+  });
 });
+

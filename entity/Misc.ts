@@ -1,10 +1,10 @@
 import type { ServerEngineAPI } from '../../../shared/GameInterfaces.ts';
 
-import { BaseClientEdictHandler } from '../../../shared/ClientEdict.ts';
 import Vector from '../../../shared/Vector.ts';
 
-import { attn, channel, colors, content, damage, effect, moveType, solid, tentType, waterlevel } from '../Defs.ts';
-import { crandom, serializableObject, serializable } from '../helper/MiscHelpers.ts';
+import { BubbleClientEdictHandler } from '../client/entity/Bubbles.ts';
+import { attn, channel, colors, damage, effect, moveType, solid, tentType } from '../Defs.ts';
+import { serializableObject, serializable } from '../helper/MiscHelpers.ts';
 import BaseEntity, { isValid } from './BaseEntity.ts';
 import BaseMonster from './monster/BaseMonster.ts';
 import { PlayerEntity } from './Player.ts';
@@ -315,20 +315,6 @@ export class WhiteSmallFlameLightEntity extends TorchLightEntity {
 @serializableObject
 export class FireballEntity extends BaseEntity {
   static classname = 'misc_fireball_fireball';
-
-  static clientEdictHandler = class FireballEdictHandler extends BaseClientEdictHandler {
-    emit(): void {
-      const dl = this.engine.AllocDlight(this.clientEdict.num);
-
-      dl.color = new Vector(...this.engine.IndexToRGB(colors.FIRE));
-      dl.origin = this.clientEdict.origin.copy();
-      dl.radius = 285 + Math.random() * 15;
-      dl.die = this.engine.CL.time + 0.1;
-
-      this.engine.RocketTrail(this.clientEdict.originPrevious, this.clientEdict.origin, 1);
-      this.engine.RocketTrail(this.clientEdict.originPrevious, this.clientEdict.origin, 6);
-    }
-  };
 
   @serializable speed = 1000;
 
@@ -848,138 +834,19 @@ export class TrapShooterEntity extends TrapSpikeshooterEntity {
 }
 
 /**
- * Spawns bubbles, used for the death of the player.
- * Do not place this inside the map, use the static bubble() function instead.
- * For use inside the map, use air_bubbles instead.
- */
-@serializableObject
-export class BubbleSpawnerEntity extends BaseEntity {
-  static classname = 'misc_bubble_spawner';
-
-  /** How many bubbles to spawn. */
-  @serializable bubble_count = 0;
-  /** How many map units to spread them apart upon spawning. */
-  @serializable spread = 0;
-
-  protected _spawnBubble(): void {
-    this.engine.SpawnEntity(BubbleEntity.classname, { owner: this });
-  }
-
-  override spawn(): void {
-    this._scheduleThink(this.game.time + this.bubble_count, function (this: BubbleSpawnerEntity): void {
-      this.remove();
-    });
-
-    while (this.bubble_count > 0) {
-      this._scheduleThink(this.game.time + this.bubble_count-- * 0.1, function (this: BubbleSpawnerEntity): void {
-        this._spawnBubble();
-      });
-    }
-  }
-
-  /**
-   * QuakeC: player.qc/DeathBubbles
-   * @returns The spawned bubble spawner entity.
-   */
-  static bubble(entity: BaseEntity, bubbles: number): BubbleSpawnerEntity {
-    console.assert(bubbles > 0, 'bubble() requires a positive number of bubbles');
-    console.assert(bubbles < 50, 'bubble() requires a number of bubbles less than 50');
-
-    const edict = entity.engine.SpawnEntity(BubbleSpawnerEntity.classname, {
-      origin: entity.origin.copy().add(entity.view_ofs),
-      bubble_count: bubbles,
-      spread: 5,
-    });
-    const spawner = edict?.entity;
-    console.assert(spawner instanceof BubbleSpawnerEntity, 'bubble() must spawn a BubbleSpawnerEntity');
-    return spawner as BubbleSpawnerEntity;
-  }
-}
-
-/**
  * QUAKED air_bubbles (0 .5 .8) (-8 -8 -8) (8 8 8)
  * Testing air bubbles.
+ * Turns itself into a static client entity right away, which releases the bubbles on the clients.
  */
 @serializableObject
-export class StaticBubbleSpawnerEntity extends BubbleSpawnerEntity {
+export class StaticBubbleSpawnerEntity extends BaseEntity {
   static classname = 'air_bubbles';
 
-  protected override _spawnBubble(): void {
-    super._spawnBubble();
-    this._scheduleThink(this.game.time + Math.random() * 1.0 + 1.0, function (this: StaticBubbleSpawnerEntity): void {
-      this._spawnBubble();
-    });
-  }
-
   override spawn(): void {
-    this._spawnBubble();
-  }
-}
-
-@serializableObject
-export class BubbleEntity extends BaseEntity {
-  static classname = 'misc_bubble';
-
-  static override _precache(engineAPI: ServerEngineAPI): void {
-    engineAPI.PrecacheModel('progs/s_bubble.spr');
-  }
-
-  override touch(otherEntity: BaseEntity): void {
-    if (otherEntity.isWorld()) {
-      this.lazyRemove();
-    }
-  }
-
-  protected _bubble(): void {
-    this.watertype = this.engine.DeterminePointContents(this.origin);
-
-    if (this.watertype !== content.CONTENT_WATER) {
-      this.remove();
-      return;
-    }
-
-    if (this.attack_finished < this.game.time) {
-      this.remove();
-      return;
-    }
-
-    this.velocity[0] = crandom() * 2.0;
-    this.velocity[1] = crandom() * 2.0;
-
-    this._scheduleThink(this.game.time + 1.0, function (this: BubbleEntity): void {
-      this._bubble();
-    });
-  }
-
-  override spawn(): void {
-    console.assert(this.owner instanceof BubbleSpawnerEntity, 'BubbleEntity requires a BubbleSpawnerEntity as owner');
-    if (!(this.owner instanceof BubbleSpawnerEntity)) {
-      return;
-    }
-
-    // Waterlevel head and watertype water keep the engine from playing splash sounds.
-    this.waterlevel = waterlevel.WATERLEVEL_HEAD;
-    this.watertype = content.CONTENT_WATER;
-
-    // Make sure world touches remove the bubbles.
-    this.solid = solid.SOLID_TRIGGER;
-
-    this.origin.set(this.owner.origin);
-    this.origin[0] += crandom() * this.owner.spread;
-    this.origin[1] += crandom() * this.owner.spread;
-    this.origin[2] += crandom() * this.owner.spread;
-    this.setOrigin(this.origin);
-    this.setSize(new Vector(-8.0, -8.0, -8.0), new Vector(8.0, 8.0, 8.0));
-    this.setModel('progs/s_bubble.spr');
-    this.frame = 0;
-
-    // Bubbles only live for up to 10 seconds.
-    this.attack_finished = this.game.time + 10.0;
-
-    // Enabling fake buoyancy effect and remove when out of water.
-    this.movetype = moveType.MOVETYPE_FLY;
-    this.velocity = new Vector(0.0, 0.0, 15.0 + crandom());
-    this._bubble();
+    // a static entity needs a model, but it is only there to release bubbles and must not be drawn
+    this.setModel(BubbleClientEdictHandler.model);
+    this.effects |= effect.EF_NODRAW;
+    this.makeStatic();
   }
 }
 

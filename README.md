@@ -60,8 +60,10 @@ source/game/id1/
 │   ├── EntityIndex.ts # Spatial index helpers
 │   ├── GameStats.ts  # Frag/score tracking
 │   ├── MiscHelpers.ts # Serializer, decorators, EntityWrapper, plain-object save/load helpers
+│   ├── ClientEdictHandlerRegistry.ts # Client counterpart of EntityRegistry
 │   └── Registry.ts   # EntityRegistry
 ├── client/           # Client-side code (HUD, effects)
+│   └── entity/       # Client edict handlers, mirroring entity/ (Gibs.ts, Bubbles.ts, Player.ts, ...)
 ├── test/             # Unit tests
 ├── featureFlags.ts   # FeatureFlag type and active flag array
 ├── GameAPI.ts        # Server game state and entity registry
@@ -206,7 +208,7 @@ A couple of things I spotted or I’m unhappy with
 * [X] implement powerup effects (quad, invis etc.)
 * [ ] handle things like gibbing, bubbles etc. on the client-side only
   * [X] air_bubbles (implemented as `StaticBubbleSpawnerEntity`)
-  * [X] GibEntity (implemented in `Player.ts`)
+  * [X] gibs (the server only broadcasts `clientEvent.EMIT_GIB` from `entity/Gibs.ts`; `client/entity/Gibs.ts` simulates them, persistent across save/load)
   * [X] MeatSprayEntity (implemented in `monster/BaseMonster.ts`)
 * [X] handle screen flashes like bonus flash (`bf`) through events
 
@@ -431,6 +433,33 @@ const entityClasses = [
 
 class MyModGameAPI extends id1ServerGameAPI {
   static _entityRegistry = new EntityRegistry(entityClasses);
+}
+```
+
+The client side works the same way for client-only entities (gibs, bubbles), for the static entities a map entity turns itself into, and for the handlers of server-mirrored entities (the player, the fireballs). A `BaseClientEdictHandler` subclass lives in `client/entity/`, mirroring the server's `entity/` folder, declares a static `classname`, and can declare in `static _precache()` what the server has to precache for it, just like a server entity class does. `ClientEdictHandlerRegistry` is the client counterpart of `EntityRegistry`: the server's `_precacheResources()` calls its `precacheAll()` next to the entity registry's, and `ClientGameAPI.GetClientEdictHandler()` looks handlers up in it.
+
+The registry lives on `ServerGameAPI._clientEdictHandlerRegistry`, which `ClientGameAPI._clientEdictHandlerRegistry` points at. A mod defines it once with the id1 handler classes plus its own and points both APIs at it:
+
+```typescript
+import { ServerGameAPI as id1ServerGameAPI } from '../id1/GameAPI.ts';
+import { ClientGameAPI as Id1ClientGameAPI } from '../id1/client/ClientAPI.ts';
+import { clientEdictHandlerClasses as id1ClientEdictHandlerClasses } from '../id1/client/entity/ClientEdictHandlers.ts';
+import ClientEdictHandlerRegistry, { type ClientEdictHandlerClass } from '../id1/helper/ClientEdictHandlerRegistry.ts';
+import { ShellCasingClientEdictHandler } from './client/entity/ShellCasing.ts';
+
+const clientEdictHandlerClasses = [
+  ...id1ClientEdictHandlerClasses,
+  ShellCasingClientEdictHandler,
+] satisfies readonly ClientEdictHandlerClass[];
+
+const clientEdictHandlerRegistry = new ClientEdictHandlerRegistry(clientEdictHandlerClasses);
+
+class MyModServerGameAPI extends id1ServerGameAPI {
+  static _clientEdictHandlerRegistry = clientEdictHandlerRegistry;
+}
+
+class MyModClientGameAPI extends Id1ClientGameAPI {
+  static _clientEdictHandlerRegistry = clientEdictHandlerRegistry;
 }
 ```
 

@@ -6,9 +6,12 @@ import Vector from '../../../shared/Vector.ts';
 import { clientEvent, clientEventName, decals, effect, items } from '../Defs.ts';
 import { weaponConfig, type WeaponConfigKey } from '../entity/Weapons.ts';
 import { featureFlags } from '../featureFlags.ts';
+import { BubbleClientEdictHandler } from './entity/Bubbles.ts';
+import { GibClientEdictHandler } from './entity/Gibs.ts';
 import { Q1HUD, type HUDSaveState } from './HUD.ts';
 import { ServerInfo, type ServerInfoSnapshot } from './Sync.ts';
 import { ServerGameAPI } from '../GameAPI.ts';
+import type ClientEdictHandlerRegistry from '../helper/ClientEdictHandlerRegistry.ts';
 import Id1Menu, { type Id1MenuOptions } from './Menu.ts';
 
 interface DecalSet {
@@ -46,6 +49,12 @@ export interface Id1Clientdata extends ClientdataMap {
  * Client-side game interface for id1.
  */
 export class ClientGameAPI implements ClientGameInterface {
+  /**
+   * Handlers of the client entities by classname, shared with the server, which lets them
+   * precache their resources. A mod that builds its own registry points this at it as well.
+   */
+  static _clientEdictHandlerRegistry: ClientEdictHandlerRegistry = ServerGameAPI._clientEdictHandlerRegistry;
+
   /** current player’s data */
   clientdata: Id1Clientdata = {
     health: 100,
@@ -99,6 +108,16 @@ export class ClientGameAPI implements ClientGameInterface {
 
   init(): void {
     this.hud.init();
+
+    // listeners are per-connection (`engine.eventBus` is wiped on disconnect), so they are
+    // subscribed again from every init()
+    this.engine.eventBus.subscribe(clientEventName(clientEvent.EMIT_BUBBLES), (origin: Vector, count: number): void => {
+      BubbleClientEdictHandler.spawnBurst(this.engine, origin, count);
+    });
+
+    this.engine.eventBus.subscribe(clientEventName(clientEvent.EMIT_GIB), (modelName: string, origin: Vector, velocity: Vector): void => {
+      GibClientEdictHandler.spawnGib(this.engine, modelName, origin, velocity);
+    });
 
     if (featureFlags.includes('draw-bullet-hole-decals')) {
       this._initDecalEvents();
@@ -181,7 +200,7 @@ export class ClientGameAPI implements ClientGameInterface {
     this.decals.axehit.length = 0;
   }
 
-  protected _updateViewModel(): void { // CR: PlayerClientEntity has a similar logic regarding muzzleflash!
+  protected _updateViewModel(): void { // CR: PlayerClientEdictHandler has a similar logic regarding muzzleflash!
     if (this.clientdata.health <= 0 || this.clientdata.weapon === 0 || (this.clientdata.items & items.IT_INVISIBILITY) !== 0) {
       this.viewmodel.visible = false;
       this.viewmodel.model = null;
@@ -295,8 +314,8 @@ export class ClientGameAPI implements ClientGameInterface {
     return null;
   }
 
-  static GetClientEdictHandler(classname: string): typeof BaseClientEdictHandler | null {
-    return ServerGameAPI._entityRegistry.get(classname)?.clientEdictHandler || null;
+  static GetClientEdictHandler(this: typeof ClientGameAPI, classname: string): typeof BaseClientEdictHandler | null {
+    return this._clientEdictHandlerRegistry.get(classname);
   }
 
   /**

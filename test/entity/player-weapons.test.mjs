@@ -33,7 +33,6 @@ function createWeaponSelectionPlayer(overrides = {}) {
 void describe('Player and weapon module surface', () => {
   void test('exports the current gameplay classes and weapon config map', () => {
     assert.equal(typeof PlayerEntity, 'function');
-    assert.equal(typeof playerModule.GibEntity, 'function');
     assert.equal(typeof PlayerWeapons, 'function');
     assert.equal(typeof DamageHandler, 'function');
     assert.equal(weaponConfig instanceof Map, true);

@@ -4,7 +4,8 @@ import { attn, channel, solid } from '../../Defs.ts';
 import { QuakeEntityAI } from '../../helper/AI.ts';
 import { serializableObject } from '../../helper/MiscHelpers.ts';
 import type BaseEntity from '../BaseEntity.ts';
-import { GibEntity, PlayerEntity } from '../Player.ts';
+import { Gibs } from '../Gibs.ts';
+import { PlayerEntity } from '../Player.ts';
 import { Grenade } from '../Weapons.ts';
 import BaseMonster, { WalkMonster } from './BaseMonster.ts';
 
@@ -282,9 +283,9 @@ $frame pull1 pull2 pull3 pull4 pull5 pull6 pull7 pull8 pull9 pull10 pull11
       const origin = this.origin.copy().add(forward.multiply(16));
 
       if (side === 1) {
-        GibEntity.throwMeatGib(enemy, right.multiply(Math.random() * 100), origin);
+        Gibs.throwMeatGib(enemy, right.multiply(Math.random() * 100), origin);
       } else {
-        GibEntity.throwMeatGib(enemy, right.multiply(side), origin);
+        Gibs.throwMeatGib(enemy, right.multiply(side), origin);
       }
     }
   }

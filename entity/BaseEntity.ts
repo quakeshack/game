@@ -6,7 +6,6 @@ import type { ServerGameAPI } from '../GameAPI.ts';
 import type { Sub } from './Subs.ts';
 import type { DamageHandler } from './Weapons.ts';
 
-import { BaseClientEdictHandler } from '../../../shared/ClientEdict.ts';
 import Q from '../../../shared/Q.ts';
 import Vector from '../../../shared/Vector.ts';
 import { attn, content, damage, dead, effect, flags, moveType, solid, waterlevel } from '../Defs.ts';
@@ -19,7 +18,6 @@ export type { ScheduledThinkCallback, TraceResult };
 
 export interface EntityClass<T extends BaseEntity = BaseEntity> {
   readonly classname: string;
-  readonly clientEdictHandler: typeof BaseClientEdictHandler | null;
   readonly clientEntityFields: string[];
 
   new (edict: ServerEdict | null, gameAPI: ServerGameAPI): T;
@@ -68,7 +66,6 @@ export default abstract class BaseEntity {
   public static classname: string;
 
   /** Optional client-side handler of this entity. */
-  public static clientEdictHandler: typeof BaseClientEdictHandler | null = null;
 
   /**
    * Fields that are exposed to the client.

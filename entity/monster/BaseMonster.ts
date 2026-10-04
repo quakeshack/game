@@ -8,7 +8,7 @@ import { serializableObject, serializable } from '../../helper/MiscHelpers.ts';
 import BaseEntity from '../BaseEntity.ts';
 import { BackpackEntity } from '../Items.ts';
 import type { PathCornerEntity } from '../Misc.ts';
-import { GibEntity } from '../Player.ts';
+import { Gibs } from '../Gibs.ts';
 import { Sub } from '../Subs.ts';
 import { DamageHandler } from '../Weapons.ts';
 
@@ -114,7 +114,7 @@ export default abstract class BaseMonster extends BaseEntity {
    * Turns this monster into gibs.
    */
   protected _gib(playSound: boolean): void {
-    GibEntity.gibEntity(this, (this.constructor as typeof BaseMonster)._modelHead, playSound);
+    Gibs.gibEntity(this, (this.constructor as typeof BaseMonster)._modelHead, playSound);
   }
 
   isActor(): boolean {

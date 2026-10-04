@@ -1,15 +1,15 @@
 import type { PlayerEntitySpawnParamsDynamic, SerializableType, ServerEngineAPI } from '../../../shared/GameInterfaces.ts';
 
-import { BaseClientEdictHandler } from '../../../shared/ClientEdict.ts';
 import Vector from '../../../shared/Vector.ts';
 
 import { attn, channel, clientEvent, colors, content, damage, dead, deathType, effect, flags, hull, items, moveType, solid, waterlevel } from '../Defs.ts';
-import { featureFlags } from '../featureFlags.ts';
-import { crandom, serializableObject, serializable, Serializer } from '../helper/MiscHelpers.ts';
+import { serializableObject, serializable, Serializer } from '../helper/MiscHelpers.ts';
 import BaseEntity, { isValid } from './BaseEntity.ts';
 import { BackpackEntity } from './Items.ts';
-import { BubbleSpawnerEntity, InfoNotNullEntity, IntermissionCameraEntity, TeleportEffectEntity } from './Misc.ts';
-import BaseMonster, { MeatSprayEntity } from './monster/BaseMonster.ts';
+import { Bubbles } from './Bubbles.ts';
+import { Gibs } from './Gibs.ts';
+import { InfoNotNullEntity, IntermissionCameraEntity, TeleportEffectEntity } from './Misc.ts';
+import { MeatSprayEntity } from './monster/BaseMonster.ts';
 import { DamageHandler, PlayerWeapons, weaponConfig, type BackpackPickup, type WeaponConfigKey } from './Weapons.ts';
 import { CopyToBodyQue } from './Worldspawn.ts';
 
@@ -18,24 +18,6 @@ type ButtonState = boolean | number;
 interface ModelIndexSet {
   player: number | null;
   eyes: number | null;
-}
-
-/**
- * Return a launch velocity scaled to the damage that caused the gib.
- * @returns Gib launch velocity.
- */
-function VelocityForDamage(damagePoints: number): Vector {
-  const velocity = new Vector(100.0 * crandom(), 100.0 * crandom(), 100.0 * crandom() + 200.0);
-
-  if (damagePoints > -50) {
-    velocity.multiply(0.7);
-  } else if (damagePoints > -200) {
-    velocity.multiply(2.0);
-  } else {
-    velocity.multiply(10.0);
-  }
-
-  return velocity;
 }
 
 /**
@@ -197,43 +179,6 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     ammo_cells: 100,
     ammo_rockets: 100,
     ammo_shells: 100,
-  };
-
-  static clientEdictHandler = class PlayerClientEntity extends BaseClientEdictHandler {
-    override emit(): void {
-      const extended = this.clientEdict.extended;
-      const extendedItems = extended?.items ?? 0;
-
-      if ((+extendedItems & items.IT_QUAD) !== 0) {
-        const dynamicLight = this.engine.AllocDlight(this.clientEdict.num);
-
-        dynamicLight.color = new Vector(...this.engine.IndexToRGB(colors.HUD_CSHIFT_POWERUP_QUAD));
-        dynamicLight.origin = this.clientEdict.origin.copy();
-        dynamicLight.radius = 295 + Math.random() * 5;
-        dynamicLight.die = this.engine.CL.time + 0.1;
-      } else if ((+extendedItems & items.IT_INVULNERABILITY) !== 0) {
-        const dynamicLight = this.engine.AllocDlight(this.clientEdict.num);
-
-        dynamicLight.color = new Vector(...this.engine.IndexToRGB(colors.HUD_CSHIFT_POWERUP_INVULN));
-        dynamicLight.origin = this.clientEdict.origin.copy();
-        dynamicLight.radius = 295 + Math.random() * 5;
-        dynamicLight.die = this.engine.CL.time + 0.1;
-      }
-
-      if ((this.clientEdict.effects & effect.EF_MUZZLEFLASH) !== 0) {
-        const dynamicLight = this.engine.AllocDlight(this.clientEdict.num);
-        const forwardVector = this.clientEdict.angles.angleVectors().forward;
-        dynamicLight.origin = new Vector(
-          this.clientEdict.origin[0] + 20.0 * forwardVector[0],
-          this.clientEdict.origin[1] + 20.0 * forwardVector[1],
-          this.clientEdict.origin[2] + 16.0 + 20.0 * forwardVector[2],
-        );
-        dynamicLight.radius = 200.0 + Math.random() * 32.0;
-        dynamicLight.minlight = 32.0;
-        dynamicLight.die = this.engine.CL.time + 0.2;
-        dynamicLight.color = new Vector(1.0, 0.95, 0.85);
-      }
-    }
   };
 
   protected declare _weapons: PlayerWeapons;
@@ -781,12 +726,12 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     }
 
     if (this.health < -40.0) {
-      GibEntity.gibEntity(this, 'progs/h_player.mdl', true);
+      Gibs.gibEntity(this, 'progs/h_player.mdl', true);
       this._playerDead();
       return;
     }
 
-    BubbleSpawnerEntity.bubble(this, 20);
+    Bubbles.emit(this.engine, this.origin.copy().add(this.view_ofs), 20);
     this._deathSound();
 
     this.angles[0] = 0.0;
@@ -1677,7 +1622,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
         this.dmg = 10;
       }
       this.damage(this, this.dmg);
-      BubbleSpawnerEntity.bubble(this, Math.ceil(this.dmg / 4));
+      Bubbles.emit(this.engine, this.origin.copy().add(this.view_ofs), Math.ceil(this.dmg / 4));
       this.pain_finished = this.game.time + 1.0;
     }
 
@@ -2120,91 +2065,5 @@ export class TelefragTriggerEntity extends BaseEntity {
     this.setSize(mins, maxs);
     this._scheduleThink(this.game.time + 0.2, () => { this.remove(); });
     this.game.force_retouch = 2;
-  }
-}
-
-@serializableObject
-export class GibEntity extends BaseEntity {
-  static classname = 'misc_gib';
-
-  static override _precache(engineAPI: ServerEngineAPI): void {
-    engineAPI.PrecacheModel('progs/zom_gib.mdl');
-    engineAPI.PrecacheModel('progs/gib1.mdl');
-    engineAPI.PrecacheModel('progs/gib2.mdl');
-    engineAPI.PrecacheModel('progs/gib3.mdl');
-
-    engineAPI.PrecacheSound('player/gib.wav');
-    engineAPI.PrecacheSound('player/udeath.wav');
-  }
-
-  override spawn(): void {
-    console.assert(this.model !== null, 'GibEntity requires a model before spawn');
-    this.setModel(this.model!);
-    this.setSize(Vector.origin, Vector.origin);
-    this.movetype = moveType.MOVETYPE_BOUNCE;
-    this.solid = solid.SOLID_NOT;
-    this.avelocity = new Vector(Math.random(), Math.random(), Math.random()).multiply(600.0);
-    this.ltime = this.game.time;
-    this.frame = 0;
-    this.flags = 0;
-
-    this._scheduleThink(this.ltime + 10.0 + Math.random() * 10.0, () => { this.remove(); });
-  }
-
-  static throwGibs(entity: BaseMonster | PlayerEntity, damagePoints: number | null = null, impact: Vector = Vector.origin): void {
-    const models = ['progs/gib1.mdl', 'progs/gib2.mdl', 'progs/gib3.mdl'];
-
-    for (let i = 0, max = Math.ceil(entity.volume / 16000); i < max; i++) {
-      const model = models[Math.floor(Math.random() * models.length)];
-      console.assert(model !== undefined, 'gib model must exist');
-      entity.engine.SpawnEntity(GibEntity.classname, {
-        origin: entity.origin.copy(),
-        velocity: VelocityForDamage(damagePoints !== null ? damagePoints : entity.health).add(impact),
-        model,
-      });
-    }
-  }
-
-  static throwMeatGib(entity: BaseMonster | PlayerEntity, velocity: Vector, origin: Vector = entity.origin): void {
-    entity.engine.SpawnEntity(GibEntity.classname, {
-      origin: origin.copy(),
-      velocity,
-      model: 'progs/zom_gib.mdl',
-    });
-  }
-
-  static gibEntity(entity: BaseMonster | PlayerEntity, headModel: string, playSound = true): void {
-    if (!entity.isActor() || entity.health > 0) {
-      return;
-    }
-
-    const damagePoints = entity.health;
-
-    entity.resetThinking();
-    entity.setModel(headModel);
-    entity.frame = 0;
-    entity.movetype = moveType.MOVETYPE_BOUNCE;
-    entity.takedamage = damage.DAMAGE_NO;
-    entity.solid = solid.SOLID_NOT;
-    entity.view_ofs = new Vector(0.0, 0.0, 8.0);
-    entity.setSize(new Vector(-16.0, -16.0, 0.0), new Vector(16.0, 16.0, 56.0));
-    entity.origin[2] -= 24.0;
-    entity.flags &= ~flags.FL_ONGROUND;
-    entity.avelocity = new Vector(0.0, 600.0, 0.0).multiply(crandom());
-    entity.deadflag = dead.DEAD_DEAD;
-
-    const impact = new Vector();
-
-    if (featureFlags.includes('improved-gib-physics')) {
-      entity.velocity.normalize();
-      impact.set(entity.velocity.multiply(-5.0 * damagePoints));
-      entity.velocity = VelocityForDamage(damagePoints).add(impact);
-    }
-
-    GibEntity.throwGibs(entity, damagePoints, impact);
-
-    if (playSound) {
-      entity.startSound(channel.CHAN_VOICE, Math.random() < 0.5 ? 'player/gib.wav' : 'player/udeath.wav');
-    }
   }
 }

@@ -2,7 +2,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import Vector from '../../../../shared/Vector.ts';
-import { damage, moveType, solid } from '../../Defs.ts';
+import { clientEvent, damage, moveType, solid } from '../../Defs.ts';
 
 await import('../../GameAPI.ts');
 
@@ -195,7 +195,11 @@ void describe('OldOneMonster QC fixes', () => {
     let playTrack = null;
     const lightStyles = [];
     let removed = false;
+    const gibEvents = [];
 
+    oldOne.engine.BroadcastClientEvent = (_expedited, eventCode, model, origin, velocity) => {
+      gibEvents.push({ eventCode, model, origin, velocity });
+    };
     oldOne.engine.SpawnEntity = (classname) => {
       if (classname === 'misc_null') {
         return { entity: null };
@@ -220,5 +224,11 @@ void describe('OldOneMonster QC fixes', () => {
     assert.equal(playTrack, 3);
     assert.deepEqual(lightStyles, ['m']);
     assert.equal(removed, true);
+
+    assert.ok(gibEvents.length > 0);
+    assert.ok(gibEvents.every((event) => event.eventCode === clientEvent.EMIT_GIB));
+    assert.ok(gibEvents.every((event) => /^progs\/gib[123]\.mdl$/.test(event.model)));
+    // every gib gets its own origin snapshot, not a reference to the monster's moving origin
+    assert.ok(new Set(gibEvents.map((event) => event.origin.toString())).size > 1);
   });
 });

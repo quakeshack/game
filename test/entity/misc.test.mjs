@@ -1,18 +1,18 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { moveType, solid } from '../../Defs.ts';
+import { effect, moveType, solid } from '../../Defs.ts';
 
 await import('../../GameAPI.ts');
 
 const { default: BaseEntity } = await import('../../entity/BaseEntity.ts');
 const { default: BaseMonster } = await import('../../entity/monster/BaseMonster.ts');
 const {
-  BubbleSpawnerEntity,
   IntermissionCameraEntity,
   LightEntity,
   MiscModelEntity,
   PathCornerEntity,
+  StaticBubbleSpawnerEntity,
 } = await import('../../entity/Misc.ts');
 
 /**
@@ -200,28 +200,45 @@ void describe('Misc entity port', () => {
     assert.equal(monster.reachedCorner, corner);
   });
 
-  void test('BubbleSpawnerEntity.bubble spawns a positioned helper spawner', () => {
-    const spawnCalls = [];
-    const spawner = new BubbleSpawnerEntity(null, createMockGameAPI()).initializeEntity();
-    const originator = new TestEntity(null, createMockGameAPI({
+  void test('StaticBubbleSpawnerEntity turns itself into an invisible static entity and spawns nothing', () => {
+    const modelCalls = [];
+    let madeStatic = 0;
+    let spawned = 0;
+    let boundEntity = null;
+    const edict = {
+      entity: null,
+      setModel(modelName) {
+        modelCalls.push(modelName);
+        boundEntity.model = modelName;
+      },
+      setMinMaxSize() {},
+      makeStatic() {
+        madeStatic += 1;
+      },
+    };
+    const gameAPI = createMockGameAPI({
       engine: {
-        SpawnEntity(classname, initialData) {
-          spawnCalls.push({ classname, initialData });
-          return { entity: spawner };
+        IsLoading() {
+          return true;
+        },
+        PrecacheModel() {},
+        SpawnEntity() {
+          spawned += 1;
+          return null;
         },
       },
-    })).initializeEntity();
-    originator.origin.setTo(100, 200, 300);
-    originator.view_ofs.setTo(1, 2, 3);
+    });
+    const entity = new StaticBubbleSpawnerEntity(edict, gameAPI).initializeEntity();
+    boundEntity = entity;
+    edict.entity = entity;
 
-    const result = BubbleSpawnerEntity.bubble(originator, 6);
+    entity.spawn();
 
-    assert.equal(result, spawner);
-    assert.equal(spawnCalls.length, 1);
-    assert.equal(spawnCalls[0].classname, BubbleSpawnerEntity.classname);
-    assert.ok(spawnCalls[0].initialData.origin.equalsTo(101, 202, 303));
-    assert.equal(spawnCalls[0].initialData.bubble_count, 6);
-    assert.equal(spawnCalls[0].initialData.spread, 5);
+    assert.deepEqual(modelCalls, ['progs/s_bubble.spr']);
+    // the model is only there so makeStatic() has one, the spawner itself must not be drawn
+    assert.equal((entity.effects & effect.EF_NODRAW) !== 0, true);
+    assert.equal(madeStatic, 1);
+    assert.equal(spawned, 0);
   });
 
   void test('MiscModelEntity spawns as a static SOLID_MESH blocker with its configured OBJ model', () => {

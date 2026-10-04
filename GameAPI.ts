@@ -11,7 +11,7 @@ import type {
   StartServerListEntry,
 } from '../../shared/GameInterfaces.ts';
 
-import { GibEntity, InfoPlayerStart, InfoPlayerStart2, InfoPlayerStartCoop, InfoPlayerStartDeathmatch, PlayerEntity, TelefragTriggerEntity } from './entity/Player.ts';
+import { InfoPlayerStart, InfoPlayerStart2, InfoPlayerStartCoop, InfoPlayerStartDeathmatch, PlayerEntity, TelefragTriggerEntity } from './entity/Player.ts';
 import { BodyqueEntity, WorldspawnEntity } from './entity/Worldspawn.ts';
 import { spawnflags } from './Defs.ts';
 import { featureFlags, type FeatureFlag } from './featureFlags.ts';
@@ -27,6 +27,8 @@ import * as item from './entity/Items.ts';
 import BaseEntity from './entity/BaseEntity.ts';
 import * as weapon from './entity/Weapons.ts';
 import DogMonsterEntity from './entity/monster/Dog.ts';
+import { clientEdictHandlerClasses } from './client/entity/ClientEdictHandlers.ts';
+import ClientEdictHandlerRegistry from './helper/ClientEdictHandlerRegistry.ts';
 import { serializableObject, serializable, Serializer, type SerializableRecord } from './helper/MiscHelpers.ts';
 import DemonMonster from './entity/monster/Demon.ts';
 import { MeatSprayEntity } from './entity/monster/BaseMonster.ts';
@@ -84,7 +86,6 @@ export const entityClasses: readonly EntityClass[] = [
   InfoPlayerStart2,
   InfoPlayerStartCoop,
   InfoPlayerStartDeathmatch,
-  GibEntity,
   MeatSprayEntity,
   weapon.Missile,
   weapon.Spike,
@@ -119,8 +120,6 @@ export const entityClasses: readonly EntityClass[] = [
   misc.BossgateWallEntity,
   misc.PathCornerEntity,
   misc.TeleportEffectEntity,
-  misc.BubbleEntity,
-  misc.BubbleSpawnerEntity,
   misc.StaticBubbleSpawnerEntity,
   misc.BarrelEntity,
   misc.SmallBarrelEntity,
@@ -202,6 +201,14 @@ export const entityClasses: readonly EntityClass[] = [
 @serializableObject
 export class ServerGameAPI implements ServerGameInterface {
   static _entityRegistry: EntityRegistry = new EntityRegistry(entityClasses);
+
+  /**
+   * Handlers of the client entities (client-only effects, static entities, the players), by
+   * classname. The server only uses it to let them precache their resources, the client looks its
+   * handlers up in it (see `ClientGameAPI._clientEdictHandlerRegistry`). Mods replace it with a
+   * registry built from `clientEdictHandlerClasses` and their own handlers.
+   */
+  static _clientEdictHandlerRegistry: ClientEdictHandlerRegistry = new ClientEdictHandlerRegistry(clientEdictHandlerClasses);
 
   /**
    * Cvar cache defined by the game code.
@@ -707,7 +714,10 @@ export class ServerGameAPI implements ServerGameInterface {
   }
 
   _precacheResources(): void {
-    (this.constructor as typeof ServerGameAPI)._entityRegistry.precacheAll(this.engine);
+    const gameAPIClass = this.constructor as typeof ServerGameAPI;
+
+    gameAPIClass._entityRegistry.precacheAll(this.engine);
+    gameAPIClass._clientEdictHandlerRegistry.precacheAll(this.engine);
   }
 
   /**

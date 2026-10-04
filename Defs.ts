@@ -188,6 +188,10 @@ export enum clientEvent {
   HUD_MESSAGE = 10,
   /** damage received (damageReceived: number, armorLost: number, attackOrigin: Vector) */
   DAMAGE_RECEIVED = 11,
+  /** launch a client-only gib (model: string, origin: Vector, velocity: Vector) */
+  EMIT_GIB = 12,
+  /** release a burst of client-only bubbles (origin: Vector, count: number) */
+  EMIT_BUBBLES = 13,
   /** test hook; arbitrary arguments (any...) */
   TEST_EVENT = 254,
 }

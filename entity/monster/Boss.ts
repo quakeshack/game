@@ -4,7 +4,6 @@ import { channel, damage, effect, moveType, solid, tentType } from '../../Defs.t
 import { EntityAI, NoopMonsterAI } from '../../helper/AI.ts';
 import { serializableObject, serializable } from '../../helper/MiscHelpers.ts';
 import BaseEntity from '../BaseEntity.ts';
-import { FireballEntity } from '../Misc.ts';
 import { state } from '../props/BasePropEntity.ts';
 import { DoorEntity } from '../props/Doors.ts';
 import { Missile } from '../Weapons.ts';
@@ -25,8 +24,6 @@ export class BossLavaball extends Missile {
   static override _precache(engineAPI: BaseEntity['engine']): void {
     engineAPI.PrecacheModel('progs/lavaball.mdl');
   }
-
-  static clientEdictHandler = FireballEntity.clientEdictHandler;
 
   override spawn(): void {
     this.setModel('progs/lavaball.mdl');

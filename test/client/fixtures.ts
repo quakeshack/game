@@ -182,6 +182,22 @@ interface MockVideoState {
   height: number;
 }
 
+/**
+ * Stand-in for the client-only entity `ClientEngineAPI.SpawnClientEntity()` returns: exposes the
+ * handful of fields and methods game code touches while setting a client-only entity up.
+ */
+export interface MockSpawnedClientEntity {
+  readonly classname: string;
+  readonly options: { readonly persistent?: boolean };
+  model: { name: string } | null;
+  readonly angles: Vector;
+  readonly velocity: Vector;
+  origin: Vector | null;
+  spawned: boolean;
+  setOrigin(origin: Vector): void;
+  spawn(): void;
+}
+
 interface MockClientEngineOverrides extends Partial<Omit<MockClientEngine, 'VID' | 'SCR' | 'CL'>> {
   VID?: Partial<MockVideoState>;
   SCR?: Partial<Omit<MockScreenState, 'viewRect'>> & { viewRect?: Partial<MockViewRect> };
@@ -204,6 +220,7 @@ export interface MockClientEngine {
   drawStrings: Array<{ x: number; y: number; text: string; scale: number; color: Vector }>;
   contentShifts: Array<{ slot: number; color: Vector; alpha: number }>;
   rocketTrails: Array<{ start: Vector; end: Vector; type: number }>;
+  spawnedClientEntities: MockSpawnedClientEntity[];
   cvarSets: Array<[string, CvarInput]>;
   appendedConsoleText: string[];
   DrawPic(x: number, y: number, pic: MockTexture, scale?: number): void;
@@ -228,6 +245,7 @@ export interface MockClientEngine {
   IndexToRGB(index: number): [number, number, number];
   PlaceDecal(origin: Vector, normal: Vector, texture: MockTexture): void;
   ModForName(name: string): { name: string };
+  SpawnClientEntity(classname: string, options?: { readonly persistent?: boolean }): MockSpawnedClientEntity;
   AllocDlight(entityId: number): Record<string, ClientEventValue>;
   WorldToScreen(origin: Vector): Vector | null;
   GetVisibleEntities(filter?: ((entity: ClientEdict) => boolean) | null): Generator<ClientEdict, void, void>;
@@ -599,6 +617,7 @@ export function createMockClientEngine(
   const drawStrings: Array<{ x: number; y: number; text: string; scale: number; color: Vector }> = [];
   const contentShifts: Array<{ slot: number; color: Vector; alpha: number }> = [];
   const rocketTrails: Array<{ start: Vector; end: Vector; type: number }> = [];
+  const spawnedClientEntities: MockSpawnedClientEntity[] = [];
   const cvarSets: Array<[string, CvarInput]> = [];
   const appendedConsoleText: string[] = [];
   const cvarValues = new Map<string, CvarInput>(Object.entries(options.cvars ?? {}));
@@ -664,6 +683,7 @@ export function createMockClientEngine(
     drawStrings,
     contentShifts,
     rocketTrails,
+    spawnedClientEntities,
     cvarSets,
     appendedConsoleText,
     DrawPic(x: number, y: number, pic: MockTexture, scale = 1.0): void {
@@ -729,6 +749,27 @@ export function createMockClientEngine(
     },
     ModForName(name: string): { name: string } {
       return { name };
+    },
+    SpawnClientEntity(classname: string, options: { readonly persistent?: boolean } = {}): MockSpawnedClientEntity {
+      const entity: MockSpawnedClientEntity = {
+        classname,
+        options,
+        model: null,
+        angles: new Vector(Infinity, Infinity, Infinity),
+        velocity: new Vector(),
+        origin: null,
+        spawned: false,
+        setOrigin(origin: Vector): void {
+          entity.origin = origin.copy();
+        },
+        spawn(): void {
+          entity.spawned = true;
+        },
+      };
+
+      spawnedClientEntities.push(entity);
+
+      return entity;
     },
     AllocDlight(entityId: number): Record<string, ClientEventValue> {
       return { entityId };

@@ -5,7 +5,8 @@ import { EntityAI, NoopMonsterAI } from '../../helper/AI.ts';
 import { serializableObject } from '../../helper/MiscHelpers.ts';
 import BaseEntity from '../BaseEntity.ts';
 import { IntermissionCameraEntity, MiscNullEntity } from '../Misc.ts';
-import { GibEntity, PlayerEntity } from '../Player.ts';
+import { Gibs } from '../Gibs.ts';
+import { PlayerEntity } from '../Player.ts';
 import { TeleportTrainEntity } from '../props/Platforms.ts';
 import BaseMonster from './BaseMonster.ts';
 
@@ -186,15 +187,11 @@ $frame shake15 shake16 shake17 shake18 shake19 shake20
             model = 'progs/gib2.mdl';
           }
 
-          this.engine.SpawnEntity(GibEntity.classname, {
-            origin: this.origin.copy(),
-            velocity: new Vector(
-              (Math.random() - 0.5) * 600,
-              (Math.random() - 0.5) * 600,
-              Math.random() * 400 + 200,
-            ),
-            model,
-          });
+          Gibs.throwGib(this.engine, model, this.origin, new Vector(
+            (Math.random() - 0.5) * 600,
+            (Math.random() - 0.5) * 600,
+            Math.random() * 400 + 200,
+          ));
         }
       }
     }

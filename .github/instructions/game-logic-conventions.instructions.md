@@ -288,7 +288,6 @@ them all in the constructor:
 @serializableObject
 export default abstract class BaseEntity {
   public static classname: string;
-  public static clientEdictHandler: typeof BaseClientEdictHandler | null = null;
   public static clientEntityFields: string[] = [];
 
   private static _modelData: Readonly<ParsedQC> | null = null;
