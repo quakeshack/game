@@ -5,7 +5,8 @@ import Vector from '../../../../../shared/Vector.ts';
 import { ClientEdict } from '../../../../../engine/client/ClientEntities.ts';
 import { content } from '../../../../../shared/Defs.ts';
 import { effect } from '../../../Defs.ts';
-import { eventBus, registry } from '../../../../../engine/registry.ts';
+import { registry } from '../../../../../engine/registry.ts';
+import { eventBus } from '../../../../../engine/common/EventBus.ts';
 
 await import('../../../GameAPI.ts');
 const { AirBubblesClientEdictHandler, BubbleClientEdictHandler } = await import('../../../client/entity/Bubbles.ts');

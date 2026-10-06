@@ -5,7 +5,8 @@ import Vector from '../../../../../shared/Vector.ts';
 import ClientEntities from '../../../../../engine/client/ClientEntities.ts';
 import GameModule from '../../../../../engine/common/GameModule.ts';
 import { content } from '../../../../../shared/Defs.ts';
-import { eventBus, registry } from '../../../../../engine/registry.ts';
+import { registry } from '../../../../../engine/registry.ts';
+import { eventBus } from '../../../../../engine/common/EventBus.ts';
 import { moveType } from '../../../Defs.ts';
 
 await import('../../../GameAPI.ts');
@@ -56,12 +57,11 @@ function floorWorld(start, end) {
  * @param {() => void} callback
  */
 function withWorld(clock, callback) {
-  const previous = { CL: registry.CL, SV: registry.SV, Host: registry.Host };
+  const previous = { CL: registry.CL, Host: registry.Host };
   const state = { worldmodel: { nodes: [{ contents: content.CONTENT_EMPTY, num: 0 }] }, paused: false };
 
   Object.defineProperty(state, 'time', { get: () => clock.time });
-  registry.CL = { pmove: { movevars: { gravity: 800 } }, state, nolerp: { value: 0 } };
-  registry.SV = { collision: { traceWorldLine: floorWorld } };
+  registry.CL = { pmove: { movevars: { gravity: 800 } }, state, nolerp: { value: 0 }, collision: { traceStaticWorldLine: floorWorld } };
   registry.Host = { frametime: FRAMETIME };
   eventBus.publish('registry.frozen');
 
