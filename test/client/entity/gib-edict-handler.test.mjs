@@ -9,6 +9,7 @@ import { registry } from '../../../../../engine/registry.ts';
 import { eventBus } from '../../../../../engine/common/EventBus.ts';
 import { moveType } from '../../../Defs.ts';
 import { useClientStateOf } from '../../../../../../test/support/clientState.ts';
+import { useHostOf } from '../../../../../../test/support/host.ts';
 
 await import('../../../GameAPI.ts');
 const { GibClientEdictHandler } = await import('../../../client/entity/Gibs.ts');
@@ -65,6 +66,7 @@ function withWorld(clock, callback) {
   registry.CL = { pmove: { movevars: { gravity: 800 } }, state, nolerp: { value: 0 }, collision: { traceStaticWorldLine: floorWorld } };
   const restoreClientState = useClientStateOf(registry.CL);
   registry.Host = { frametime: FRAMETIME };
+  const restoreHost = useHostOf(registry.Host);
   eventBus.publish('registry.frozen');
 
   try {
