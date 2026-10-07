@@ -7,6 +7,7 @@ import { content } from '../../../../../shared/Defs.ts';
 import { effect } from '../../../Defs.ts';
 import { registry } from '../../../../../engine/registry.ts';
 import { eventBus } from '../../../../../engine/common/EventBus.ts';
+import { useClientStateOf } from '../../../../../../test/support/clientState.ts';
 
 await import('../../../GameAPI.ts');
 const { AirBubblesClientEdictHandler, BubbleClientEdictHandler } = await import('../../../client/entity/Bubbles.ts');
@@ -67,12 +68,14 @@ function withWorldmodel(callback) {
   const previousCL = registry.CL;
 
   registry.CL = { state: { worldmodel: { nodes: [{ contents: content.CONTENT_EMPTY, num: 0 }] } } };
+  const restoreClientState = useClientStateOf(registry.CL);
   eventBus.publish('registry.frozen');
 
   try {
     callback();
   } finally {
     registry.CL = previousCL;
+    restoreClientState();
     eventBus.publish('registry.frozen');
   }
 }

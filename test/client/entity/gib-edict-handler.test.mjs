@@ -8,6 +8,7 @@ import { content } from '../../../../../shared/Defs.ts';
 import { registry } from '../../../../../engine/registry.ts';
 import { eventBus } from '../../../../../engine/common/EventBus.ts';
 import { moveType } from '../../../Defs.ts';
+import { useClientStateOf } from '../../../../../../test/support/clientState.ts';
 
 await import('../../../GameAPI.ts');
 const { GibClientEdictHandler } = await import('../../../client/entity/Gibs.ts');
@@ -62,12 +63,14 @@ function withWorld(clock, callback) {
 
   Object.defineProperty(state, 'time', { get: () => clock.time });
   registry.CL = { pmove: { movevars: { gravity: 800 } }, state, nolerp: { value: 0 }, collision: { traceStaticWorldLine: floorWorld } };
+  const restoreClientState = useClientStateOf(registry.CL);
   registry.Host = { frametime: FRAMETIME };
   eventBus.publish('registry.frozen');
 
   try {
     callback();
   } finally {
+    restoreClientState();
     Object.assign(registry, previous);
     eventBus.publish('registry.frozen');
   }
