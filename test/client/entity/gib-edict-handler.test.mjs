@@ -10,6 +10,11 @@ import { eventBus } from '../../../../../engine/common/EventBus.ts';
 import { moveType } from '../../../Defs.ts';
 import { useClientStateOf } from '../../../../../../test/support/clientState.ts';
 import { useHostOf } from '../../../../../../test/support/host.ts';
+import { installPageServices } from '../../../../../engine/client/PageServices.ts';
+import { createClientEngineApi } from '../../../../../../test/support/clientEngineApi.ts';
+
+// Handlers are constructed with the page's engine API.
+installPageServices({ engineApi: createClientEngineApi() });
 
 await import('../../../GameAPI.ts');
 const { GibClientEdictHandler } = await import('../../../client/entity/Gibs.ts');
@@ -72,6 +77,7 @@ function withWorld(clock, callback) {
   try {
     callback();
   } finally {
+    restoreHost();
     restoreClientState();
     Object.assign(registry, previous);
     eventBus.publish('registry.frozen');
