@@ -5,9 +5,8 @@ import Vector from '../../../../../shared/Vector.ts';
 import { ClientEdict } from '../../../../../engine/client/ClientEntities.ts';
 import { content } from '../../../../../shared/Defs.ts';
 import { effect } from '../../../Defs.ts';
-import { registry } from '../../../../../engine/registry.ts';
-import { eventBus } from '../../../../../engine/common/EventBus.ts';
 import { useClientStateOf } from '../../../../../../test/support/clientState.ts';
+import { engineMocks } from '../../../../../../test/support/engineMocks.ts';
 
 await import('../../../GameAPI.ts');
 const { AirBubblesClientEdictHandler, BubbleClientEdictHandler } = await import('../../../client/entity/Bubbles.ts');
@@ -65,18 +64,16 @@ function createWaterEngine(clock, { surfaceZ = 1000, ceilingZ = 10000 } = {}) {
  * @param {() => void} callback
  */
 function withWorldmodel(callback) {
-  const previousCL = registry.CL;
+  const previousCL = engineMocks.CL;
 
-  registry.CL = { state: { worldmodel: { nodes: [{ contents: content.CONTENT_EMPTY, num: 0 }] } } };
-  const restoreClientState = useClientStateOf(registry.CL);
-  eventBus.publish('registry.frozen');
+  engineMocks.CL = { state: { worldmodel: { nodes: [{ contents: content.CONTENT_EMPTY, num: 0 }] } } };
+  const restoreClientState = useClientStateOf(engineMocks.CL);
 
   try {
     callback();
   } finally {
-    registry.CL = previousCL;
+    engineMocks.CL = previousCL;
     restoreClientState();
-    eventBus.publish('registry.frozen');
   }
 }
 

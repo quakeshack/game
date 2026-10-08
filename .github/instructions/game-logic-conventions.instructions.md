@@ -401,7 +401,7 @@ private static _states: Record<string, EntityStateDefinition<BaseEntity>> = {};
 - Serialization behavior must be regression-tested: create an entity, serialize, deserialize, assert field equality.
 - State machine tests: verify that `_runState` advances through the expected sequence and invokes handlers. Test with a small synthetic entity, not a full monster.
 - `assignInitialData`: test that string-to-type coercion works for Vectors, numbers, and strings. Test that private fields and functions are rejected.
-- Mock pattern: use `withMockRegistry` as described in the engine's unit test instructions. Entity construction needs a mock `ServerEngineAPI` and `ServerGameAPI`.
+- Mock pattern: use `withMockEngine` as described in the engine's unit test instructions. Entity construction needs a mock `ServerEngineAPI` and `ServerGameAPI`.
 
 ---
 

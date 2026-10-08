@@ -5,13 +5,12 @@ import Vector from '../../../../../shared/Vector.ts';
 import ClientEntities from '../../../../../engine/client/ClientEntities.ts';
 import GameModule from '../../../../../engine/common/GameModule.ts';
 import { content } from '../../../../../shared/Defs.ts';
-import { registry } from '../../../../../engine/registry.ts';
-import { eventBus } from '../../../../../engine/common/EventBus.ts';
 import { moveType } from '../../../Defs.ts';
 import { useClientStateOf } from '../../../../../../test/support/clientState.ts';
 import { useHostOf } from '../../../../../../test/support/host.ts';
 import { installPageServices } from '../../../../../engine/client/PageServices.ts';
 import { createClientEngineApi } from '../../../../../../test/support/clientEngineApi.ts';
+import { engineMocks } from '../../../../../../test/support/engineMocks.ts';
 
 // Handlers are constructed with the page's engine API.
 installPageServices({ engineApi: createClientEngineApi() });
@@ -64,23 +63,21 @@ function floorWorld(start, end) {
  * @param {() => void} callback
  */
 function withWorld(clock, callback) {
-  const previous = { CL: registry.CL, Host: registry.Host };
+  const previous = { CL: engineMocks.CL, Host: engineMocks.Host };
   const state = { worldmodel: { nodes: [{ contents: content.CONTENT_EMPTY, num: 0 }] }, paused: false };
 
   Object.defineProperty(state, 'time', { get: () => clock.time });
-  registry.CL = { pmove: { movevars: { gravity: 800 } }, state, nolerp: { value: 0 }, collision: { traceStaticWorldLine: floorWorld } };
-  const restoreClientState = useClientStateOf(registry.CL);
-  registry.Host = { frametime: FRAMETIME };
-  const restoreHost = useHostOf(registry.Host);
-  eventBus.publish('registry.frozen');
+  engineMocks.CL = { pmove: { movevars: { gravity: 800 } }, state, nolerp: { value: 0 }, collision: { traceStaticWorldLine: floorWorld } };
+  const restoreClientState = useClientStateOf(engineMocks.CL);
+  engineMocks.Host = { frametime: FRAMETIME };
+  const restoreHost = useHostOf(engineMocks.Host);
 
   try {
     callback();
   } finally {
     restoreHost();
     restoreClientState();
-    Object.assign(registry, previous);
-    eventBus.publish('registry.frozen');
+    Object.assign(engineMocks, previous);
   }
 }
 
@@ -218,7 +215,7 @@ void describe('GibClientEdictHandler', () => {
 
         try {
           const restoredEntities = new ClientEntities();
-          registry.CL.state.model_precache = [undefined, { name: 'progs/gib1.mdl', mins: new Vector(-8, -8, -8), maxs: new Vector(8, 8, 8) }];
+          engineMocks.CL.state.model_precache = [undefined, { name: 'progs/gib1.mdl', mins: new Vector(-8, -8, -8), maxs: new Vector(8, 8, 8) }];
           restoredEntities.deserialize(saved);
 
           const [restored] = [...restoredEntities.getEntities()];
