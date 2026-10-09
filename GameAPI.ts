@@ -1,14 +1,11 @@
 import type {
-  CommonEngineAPI,
   Cvar,
   EdictData,
-  MapDetails,
   SerializedData,
   ServerEdict,
   ServerEngineAPI,
   ServerGameInterface,
   ServerInfoField,
-  StartServerListEntry,
 } from '../../shared/GameInterfaces.ts';
 
 import { InfoPlayerStart, InfoPlayerStart2, InfoPlayerStartCoop, InfoPlayerStartDeathmatch, PlayerEntity, TelefragTriggerEntity } from './entity/Player.ts';
@@ -635,77 +632,6 @@ export class ServerGameAPI implements ServerGameInterface {
       { name: 'coop', label: 'Cooperative mode', type: 'boolean' },
       { name: 'timelimit', label: 'Time limit (minutes)', type: 'number' },
       { name: 'fraglimit', label: 'Frag limit', type: 'number' },
-    ];
-  }
-
-  static GetMapList(): MapDetails[] {
-    return [
-      { name: 'start', label: 'Start Map', maxplayers: 4, pictures: [] },
-      { name: 'dm1', label: 'DM1', maxplayers: 4, pictures: [] },
-      { name: 'dm2', label: 'DM2', maxplayers: 4, pictures: [] },
-      { name: 'dm3', label: 'DM3', maxplayers: 4, pictures: [] },
-      { name: 'dm4', label: 'DM4', maxplayers: 4, pictures: [] },
-      { name: 'dm5', label: 'DM5', maxplayers: 4, pictures: [] },
-      { name: 'dm6', label: 'DM6', maxplayers: 4, pictures: [] },
-      { name: 'e1m1', label: 'E1M1', maxplayers: 4, pictures: [] },
-      { name: 'e1m2', label: 'E1M2', maxplayers: 4, pictures: [] },
-      { name: 'e1m3', label: 'E1M3', maxplayers: 4, pictures: [] },
-      { name: 'e1m4', label: 'E1M4', maxplayers: 4, pictures: [] },
-      { name: 'e1m5', label: 'E1M5', maxplayers: 4, pictures: [] },
-      { name: 'e1m6', label: 'E1M6', maxplayers: 4, pictures: [] },
-      { name: 'e1m7', label: 'E1M7', maxplayers: 4, pictures: [] },
-      { name: 'e1m8', label: 'E1M8', maxplayers: 4, pictures: [] },
-      { name: 'e2m1', label: 'E2M1', maxplayers: 4, pictures: [] },
-      { name: 'e2m2', label: 'E2M2', maxplayers: 4, pictures: [] },
-      { name: 'e2m3', label: 'E2M3', maxplayers: 4, pictures: [] },
-      { name: 'e2m4', label: 'E2M4', maxplayers: 4, pictures: [] },
-      { name: 'e2m5', label: 'E2M5', maxplayers: 4, pictures: [] },
-      { name: 'e2m6', label: 'E2M6', maxplayers: 4, pictures: [] },
-      { name: 'e2m7', label: 'E2M7', maxplayers: 4, pictures: [] },
-      { name: 'e3m1', label: 'E3M1', maxplayers: 4, pictures: [] },
-      { name: 'e3m2', label: 'E3M2', maxplayers: 4, pictures: [] },
-      { name: 'e3m3', label: 'E3M3', maxplayers: 4, pictures: [] },
-      { name: 'e3m4', label: 'E3M4', maxplayers: 4, pictures: [] },
-      { name: 'e3m5', label: 'E3M5', maxplayers: 4, pictures: [] },
-      { name: 'e3m6', label: 'E3M6', maxplayers: 4, pictures: [] },
-      { name: 'e3m7', label: 'E3M7', maxplayers: 4, pictures: [] },
-      { name: 'e4m1', label: 'E4M1', maxplayers: 4, pictures: [] },
-      { name: 'e4m2', label: 'E4M2', maxplayers: 4, pictures: [] },
-      { name: 'e4m3', label: 'E4M3', maxplayers: 4, pictures: [] },
-      { name: 'e4m4', label: 'E4M4', maxplayers: 4, pictures: [] },
-      { name: 'e4m5', label: 'E4M5', maxplayers: 4, pictures: [] },
-      { name: 'e4m6', label: 'E4M6', maxplayers: 4, pictures: [] },
-      { name: 'e4m7', label: 'E4M7', maxplayers: 4, pictures: [] },
-      { name: 'e4m8', label: 'E4M8', maxplayers: 4, pictures: [] },
-    ];
-  }
-
-  static GetStartServerList(): StartServerListEntry[] {
-    return [
-      {
-        label: 'Start deathmatch',
-        callback: (engineAPI: CommonEngineAPI): void => {
-          engineAPI.AppendConsoleText(`
-          hostname "Quake Deathmatch"
-          deathmatch 1
-          coop 0
-          maxplayers 8
-          map e1m1
-        `);
-        },
-      },
-      {
-        label: 'Start co-op game',
-        callback: (engineAPI: CommonEngineAPI): void => {
-          engineAPI.AppendConsoleText(`
-          hostname "Quake Cooperative"
-          deathmatch 0
-          coop 1
-          maxplayers 8
-          map e1m1
-        `);
-        },
-      },
     ];
   }
 

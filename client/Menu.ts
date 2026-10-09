@@ -1,9 +1,35 @@
 import type { ClientEngineAPI, DiscoveredSession, HostAlertEvent, KeyBindItem, MenuPage, MenuPic, SaveSlotItem } from '../../../shared/GameInterfaces.ts';
 
 import { K } from '../../../shared/Keys.ts';
-import { ServerGameAPI } from '../GameAPI.ts';
 
 const MAX_SAVEGAMES = 12;
+
+/**
+ * Entries of the "Start Game" list on the multiplayer page: a label and the console commands that
+ * configure and start that kind of server.
+ */
+const START_SERVER_ACTIONS: readonly { readonly label: string; readonly commands: string }[] = [
+  {
+    label: 'Start deathmatch',
+    commands: `
+          hostname "Quake Deathmatch"
+          deathmatch 1
+          coop 0
+          maxplayers 8
+          map e1m1
+        `,
+  },
+  {
+    label: 'Start co-op game',
+    commands: `
+          hostname "Quake Cooperative"
+          deathmatch 0
+          coop 1
+          maxplayers 8
+          map e1m1
+        `,
+  },
+];
 
 const bindnames: [string, string][] = [
   ['+attack', 'attack'],
@@ -456,13 +482,12 @@ export default class Id1Menu {
             offLabel: 'no',
           }));
 
-          const serverActions = ServerGameAPI.GetStartServerList();
-          for (const serverAction of serverActions ?? []) {
+          for (const serverAction of START_SERVER_ACTIONS) {
             launchServerPage.items.push(new Action({
               label: serverAction.label,
               action: () => {
                 Menu.Close();
-                serverAction.callback(engineAPI);
+                engineAPI.AppendConsoleText(serverAction.commands);
               },
             }));
           }

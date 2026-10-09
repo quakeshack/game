@@ -308,7 +308,7 @@ These base classes make it easy to create new entities with common behaviors:
   * Game will communicate mainly through the `ServerEngineAPI` object which is augmented by lots of methods declared on `BaseEntity`.
 * The contract
   * The methods and fields the engine relies on are `ServerGameInterface` (server) and `ClientGameInterface` (client) in the engine's `source/shared/GameInterfaces.ts`. `ServerGameAPI` and `ClientGameAPI` declare `implements` on them and `main.ts` asserts `satisfies GameModuleInterface`, so `npm run typecheck` reports any drift. The engine's `docs/game-module-contract.md` has the call order and says who writes which field.
-  * Anything not listed there is internal to the game. For example the static `GetMapList()` and `GetStartServerList()` helpers are only called by the game's own menus, never by the engine.
+  * Anything not listed there is internal to the game. Map lists and "start a server" entries are not part of the contract: a game's client menus own that data and build their pages from it.
 
 ### Loading the GameModule
 
