@@ -47,7 +47,7 @@ $frame shake15 shake16 shake17 shake18 shake19 shake20
   }
 
   override _precache(): void {
-    this.engine.PrecacheModel('progs/oldone.mdl');
+    this.engine.PrecacheModel('progs/oldone.mdl', { meshCollision: true }); // solid as SOLID_MESH, see spawn()
     this.engine.PrecacheModel('progs/player.mdl');
     this.engine.PrecacheSound('boss2/death.wav');
     this.engine.PrecacheSound('boss2/idle.wav');

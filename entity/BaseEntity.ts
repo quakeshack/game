@@ -529,7 +529,8 @@ export default abstract class BaseEntity {
   }
 
   /**
-   * Set the entity model and relink through the engine.
+   * Set the entity model and relink through the engine. While the map loads this also precaches the model,
+   * with the geometry mesh collision needs when the entity is already `SOLID_MESH`, so set `solid` first.
    */
   setModel(modelname: string | null, touchTriggers = true): void {
     if (modelname === null || modelname.length === 0) {
@@ -539,7 +540,7 @@ export default abstract class BaseEntity {
     }
 
     if (this.engine.IsLoading()) {
-      this.engine.PrecacheModel(modelname);
+      this.engine.PrecacheModel(modelname, { meshCollision: this.solid === solid.SOLID_MESH });
     }
 
     this.edict!.setModel(modelname, touchTriggers);

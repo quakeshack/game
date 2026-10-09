@@ -88,7 +88,7 @@ $frame shockc9 shockc10
   }
 
   override _precache(): void {
-    this.engine.PrecacheModel('progs/boss.mdl');
+    this.engine.PrecacheModel('progs/boss.mdl', { meshCollision: true }); // solid as SOLID_MESH, see spawn()
     this.engine.PrecacheModel('progs/lavaball.mdl');
     this.engine.PrecacheSound('weapons/rocket1i.wav');
     this.engine.PrecacheSound('boss1/out1.wav');
