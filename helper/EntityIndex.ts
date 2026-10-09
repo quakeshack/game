@@ -9,13 +9,13 @@ export default class EntityIndex {
     }
   }
 
-  reindexEntity(field: string, prev: string | null, current: string | null, entity: BaseEntity): void {
+  reindexEntity(_field: string, _prev: string | null, _current: string | null, _entity: BaseEntity): void {
   }
 
-  freeEntity(entity: BaseEntity): void {
+  freeEntity(_entity: BaseEntity): void {
   }
 
-  findAllEntitiesByFieldAndValue(field: string, value: string): BaseEntity[] {
+  findAllEntitiesByFieldAndValue(_field: string, _value: string): BaseEntity[] {
     return [];
   }
 }
