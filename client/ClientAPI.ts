@@ -261,6 +261,19 @@ export class ClientGameAPI implements ClientGameInterface {
     }
   }
 
+  /**
+   * The status bar of Quake: 48 pixels up to a view size of 110, the smaller bar of 110 to 120 is 24, and none
+   * when the view is the whole screen.
+   * @returns Pixels at the bottom of the screen that are the HUD's.
+   */
+  hudReservedHeight(viewsize: number): number {
+    if (viewsize >= 120) {
+      return 0;
+    }
+
+    return viewsize >= 110 ? 24 : 48;
+  }
+
   handleClientEvent(eventId: number, ...args: ClientEventValue[]): void {
     this.engine.eventBus.publish(clientEventName(eventId), ...args);
   }

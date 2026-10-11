@@ -725,3 +725,11 @@ void describe('id1 client API', () => {
   });
 });
 
+void describe('id1 client game status bar', () => {
+  void test('keeps 48 pixels for the status bar up to a view size of 110, 24 for the small one, none at 120', () => {
+    const engine = createMockClientEngine();
+    const clientGame = new ClientGameAPI(engine);
+
+    assert.deepEqual([30, 90, 109, 110, 119, 120].map((viewsize) => clientGame.hudReservedHeight(viewsize)), [48, 48, 48, 24, 24, 0]);
+  });
+});
