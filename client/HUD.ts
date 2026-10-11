@@ -989,6 +989,19 @@ export class Q1HUD {
     return scores;
   }
 
+  /**
+   * Draws what stays on the screen with `nohud` set: the pause sign, outside of an intermission.
+   */
+  drawOverlay(): void {
+    if (this.intermission.running || this.engine.CL.intermissionState !== 0) {
+      return;
+    }
+
+    if (this.engine.CL.paused && cvars.showpause!.value !== 0) {
+      this._drawPause();
+    }
+  }
+
   draw(): void {
     const shouldShowScoreboard = this._showScoreboard || this.game.clientdata.health <= 0;
 
@@ -1040,10 +1053,6 @@ export class Q1HUD {
     }
 
     this._drawStatusBar();
-
-    if (this.engine.CL.paused && cvars.showpause!.value !== 0) {
-      this._drawPause();
-    }
 
     // what the server printed in the middle of the screen, for a moment
     if (this.centerPrint.message !== null && (this.engine.CL.time - this.centerPrint.startTime) < cvars.centertime!.value) {

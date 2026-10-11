@@ -248,6 +248,10 @@ export class ClientGameAPI implements ClientGameInterface {
     this.hud.draw();
   }
 
+  drawOverlay(): void {
+    this.hud.drawOverlay();
+  }
+
   drawLoading(): void {
     // allows drawing stuff on the loading screen like tips or objectives
   }

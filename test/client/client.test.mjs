@@ -864,7 +864,7 @@ void describe('id1 HUD pause sign', () => {
     const { engine, hud } = createHud();
     engine.CL.paused = true;
 
-    hud.draw();
+    hud.drawOverlay();
 
     const [sign] = pauseDraws(engine);
     assert.ok(sign !== undefined, 'the sign was drawn');
@@ -876,7 +876,7 @@ void describe('id1 HUD pause sign', () => {
   void test('shows nothing while the game runs', () => {
     const { engine, hud } = createHud();
 
-    hud.draw();
+    hud.drawOverlay();
 
     assert.deepEqual(pauseDraws(engine), []);
   });
@@ -886,7 +886,26 @@ void describe('id1 HUD pause sign', () => {
     engine.CL.paused = true;
     engine.SetCvar('showpause', '0');
 
+    hud.drawOverlay();
+
+    assert.deepEqual(pauseDraws(engine), []);
+  });
+
+  void test('is not drawn by draw(), which nohud skips', () => {
+    const { engine, hud } = createHud();
+    engine.CL.paused = true;
+
     hud.draw();
+
+    assert.deepEqual(pauseDraws(engine), []);
+  });
+
+  void test('is not drawn in an intermission', () => {
+    const { engine, hud } = createHud();
+    engine.CL.paused = true;
+    engine.CL.intermissionState = 2;
+
+    hud.drawOverlay();
 
     assert.deepEqual(pauseDraws(engine), []);
   });
