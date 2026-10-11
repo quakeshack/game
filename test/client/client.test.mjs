@@ -733,3 +733,100 @@ void describe('id1 client game status bar', () => {
     assert.deepEqual([30, 90, 109, 110, 119, 120].map((viewsize) => clientGame.hudReservedHeight(viewsize)), [48, 48, 48, 24, 24, 0]);
   });
 });
+
+void describe('id1 HUD center print', () => {
+  /**
+   * Builds a HUD on a mock engine, with the HUD's static state initialized.
+   * @returns {{ engine: ReturnType<typeof createMockClientEngine>, hud: InstanceType<typeof Q1HUD> }} Both.
+   */
+  function createHud() {
+    const engine = createMockClientEngine();
+    const game = {
+      clientdata: createClientdata(),
+      serverInfo: new ServerInfo(engine),
+    };
+
+    Q1HUD.Init(engine);
+
+    const hud = new Q1HUD(game, engine);
+    hud.init();
+
+    return { engine, hud };
+  }
+
+  /**
+   * Lists what the HUD drew as text.
+   * @param {ReturnType<typeof createMockClientEngine>} engine The mock engine.
+   * @returns {string[]} The strings.
+   */
+  function drawnText(engine) {
+    return engine.drawStrings.map(({ text }) => text);
+  }
+
+  void test('shows what the server printed for the time of scr_centertime, centered, then lets it go', () => {
+    const { engine, hud } = createHud();
+    engine.CL.time = 10;
+
+    engine.eventBus.publish('client.center-print', 'You need the gold key');
+    hud.draw();
+    assert.ok(drawnText(engine).includes('You need the gold key'));
+
+    engine.drawStrings.length = 0;
+    engine.CL.time = 11.9;
+    hud.draw();
+    assert.ok(drawnText(engine).includes('You need the gold key'), 'still up before 2 seconds');
+
+    engine.drawStrings.length = 0;
+    engine.CL.time = 12.1;
+    hud.draw();
+    assert.equal(drawnText(engine).includes('You need the gold key'), false);
+  });
+
+  void test('wraps at 40 characters and at newlines, as Quake does', () => {
+    const { engine, hud } = createHud();
+    engine.CL.time = 1;
+
+    engine.eventBus.publish('client.center-print', `${'a'.repeat(45)}\nsecond`);
+    hud.draw();
+
+    const text = drawnText(engine);
+    assert.ok(text.includes('a'.repeat(40)));
+    assert.ok(text.includes('a'.repeat(5)));
+    assert.ok(text.includes('second'));
+  });
+
+  void test('takes the time from the scr_centertime variable the game now owns', () => {
+    const { engine, hud } = createHud();
+    engine.cvarSets.length = 0;
+    engine.SetCvar('scr_centertime', '5');
+    engine.CL.time = 1;
+
+    engine.eventBus.publish('client.center-print', 'hello');
+    engine.CL.time = 5;
+    hud.draw();
+
+    assert.ok(drawnText(engine).includes('hello'));
+  });
+
+  void test('is cleared by a new level', () => {
+    const { engine, hud } = createHud();
+    engine.CL.time = 1;
+
+    engine.eventBus.publish('client.center-print', 'hello');
+    engine.eventBus.publish('server.spawning');
+    hud.draw();
+
+    assert.equal(drawnText(engine).includes('hello'), false);
+  });
+
+  void test('shows an empty print as nothing', () => {
+    const { engine, hud } = createHud();
+    engine.CL.time = 1;
+
+    engine.eventBus.publish('client.center-print', 'hello');
+    engine.eventBus.publish('client.center-print', '');
+    hud.draw();
+
+    assert.equal(drawnText(engine).includes('hello'), false);
+  });
+});

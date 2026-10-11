@@ -90,6 +90,10 @@ const cvars = {
   crosshair: null as Cvar | null,
   crossx: null as Cvar | null,
   crossy: null as Cvar | null,
+  /** `scr_centertime`: seconds a center print is shown. */
+  centertime: null as Cvar | null,
+  /** `scr_printspeed`: characters per second a finale text is typed out at. */
+  printspeed: null as Cvar | null,
 };
 
 const inventory: InventoryEntry[] = [
@@ -706,7 +710,7 @@ export class Q1HUD {
     let remainingCharacters = Number.POSITIVE_INFINITY;
 
     if (useTypewriter) {
-      remainingCharacters = Math.floor(8 * (this.engine.CL.time - this.centerPrint.startTime));
+      remainingCharacters = Math.floor(cvars.printspeed!.value * (this.engine.CL.time - this.centerPrint.startTime));
     }
 
     for (const line of lines) {
@@ -1025,6 +1029,11 @@ export class Q1HUD {
 
     this._drawStatusBar();
 
+    // what the server printed in the middle of the screen, for a moment
+    if (this.centerPrint.message !== null && (this.engine.CL.time - this.centerPrint.startTime) < cvars.centertime!.value) {
+      this._drawIntermissionText(this.centerPrint.message, false, false);
+    }
+
     this.messageBag!.drawMessages();
   }
 
@@ -1128,6 +1137,9 @@ export class Q1HUD {
     cvars.crosshair = engineAPI.RegisterCvar('crosshair', '0', cvarFlags.ARCHIVE);
     cvars.crossx = engineAPI.RegisterCvar('cl_crossx', '0', cvarFlags.ARCHIVE);
     cvars.crossy = engineAPI.RegisterCvar('cl_crossy', '0', cvarFlags.ARCHIVE);
+    // the names the engine used to own, so that configurations that set them keep working
+    cvars.centertime = engineAPI.RegisterCvar('scr_centertime', '2');
+    cvars.printspeed = engineAPI.RegisterCvar('scr_printspeed', '8');
   }
 
   static Init(this: typeof Q1HUD, engineAPI: ClientEngineAPI): void {
