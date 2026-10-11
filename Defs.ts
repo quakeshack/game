@@ -203,13 +203,3 @@ export enum clientEvent {
 export function clientEventName(eventId: number): string {
   return `client.event-received.${eventId}`;
 }
-
-/**
- * Content shift slots used by the client HUD.
- */
-export enum contentShift {
-  damage = 0,
-  bonus = 1,
-  powerup = 2,
-  info = 3,
-}

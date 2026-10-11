@@ -157,6 +157,14 @@ interface MockViewRect {
   height: number;
 }
 
+/** What a game hands to `PostProcess.pulse`. */
+export interface MockPulse {
+  readonly id: string;
+  readonly key?: string;
+  readonly settings: { readonly color?: ArrayLike<number>; readonly alpha?: number };
+  readonly timing: { readonly fadeIn?: number; readonly hold?: number; readonly fadeOut?: number };
+}
+
 interface MockClientState {
   gametime: number;
   frametime: number;
@@ -167,6 +175,7 @@ interface MockClientState {
   maxclients: number;
   time: number;
   connected: boolean;
+  viewContents: number;
   viewangles: Vector;
   vieworigin: Vector;
   score(index: number): MockClientScore;
@@ -218,7 +227,8 @@ export interface MockClientEngine {
   drawPics: Array<{ x: number; y: number; pic: MockTexture; scale: number }>;
   drawRects: Array<{ x: number; y: number; width: number; height: number; color: Vector; alpha: number }>;
   drawStrings: Array<{ x: number; y: number; text: string; scale: number; color: Vector }>;
-  contentShifts: Array<{ slot: number; color: Vector; alpha: number }>;
+  postProcessStacks: Array<{ stack: readonly unknown[]; options: { channel?: string; fade?: number } | undefined }>;
+  postProcessPulses: Array<{ descriptor: MockPulse; options: { channel?: string } | undefined }>;
   rocketTrails: Array<{ start: Vector; end: Vector; type: number }>;
   spawnedClientEntities: MockSpawnedClientEntity[];
   cvarSets: Array<[string, CvarInput]>;
@@ -241,7 +251,6 @@ export interface MockClientEngine {
   ConsoleError(message: string): void;
   ConsolePrint(message: string, color?: Vector): void;
   ConsoleWarning(message: string): void;
-  ContentShift(slot: number, color: Vector, alpha?: number): void;
   IndexToRGB(index: number): [number, number, number];
   PlaceDecal(origin: Vector, normal: Vector, texture: MockTexture): void;
   ModForName(name: string): { name: string };
@@ -256,9 +265,10 @@ export interface MockClientEngine {
   CL: MockClientState;
   SV: { active: boolean };
   PostProcess: {
-    setStack(stack: unknown): void;
-    clearStack(): void;
-    hasStack(): boolean;
+    setStack(stack: readonly unknown[], options?: { channel?: string; fade?: number }): void;
+    clearStack(channel?: string): void;
+    hasStack(channel?: string): boolean;
+    pulse(descriptor: MockPulse, options?: { channel?: string }): void;
   };
   Menu: MockMenuAPI;
   SaveSlots: {
@@ -615,7 +625,8 @@ export function createMockClientEngine(
   const drawPics: Array<{ x: number; y: number; pic: MockTexture; scale: number }> = [];
   const drawRects: Array<{ x: number; y: number; width: number; height: number; color: Vector; alpha: number }> = [];
   const drawStrings: Array<{ x: number; y: number; text: string; scale: number; color: Vector }> = [];
-  const contentShifts: Array<{ slot: number; color: Vector; alpha: number }> = [];
+  const postProcessStacks: Array<{ stack: readonly unknown[]; options: { channel?: string; fade?: number } | undefined }> = [];
+  const postProcessPulses: Array<{ descriptor: MockPulse; options: { channel?: string } | undefined }> = [];
   const rocketTrails: Array<{ start: Vector; end: Vector; type: number }> = [];
   const spawnedClientEntities: MockSpawnedClientEntity[] = [];
   const cvarSets: Array<[string, CvarInput]> = [];
@@ -681,7 +692,8 @@ export function createMockClientEngine(
     drawPics,
     drawRects,
     drawStrings,
-    contentShifts,
+    postProcessStacks,
+    postProcessPulses,
     rocketTrails,
     spawnedClientEntities,
     cvarSets,
@@ -739,9 +751,6 @@ export function createMockClientEngine(
     },
     ConsoleWarning(_message: string): void {
     },
-    ContentShift(slot: number, color: Vector, alpha = 1.0): void {
-      contentShifts.push({ slot, color, alpha });
-    },
     IndexToRGB(_index: number): [number, number, number] {
       return [1.0, 1.0, 1.0];
     },
@@ -793,9 +802,14 @@ export function createMockClientEngine(
       appendedConsoleText.push(text);
     },
     PostProcess: {
-      setStack(_stack: unknown): void {},
+      setStack(stack: readonly unknown[], options?: { channel?: string; fade?: number }): void {
+        postProcessStacks.push({ stack, options });
+      },
       clearStack(): void {},
       hasStack(): boolean { return false; },
+      pulse(descriptor: MockPulse, options?: { channel?: string }): void {
+        postProcessPulses.push({ descriptor, options });
+      },
     },
     VID: {
       width: 320,
@@ -820,6 +834,7 @@ export function createMockClientEngine(
       maxclients: 1,
       time: 0,
       connected: false,
+      viewContents: -1,
       viewangles: new Vector(),
       vieworigin: new Vector(),
       score(): MockClientScore {

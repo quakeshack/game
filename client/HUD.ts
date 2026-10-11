@@ -4,9 +4,10 @@ import type { ClientDamageEvent, ClientEngineAPI, Cvar, GLTexture } from '../../
 import Q from '../../../shared/Q.ts';
 import Vector from '../../../shared/Vector.ts';
 
-import { clientEvent, clientEventName, colors, contentShift, items } from '../Defs.ts';
+import { clientEvent, clientEventName, colors, items } from '../Defs.ts';
 import { weaponConfig, type WeaponConfigKey } from '../entity/Weapons.ts';
 import type { ClientGameAPI } from './ClientAPI.ts';
+import { ColorShifts } from './ColorShifts.ts';
 import { ClientStats } from './Sync.ts';
 import { serializable, serializableObject, Serializer, type SerializableRecord } from '../helper/MiscHelpers.ts';
 
@@ -478,6 +479,9 @@ export class Q1HUD {
   protected readonly game: ClientGameAPI;
   protected readonly engine: ClientEngineAPI;
 
+  /** What tints the view: the liquid, hits, pickups, powerups. */
+  protected readonly colorShifts: ColorShifts;
+
   protected _newStats(): ClientStats {
     return new ClientStats(this.engine);
   }
@@ -491,6 +495,7 @@ export class Q1HUD {
 
     this.game = clientGameAPI;
     this.engine = clientEngineAPI;
+    this.colorShifts = new ColorShifts(clientEngineAPI);
 
     // setup the viewport
     this.sbar = new Gfx(this.engine, 320, 24);
@@ -504,6 +509,7 @@ export class Q1HUD {
 
     this.stats = this._newStats();
     this.messageBag = this._newMessageBag();
+    this.colorShifts.init();
 
     // observe notable events
     this._subscribeToEvents();
@@ -524,6 +530,7 @@ export class Q1HUD {
     this.engine.eventBus.subscribe('client.disconnected', (): void => {
       this._clearIntermission();
       this.inventoryFlashStartedAt.clear();
+      this.colorShifts.reset();
     });
 
     // +showscores/-showscores, published by the commands registered in the static Init().
@@ -556,6 +563,8 @@ export class Q1HUD {
       if (this.damage.damageReceived > 150) {
         this.damage.damageReceived = 150; // cap the damage to prevent a stuck damage screen
       }
+
+      this.colorShifts.damage(clientDamageEvent.armorLost, clientDamageEvent.damageReceived);
     });
 
     // picked up an item
@@ -578,19 +587,19 @@ export class Q1HUD {
           }
         }
 
-        this.engine.ContentShift(contentShift.bonus, new Vector(...this.engine.IndexToRGB(colors.HUD_CSHIFT_BONUSFLASH)), 0.2);
+        this.colorShifts.flash('bonus', new Vector(...this.engine.IndexToRGB(colors.HUD_CSHIFT_BONUSFLASH)), 0.2);
       },
     );
 
     // still used for some fading item effects
     this.engine.eventBus.subscribe(clientEventName(clientEvent.BONUS_FLASH), (): void => {
-      this.engine.ContentShift(contentShift.bonus, new Vector(...this.engine.IndexToRGB(colors.HUD_CSHIFT_BONUSFLASH)), 0.2);
+      this.colorShifts.flash('bonus', new Vector(...this.engine.IndexToRGB(colors.HUD_CSHIFT_BONUSFLASH)), 0.2);
     });
 
     // game stats updates during game play
     this.engine.eventBus.subscribe(clientEventName(clientEvent.STATS_UPDATED), (slot: string): void => {
       if (slot === 'secrets_found') {
-        this.engine.ContentShift(contentShift.info, new Vector(...this.engine.IndexToRGB(colors.HUD_CSHIFT_SECRET)), 0.2);
+        this.colorShifts.flash('info', new Vector(...this.engine.IndexToRGB(colors.HUD_CSHIFT_SECRET)), 0.2);
       }
     });
 
@@ -1044,13 +1053,17 @@ export class Q1HUD {
     }
 
     if (color.isOrigin()) {
+      this.colorShifts.powerup(null, 0);
       return;
     }
 
-    this.engine.ContentShift(contentShift.powerup, color, isFlickering ? 0.25 + Math.random() * 0.1 : 0.3);
+    this.colorShifts.powerup(color, isFlickering ? 0.25 + Math.random() * 0.1 : 0.3);
   }
 
   startFrame(): void {
+    this.colorShifts.frame(this.engine.CL.frametime);
+    this.colorShifts.liquid(this.engine.CL.viewContents);
+
     if (this.damage.damageReceived > 0) {
       this.damage.damageReceived -= this.engine.CL.frametime * 25; // decrease damage over time
 
