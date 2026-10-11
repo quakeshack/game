@@ -13,6 +13,7 @@ import { Sub } from '../Subs.ts';
 import { DamageHandler } from '../Weapons.ts';
 
 import type { ServerEdict, ServerEngineAPI } from '../../../../shared/GameInterfaces.ts';
+import { serverEvents } from '../../Events.ts';
 
 @serializableObject
 export default abstract class BaseMonster extends BaseEntity {
@@ -247,7 +248,7 @@ export default abstract class BaseMonster extends BaseEntity {
   }
 
   _postSpawn(): void {
-    this.engine.eventBus.publish('game.monster.spawned', this);
+    serverEvents(this.engine).publish('game.monster.spawned', this);
     this._ai.spawn();
     this._scheduleThink(this.nextthink + Math.random() * 0.5, () => { this._ai.think(); });
   }

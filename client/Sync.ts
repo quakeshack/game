@@ -2,6 +2,7 @@ import type { ClientEngineAPI } from '../../../shared/GameInterfaces.ts';
 
 import { clientEvent, clientEventName } from '../Defs.ts';
 import { serializable, serializableObject, Serializer } from '../helper/MiscHelpers.ts';
+import { clientEvents } from '../Events.ts';
 
 export const clientStatSlots = [
   'monsters_total',
@@ -63,11 +64,11 @@ export class ClientStats {
 
   constructor(engineAPI: ClientEngineAPI) {
     // game stats base value
-    engineAPI.eventBus.subscribe(clientEventName(clientEvent.STATS_INIT), (slot: string, value: number | string): void => {
+    clientEvents(engineAPI).subscribe(clientEventName(clientEvent.STATS_INIT), (slot: string, value: number | string): void => {
       this._setStat(slot, value);
     });
 
-    engineAPI.eventBus.subscribe(clientEventName(clientEvent.STATS_UPDATED), (slot: string, value: number | string): void => {
+    clientEvents(engineAPI).subscribe(clientEventName(clientEvent.STATS_UPDATED), (slot: string, value: number | string): void => {
       this._setStat(slot, value);
     });
 
@@ -119,13 +120,13 @@ export class ServerInfo {
   }
 
   constructor(engineAPI: ClientEngineAPI) {
-    engineAPI.eventBus.subscribe('client.server-info.ready', (serverInfo: Record<string, string>): void => {
+    clientEvents(engineAPI).subscribe('client.server-info.ready', (serverInfo: Record<string, string>): void => {
       for (const [key, value] of Object.entries(serverInfo)) {
         this._setServerInfoField(key, value);
       }
     });
 
-    engineAPI.eventBus.subscribe('client.server-info.updated', (key: string, value: string): void => {
+    clientEvents(engineAPI).subscribe('client.server-info.updated', (key: string, value: string): void => {
       // NOTE: no assert, this is coming from the engine
       this._setServerInfoField(key, value);
     });

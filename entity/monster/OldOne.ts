@@ -9,6 +9,7 @@ import { Gibs } from '../Gibs.ts';
 import { PlayerEntity } from '../Player.ts';
 import { TeleportTrainEntity } from '../props/Platforms.ts';
 import BaseMonster from './BaseMonster.ts';
+import { serverEvents } from '../../Events.ts';
 
 /**
  * QUAKED monster_oldone (1 0 0) (-16 -16 -24) (16 16 32)
@@ -245,7 +246,7 @@ $frame shake15 shake16 shake17 shake18 shake19 shake20
     this.takedamage = damage.DAMAGE_YES;
     this._runState('old_idle1');
 
-    this.engine.eventBus.publish('game.monster.spawned', this);
+    serverEvents(this.engine).publish('game.monster.spawned', this);
   }
 }
 

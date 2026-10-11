@@ -10,6 +10,7 @@ import type { ClientGameAPI } from './ClientAPI.ts';
 import { ColorShifts } from './ColorShifts.ts';
 import { ClientStats } from './Sync.ts';
 import { serializable, serializableObject, Serializer, type SerializableRecord } from '../helper/MiscHelpers.ts';
+import { clientEvents } from '../Events.ts';
 
 type AmmoSlot = 'ammo_shells' | 'ammo_nails' | 'ammo_rockets' | 'ammo_cells';
 type HUDColor = Vector;
@@ -528,24 +529,24 @@ export class Q1HUD {
    * Subscribes to relevant events.
    */
   protected _subscribeToEvents(): void {
-    this.engine.eventBus.subscribe('server.spawning', (): void => {
+    clientEvents(this.engine).subscribe('server.spawning', (): void => {
       this._clearIntermission();
       this.inventoryFlashStartedAt.clear();
     });
 
-    this.engine.eventBus.subscribe('client.disconnected', (): void => {
+    clientEvents(this.engine).subscribe('client.disconnected', (): void => {
       this._clearIntermission();
       this.inventoryFlashStartedAt.clear();
       this.colorShifts.reset();
     });
 
     // +showscores/-showscores, published by the commands registered in the static Init().
-    this.engine.eventBus.subscribe('hud.showscores', (showScoreboard: boolean): void => {
+    clientEvents(this.engine).subscribe('hud.showscores', (showScoreboard: boolean): void => {
       this._showScoreboard = showScoreboard;
     });
 
     // subscribe to viewsize resize events
-    this.engine.eventBus.subscribe('cvar.changed', (name: string): void => {
+    clientEvents(this.engine).subscribe('cvar.changed', (name: string): void => {
       switch (name) {
         case 'viewsize': {
           const { width, height } = this.engine.VID;
@@ -556,12 +557,12 @@ export class Q1HUD {
     });
 
     // subscribe to viewport resize events
-    this.engine.eventBus.subscribe('vid.resize', ({ width, height }: { width: number; height: number }): void => {
+    clientEvents(this.engine).subscribe('vid.resize', ({ width, height }: { width: number; height: number }): void => {
       this._viewportResize(width, height);
     });
 
     // damage received
-    this.engine.eventBus.subscribe('client.damage', (clientDamageEvent: ClientDamageEvent): void => {
+    clientEvents(this.engine).subscribe('client.damage', (clientDamageEvent: ClientDamageEvent): void => {
       this.damage.time = this.engine.CL.gametime;
       this.damage.attackOrigin.set(clientDamageEvent.attackOrigin);
       this.damage.damageReceived += clientDamageEvent.damageReceived;
@@ -574,9 +575,9 @@ export class Q1HUD {
     });
 
     // picked up an item
-    this.engine.eventBus.subscribe(
+    clientEvents(this.engine).subscribe(
       clientEventName(clientEvent.ITEM_PICKED),
-      (_itemEntity: object, itemNames: string[], netname: string | null, pickupItems: number = 0): void => {
+      (_itemEntity: object | null, itemNames: string[], netname: string | null, pickupItems: number = 0): void => {
         if (netname !== null) {
           this.messageBag!.addMessage(`You got ${netname}.`);
         } else if (itemNames.length > 0) {
@@ -598,24 +599,24 @@ export class Q1HUD {
     );
 
     // still used for some fading item effects
-    this.engine.eventBus.subscribe(clientEventName(clientEvent.BONUS_FLASH), (): void => {
+    clientEvents(this.engine).subscribe(clientEventName(clientEvent.BONUS_FLASH), (): void => {
       this.colorShifts.flash('bonus', new Vector(...this.engine.IndexToRGB(colors.HUD_CSHIFT_BONUSFLASH)), 0.2);
     });
 
     // game stats updates during game play
-    this.engine.eventBus.subscribe(clientEventName(clientEvent.STATS_UPDATED), (slot: string): void => {
+    clientEvents(this.engine).subscribe(clientEventName(clientEvent.STATS_UPDATED), (slot: string): void => {
       if (slot === 'secrets_found') {
         this.colorShifts.flash('info', new Vector(...this.engine.IndexToRGB(colors.HUD_CSHIFT_SECRET)), 0.2);
       }
     });
 
     // generic HUD message event
-    this.engine.eventBus.subscribe(clientEventName(clientEvent.HUD_MESSAGE), (message: string, color: Vector, duration: number): void => {
+    clientEvents(this.engine).subscribe(clientEventName(clientEvent.HUD_MESSAGE), (message: string, color: Vector, duration: number): void => {
       this.messageBag!.addMessage(message, duration, color);
     });
 
     // intermission screen
-    this.engine.eventBus.subscribe(
+    clientEvents(this.engine).subscribe(
       clientEventName(clientEvent.INTERMISSION_START),
       (message: string | null, origin: Vector, angles: Vector): void => {
         this._clearCenterPrint();
@@ -629,19 +630,19 @@ export class Q1HUD {
       },
     );
 
-    this.engine.eventBus.subscribe('client.center-print', (message: string): void => {
+    clientEvents(this.engine).subscribe('client.center-print', (message: string): void => {
       this.centerPrint.message = message.length > 0 ? message : null;
       this.centerPrint.startTime = this.engine.CL.time;
     });
 
     // chat message
-    this.engine.eventBus.subscribe('client.chat.message', (name: string, message: string, isDirect: boolean): void => {
+    clientEvents(this.engine).subscribe('client.chat.message', (name: string, message: string, isDirect: boolean): void => {
       const color = isDirect ? new Vector(0.5, 1.0, 0.5) : new Vector(1.0, 1.0, 1.0);
       this.messageBag!.addMessage(`${name}: ${message}`, 10.0, color);
     });
 
     // obituary event
-    this.engine.eventBus.subscribe(clientEventName(clientEvent.OBITUARY), (...args: unknown[]): void => {
+    clientEvents(this.engine).subscribe(clientEventName(clientEvent.OBITUARY), (...args: unknown[]): void => {
       console.info('OBITUARY event received, not implemented yet', args);
     });
   }
@@ -1217,10 +1218,10 @@ export class Q1HUD {
     }
 
     engineAPI.RegisterCommand('+showscores', (): void => {
-      engineAPI.eventBus.publish('hud.showscores', true);
+      clientEvents(engineAPI).publish('hud.showscores', true);
     });
     engineAPI.RegisterCommand('-showscores', (): void => {
-      engineAPI.eventBus.publish('hud.showscores', false);
+      clientEvents(engineAPI).publish('hud.showscores', false);
     });
 
     Gfx.loadAssets(engineAPI);

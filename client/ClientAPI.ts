@@ -13,6 +13,7 @@ import { ServerInfo, type ServerInfoSnapshot } from './Sync.ts';
 import { ServerGameAPI } from '../GameAPI.ts';
 import type ClientEdictHandlerRegistry from '../helper/ClientEdictHandlerRegistry.ts';
 import Id1Menu, { type Id1MenuOptions } from './Menu.ts';
+import { clientEvents } from '../Events.ts';
 
 interface DecalSet {
   readonly axehit: GLTexture[];
@@ -111,11 +112,11 @@ export class ClientGameAPI implements ClientGameInterface {
 
     // listeners are per-connection (`engine.eventBus` is wiped on disconnect), so they are
     // subscribed again from every init()
-    this.engine.eventBus.subscribe(clientEventName(clientEvent.EMIT_BUBBLES), (origin: Vector, count: number): void => {
+    clientEvents(this.engine).subscribe(clientEventName(clientEvent.EMIT_BUBBLES), (origin: Vector, count: number): void => {
       BubbleClientEdictHandler.spawnBurst(this.engine, origin, count);
     });
 
-    this.engine.eventBus.subscribe(clientEventName(clientEvent.EMIT_GIB), (modelName: string, origin: Vector, velocity: Vector): void => {
+    clientEvents(this.engine).subscribe(clientEventName(clientEvent.EMIT_GIB), (modelName: string, origin: Vector, velocity: Vector): void => {
       GibClientEdictHandler.spawnGib(this.engine, modelName, origin, velocity);
     });
 
@@ -161,7 +162,7 @@ export class ClientGameAPI implements ClientGameInterface {
       this.engine.ConsoleError(`failed to load axehit decal textures: ${error.message}\n`);
     });
 
-    this.decalEventHandler = this.engine.eventBus.subscribe(clientEventName(clientEvent.EMIT_DECAL), (origin: Vector, normal: Vector, texture: decals): void => {
+    this.decalEventHandler = clientEvents(this.engine).subscribe(clientEventName(clientEvent.EMIT_DECAL), (origin: Vector, normal: Vector, texture: decals): void => {
       switch (texture) {
         case decals.DECAL_BULLETHOLE:
           if (this.decals.bhole.length > 0) {
@@ -279,6 +280,8 @@ export class ClientGameAPI implements ClientGameInterface {
   }
 
   handleClientEvent(eventId: number, ...args: ClientEventValue[]): void {
+    // the opcode comes off the wire, so this is the one place that cannot name its event: the topic is the game's own
+    // and the arguments are whatever the server sent (typed per opcode for the listeners, see `Id1ClientEventArguments`)
     this.engine.eventBus.publish(clientEventName(eventId), ...args);
   }
 
@@ -323,7 +326,7 @@ export class ClientGameAPI implements ClientGameInterface {
         continue;
       }
 
-      this.engine.eventBus.publish('client.clientdata.field-changed', field as string, value, previousValue);
+      clientEvents(this.engine).publish('client.clientdata.field-changed', field as string, value, previousValue);
     }
   }
 

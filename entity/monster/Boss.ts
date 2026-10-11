@@ -8,6 +8,7 @@ import { state } from '../props/BasePropEntity.ts';
 import { DoorEntity } from '../props/Doors.ts';
 import { Missile } from '../Weapons.ts';
 import BaseMonster from './BaseMonster.ts';
+import { serverEvents } from '../../Events.ts';
 
 interface Combatant extends BaseEntity {
   health: number;
@@ -224,7 +225,7 @@ $frame shockc9 shockc10
 
     this.solid = solid.SOLID_MESH;
 
-    this.engine.eventBus.publish('game.monster.spawned', this);
+    serverEvents(this.engine).publish('game.monster.spawned', this);
   }
 
   static override _initStates(): void {
@@ -286,7 +287,8 @@ $frame shockc9 shockc10
       },
       false);
     this._defineState('boss_death10', 'death9', 'boss_death10', function (this: BossMonster): void {
-      this.engine.eventBus.publish('game.monster.killed', this, this.enemy);
+      // a boss without an enemy (nobody left to blame) is its own killer, as for a self-inflicted death of a player
+      serverEvents(this.engine).publish('game.monster.killed', this, this.enemy ?? this);
       if (this.enemy !== null) {
         this._sub?.useTargets(this.enemy);
       }

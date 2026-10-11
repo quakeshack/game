@@ -198,8 +198,8 @@ export enum clientEvent {
 
 /**
  * Return the client event bus topic for a client event opcode.
- * @returns The client event topic string.
+ * @returns The client event topic string, as a literal type when the opcode is one.
  */
-export function clientEventName(eventId: number): string {
+export function clientEventName<Opcode extends number>(eventId: Opcode): `client.event-received.${Opcode}` {
   return `client.event-received.${eventId}`;
 }

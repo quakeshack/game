@@ -4,6 +4,7 @@ import type BaseEntity from '../entity/BaseEntity.ts';
 
 import { clientEvent } from '../Defs.ts';
 import { serializableObject, serializable, Serializer } from './MiscHelpers.ts';
+import { serverEvents } from '../Events.ts';
 
 export const gameStatSlots = [
   'monsters_total',
@@ -47,21 +48,21 @@ export default class GameStats {
   }
 
   subscribeToEvents(): void {
-    this.engine.eventBus.subscribe('game.secret.spawned', () => {
+    serverEvents(this.engine).subscribe('game.secret.spawned', () => {
       this.secrets_total += 1;
     });
 
-    this.engine.eventBus.subscribe('game.secret.found', (_secretEntity: BaseEntity, finderEntity: BaseEntity) => {
+    serverEvents(this.engine).subscribe('game.secret.found', (_secretEntity: BaseEntity, finderEntity: BaseEntity) => {
       this.secrets_found += 1;
       console.assert(finderEntity.edict !== null, 'game.secret.found finder must have an edict');
       this.engine.BroadcastClientEvent(true, clientEvent.STATS_UPDATED, 'secrets_found', this.secrets_found, finderEntity.edict!);
     });
 
-    this.engine.eventBus.subscribe('game.monster.spawned', () => {
+    serverEvents(this.engine).subscribe('game.monster.spawned', () => {
       this.monsters_total += 1;
     });
 
-    this.engine.eventBus.subscribe('game.monster.killed', (_monsterEntity: BaseEntity, attackerEntity: BaseEntity) => {
+    serverEvents(this.engine).subscribe('game.monster.killed', (_monsterEntity: BaseEntity, attackerEntity: BaseEntity) => {
       this.monsters_killed += 1;
       console.assert(attackerEntity.edict !== null, 'game.monster.killed attacker must have an edict');
       this.engine.BroadcastClientEvent(true, clientEvent.STATS_UPDATED, 'monsters_killed', this.monsters_killed, attackerEntity.edict!);

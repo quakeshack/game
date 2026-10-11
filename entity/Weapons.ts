@@ -7,6 +7,7 @@ import { crandom, EntityWrapper, serializableObject, serializable } from '../hel
 import BaseEntity, { type TraceResult, isValid } from './BaseEntity.ts';
 import BaseMonster from './monster/BaseMonster.ts';
 import { PlayerEntity } from './Player.ts';
+import { serverEvents } from '../Events.ts';
 
 type WeaponAmmoSlot = 'ammo_shells' | 'ammo_nails' | 'ammo_rockets' | 'ammo_cells';
 type WeaponItemKey = 'IT_SHELLS' | 'IT_NAILS' | 'IT_ROCKETS' | 'IT_CELLS';
@@ -413,7 +414,7 @@ export class DamageHandler<T extends BaseEntity = BaseEntity> extends EntityWrap
 
     // bump the monster counter
     if (entity.flags & flags.FL_MONSTER) {
-      this._engine.eventBus.publish('game.monster.killed', entity, attackerEntity);
+      serverEvents(this._engine).publish('game.monster.killed', entity, attackerEntity);
     }
 
     // CR: ClientObituary(self, attacker); is handled by PlayerEntity.thinkDie now
@@ -546,7 +547,7 @@ export class DamageHandler<T extends BaseEntity = BaseEntity> extends EntityWrap
 
     // publish injured event
     if (entity.flags & flags.FL_MONSTER) {
-      this._engine.eventBus.publish('game.monster.injured', entity, attackerEntity, inflictorEntity);
+      serverEvents(this._engine).publish('game.monster.injured', entity, attackerEntity, inflictorEntity);
     }
 
     if (entity.thinkPain) {

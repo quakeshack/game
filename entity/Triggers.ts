@@ -8,6 +8,7 @@ import { PlayerEntity, TelefragTriggerEntity } from './Player.ts';
 import { TeleportTrainEntity } from './props/Platforms.ts';
 import { Sub } from './Subs.ts';
 import { DamageHandler } from './Weapons.ts';
+import { serverEvents } from '../Events.ts';
 
 @serializableObject
 export class BaseTriggerEntity extends BaseEntity {
@@ -248,13 +249,13 @@ export class SecretTriggerEntity extends OnceTriggerEntity {
       return false;
     }
 
-    this.engine.eventBus.publish('game.secret.found', this, triggeredByEntity);
+    serverEvents(this.engine).publish('game.secret.found', this, triggeredByEntity);
     return true;
   }
 
   override spawn(): void {
     this.wait = -1;
-    this.engine.eventBus.publish('game.secret.spawned', this);
+    serverEvents(this.engine).publish('game.secret.spawned', this);
     super.spawn();
   }
 }

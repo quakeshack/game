@@ -45,6 +45,7 @@ import type { EntityClass } from './entity/BaseEntity.ts';
 import * as miscProps from './entity/props/Misc.ts';
 import EntityIndex from './helper/EntityIndex.ts';
 import * as toolEntities from './entity/scripting/Tools.ts';
+import { serverEvents } from './Events.ts';
 
 export { featureFlags };
 export type { FeatureFlag };
@@ -487,7 +488,7 @@ export class ServerGameAPI implements ServerGameInterface {
       this.nextmap = this._cvars.nextmap?.string || null;
     };
 
-    this.engine.eventBus.subscribe('cvar.changed.sv_nextmap', () => {
+    serverEvents(this.engine).subscribe('cvar.changed.sv_nextmap', () => {
       setNextmap();
     });
 

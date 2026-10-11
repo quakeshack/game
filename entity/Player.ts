@@ -12,6 +12,7 @@ import { InfoNotNullEntity, IntermissionCameraEntity, TeleportEffectEntity } fro
 import { MeatSprayEntity } from './monster/BaseMonster.ts';
 import { DamageHandler, PlayerWeapons, weaponConfig, type BackpackPickup, type WeaponConfigKey } from './Weapons.ts';
 import { CopyToBodyQue } from './Worldspawn.ts';
+import { serverEvents } from '../Events.ts';
 
 type ButtonState = boolean | number;
 
@@ -1932,7 +1933,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
       }
 
       this.frags--;
-      this.engine.eventBus.publish('game.player.died', this, this);
+      serverEvents(this.engine).publish('game.player.died', this, this);
       return;
     }
 
@@ -1966,7 +1967,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
       this.engine.BroadcastClientEvent(true, clientEvent.OBITUARY, this.edictId ?? null, actualAttacker.edictId ?? null, 0, 0);
     }
 
-    this.engine.eventBus.publish('game.player.died', this, actualAttacker);
+    serverEvents(this.engine).publish('game.player.died', this, actualAttacker);
   }
 
   thinkPain(_attackerEntity: BaseEntity, _damagePoints: number): void {
