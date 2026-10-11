@@ -287,7 +287,10 @@ $frame shockc9 shockc10
       },
       false);
     this._defineState('boss_death10', 'death9', 'boss_death10', function (this: BossMonster): void {
-      // a boss without an enemy (nobody left to blame) is its own killer, as for a self-inflicted death of a player
+      console.assert(this.enemy !== null, 'a boss that dies has the enemy that killed it');
+
+      // should not happen, but a boss without an enemy (nobody left to blame) is its own killer, as for a
+      // self-inflicted death of a player, so the listeners never get a null attacker
       serverEvents(this.engine).publish('game.monster.killed', this, this.enemy ?? this);
       if (this.enemy !== null) {
         this._sub?.useTargets(this.enemy);
