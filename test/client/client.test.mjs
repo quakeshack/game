@@ -830,3 +830,64 @@ void describe('id1 HUD center print', () => {
     assert.equal(drawnText(engine).includes('hello'), false);
   });
 });
+
+void describe('id1 HUD pause sign', () => {
+  /**
+   * Builds a HUD on a mock engine, with the HUD's static state initialized.
+   * @returns {{ engine: ReturnType<typeof createMockClientEngine>, hud: InstanceType<typeof Q1HUD> }} Both.
+   */
+  function createHud() {
+    const engine = createMockClientEngine();
+    const game = {
+      clientdata: createClientdata(),
+      serverInfo: new ServerInfo(engine),
+    };
+
+    Q1HUD.Init(engine);
+
+    const hud = new Q1HUD(game, engine);
+    hud.init();
+
+    return { engine, hud };
+  }
+
+  /**
+   * Finds what the HUD drew of the pause sign.
+   * @param {ReturnType<typeof createMockClientEngine>} engine The mock engine.
+   * @returns {Array<{ x: number, y: number, pic: { name: string }, scale: number }>} The draws of the lump.
+   */
+  function pauseDraws(engine) {
+    return engine.drawPics.filter(({ pic }) => pic.name.includes('pause'));
+  }
+
+  void test('shows the sign at twice its size, centered, while the server has the game paused', () => {
+    const { engine, hud } = createHud();
+    engine.CL.paused = true;
+
+    hud.draw();
+
+    const [sign] = pauseDraws(engine);
+    assert.ok(sign !== undefined, 'the sign was drawn');
+    assert.equal(sign.scale, 2);
+    assert.equal(sign.x, (engine.VID.width - sign.pic.width * 2) / 2);
+    assert.equal(sign.y, (engine.VID.height - 48 - sign.pic.height * 2) / 2);
+  });
+
+  void test('shows nothing while the game runs', () => {
+    const { engine, hud } = createHud();
+
+    hud.draw();
+
+    assert.deepEqual(pauseDraws(engine), []);
+  });
+
+  void test('is switched off by showpause', () => {
+    const { engine, hud } = createHud();
+    engine.CL.paused = true;
+    engine.SetCvar('showpause', '0');
+
+    hud.draw();
+
+    assert.deepEqual(pauseDraws(engine), []);
+  });
+});

@@ -84,7 +84,7 @@ const powerups = createTextureGroup(['disc'] as const);
 
 const ammos = createTextureGroup(ammoSlots);
 
-const labels = createTextureGroup(['ranking', 'complete', 'inter', 'finale'] as const);
+const labels = createTextureGroup(['ranking', 'complete', 'inter', 'finale', 'pause'] as const);
 
 const cvars = {
   crosshair: null as Cvar | null,
@@ -94,6 +94,8 @@ const cvars = {
   centertime: null as Cvar | null,
   /** `scr_printspeed`: characters per second a finale text is typed out at. */
   printspeed: null as Cvar | null,
+  /** `showpause`: show the pause sign while the game is paused. */
+  showpause: null as Cvar | null,
 };
 
 const inventory: InventoryEntry[] = [
@@ -934,6 +936,16 @@ export class Q1HUD {
   }
 
   /**
+   * Draws the pause sign, centered and a little above the middle of the screen, at twice its size.
+   */
+  protected _drawPause(): void {
+    const pause = labels.pause!;
+    const { width, height } = this.engine.VID;
+
+    this.engine.DrawPic((width - pause.width * 2) / 2, (height - 48 - pause.height * 2) / 2, pause, 2);
+  }
+
+  /**
    * Draw the HUD-owned crosshair using the engine's classic glyph and offsets.
    */
   protected _drawCrosshair(): void {
@@ -1028,6 +1040,10 @@ export class Q1HUD {
     }
 
     this._drawStatusBar();
+
+    if (this.engine.CL.paused && cvars.showpause!.value !== 0) {
+      this._drawPause();
+    }
 
     // what the server printed in the middle of the screen, for a moment
     if (this.centerPrint.message !== null && (this.engine.CL.time - this.centerPrint.startTime) < cvars.centertime!.value) {
@@ -1140,6 +1156,7 @@ export class Q1HUD {
     // the names the engine used to own, so that configurations that set them keep working
     cvars.centertime = engineAPI.RegisterCvar('scr_centertime', '2');
     cvars.printspeed = engineAPI.RegisterCvar('scr_printspeed', '8');
+    cvars.showpause = engineAPI.RegisterCvar('showpause', '1');
   }
 
   static Init(this: typeof Q1HUD, engineAPI: ClientEngineAPI): void {
@@ -1171,6 +1188,7 @@ export class Q1HUD {
     labels.complete = engineAPI.LoadPicFromLump('complete');
     labels.inter = engineAPI.LoadPicFromLump('inter');
     labels.finale = engineAPI.LoadPicFromLump('finale');
+    labels.pause = engineAPI.LoadPicFromLump('pause');
 
     for (const inventoryItem of [inventory, miniInventory].flat()) {
       if (inventoryItem.iconPrefix === 'INV') {

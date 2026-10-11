@@ -175,6 +175,7 @@ interface MockClientState {
   maxclients: number;
   time: number;
   connected: boolean;
+  paused: boolean;
   viewContents: number;
   viewangles: Vector;
   vieworigin: Vector;
@@ -834,6 +835,7 @@ export function createMockClientEngine(
       maxclients: 1,
       time: 0,
       connected: false,
+      paused: false,
       viewContents: -1,
       viewangles: new Vector(),
       vieworigin: new Vector(),
