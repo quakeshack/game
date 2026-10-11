@@ -265,6 +265,9 @@ export interface MockClientEngine {
   SCR: MockScreenState;
   CL: MockClientState;
   SV: { active: boolean };
+  View: {
+    calculateDefault(input: unknown, result: unknown): void;
+  };
   PostProcess: {
     setStack(stack: readonly unknown[], options?: { channel?: string; fade?: number }): void;
     clearStack(channel?: string): void;
@@ -801,6 +804,11 @@ export function createMockClientEngine(
     },
     AppendConsoleText(text: string): void {
       appendedConsoleText.push(text);
+    },
+    View: {
+      calculateDefault(_input: unknown, result: unknown): void {
+        (result as { defaulted?: boolean }).defaulted = true;
+      },
     },
     PostProcess: {
       setStack(stack: readonly unknown[], options?: { channel?: string; fade?: number }): void {
