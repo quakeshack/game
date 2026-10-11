@@ -9,7 +9,6 @@ export const identification = {
   author: 'chrisnew',
   version: [1, 0, 0],
   capabilities: [
-    gameCapabilities.CAP_HUD_INCLUDES_CROSSHAIR,
     gameCapabilities.CAP_ENTITY_BBOX_ADJUSTMENTS_DURING_LINK,
   ],
 } satisfies GameModuleIdentification;
