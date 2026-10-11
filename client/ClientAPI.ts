@@ -323,7 +323,7 @@ export class ClientGameAPI implements ClientGameInterface {
         continue;
       }
 
-      this.engine.eventBus.publish('client.clientdata.field-changed', field, value, previousValue);
+      this.engine.eventBus.publish('client.clientdata.field-changed', field as string, value, previousValue);
     }
   }
 
