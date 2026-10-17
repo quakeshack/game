@@ -2,7 +2,7 @@
 
 In general the game code is completely object-oriented and it has *no global state*, therefore we need to carry around both engine interface as well as game interface. This allows the dedicated server to handle multiple servers at the same time enabling dynamic game lobbies etc. The most global state must be the variables on the `ServerGameAPI` object or on the `WorldspawnEntity`.
 
-This repository provides a clean, modern framework to build Quake mods using JavaScript/ES6 modules.
+This repository provides a clean, modern framework to build Quake mods in TypeScript (ES modules).
 
 ## Quick Start for Modders
 
@@ -175,7 +175,7 @@ class MyMonster extends BaseEntity {
 2. `@serializableObject` class decorator freezes them into `static serializableFields` on the class.
 3. At runtime, `collectSerializableFields()` walks the prototype chain and merges fields from every class in the hierarchy — parent fields are included automatically.
 
-**Backward compatibility:** Legacy `.mjs` subclasses can still use `static serializableFields` arrays or the `startFields()`/`endFields()` pattern. A decorated parent and a legacy child work correctly together.
+**Plain classes:** A class without the decorators can still list its fields in a `static serializableFields` array; a decorated parent and such a child work together.
 
 The same serializer can also be attached to plain objects with `Serializer.makeSerializable()` or `Serializer.makeSerializableObject()`. Use a server engine only when the object needs to resolve entity references during deserialization.
 
@@ -231,7 +231,6 @@ RFC 2119 applies.
 * Entity properties starting with `_` are considered protected and must and will not be set by the map loading code. If you intend to modify these properties outside of the class defining it, you must mark with with jsdoc’s `@public` annotation.
 * Entity properties intended to be read-only must be annotated with jsdoc’s `@readonly` annotation and should be declared throw a getter without a setter.
 * TypeScript entities must declare serializable properties with the `@serializable` field decorator and `@serializableObject` class decorator.
-* Legacy JS entities may still declare properties in the `_declareFields()` method.
 * Entities must declare assets to be precached in the `_precache()` method only.
 * Entities must declare states in the `_initStates()` method only.
 * Assets required during run-time must be precached by the `WorldspawnEntity`.
