@@ -6,6 +6,7 @@ import { ClientEdict } from '../../../../../engine/client/ClientEntities.ts';
 import { content } from '../../../../../shared/Defs.ts';
 import { effect } from '../../../Defs.ts';
 import { useClientStateOf } from '../../../../../../test/support/clientState.ts';
+import { createSingleLeafWorld } from '../../../../../../test/support/bspTree.ts';
 import { engineMocks } from '../../../../../../test/support/engineMocks.ts';
 
 await import('../../../GameAPI.ts');
@@ -66,7 +67,7 @@ function createWaterEngine(clock, { surfaceZ = 1000, ceilingZ = 10000 } = {}) {
 function withWorldmodel(callback) {
   const previousCL = engineMocks.CL;
 
-  engineMocks.CL = { state: { worldmodel: { nodes: [{ contents: content.CONTENT_EMPTY, num: 0 }] } } };
+  engineMocks.CL = { state: { worldmodel: createSingleLeafWorld() } };
   const restoreClientState = useClientStateOf(engineMocks.CL);
 
   try {

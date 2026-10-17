@@ -4,9 +4,9 @@ import { describe, test } from 'node:test';
 import Vector from '../../../../../shared/Vector.ts';
 import ClientEntities from '../../../../../engine/client/ClientEntities.ts';
 import GameModule from '../../../../../engine/common/GameModule.ts';
-import { content } from '../../../../../shared/Defs.ts';
 import { moveType } from '../../../Defs.ts';
 import { useClientStateOf } from '../../../../../../test/support/clientState.ts';
+import { createSingleLeafWorld } from '../../../../../../test/support/bspTree.ts';
 import { useHostOf } from '../../../../../../test/support/host.ts';
 import { installPageServices } from '../../../../../engine/client/PageServices.ts';
 import { createClientEngineApi } from '../../../../../../test/support/clientEngineApi.ts';
@@ -64,7 +64,7 @@ function floorWorld(start, end) {
  */
 function withWorld(clock, callback) {
   const previous = { CL: engineMocks.CL, Host: engineMocks.Host };
-  const state = { worldmodel: { nodes: [{ contents: content.CONTENT_EMPTY, num: 0 }] }, paused: false };
+  const state = { worldmodel: createSingleLeafWorld(), paused: false };
 
   Object.defineProperty(state, 'time', { get: () => clock.time });
   engineMocks.CL = { pmove: { movevars: { gravity: 800 } }, state, nolerp: { value: 0 }, collision: { traceStaticWorldLine: floorWorld } };
