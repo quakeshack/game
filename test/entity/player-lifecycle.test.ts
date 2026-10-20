@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
+import type Vector from '../../../../shared/Vector.ts';
+import type { PlayerEntity as Player } from '../../entity/Player.ts';
+import { createInertGameApi } from '../../../../../test/support/entityMocks.ts';
+
 await import('../../GameAPI.ts');
 
 const defsModule = await import('../../Defs.ts');
@@ -11,34 +15,47 @@ const vectorModule = await import('../../../../shared/Vector.ts');
 const { clientEvent, items } = defsModule;
 const { PlayerEntity } = playerModule;
 const { BodyqueEntity } = worldspawnModule;
-const { default: Vector } = vectorModule;
+const { default: VectorClass } = vectorModule;
 
 /**
- * Create a minimal game API surface for BodyqueEntity construction.
- * @returns {{engine: object}} Minimal game API object.
+ * Runs methods of the player on a stand-in that has just the members the method reads. The methods run here are
+ * protected, which a subclass may reach.
  */
-function createBodyqueGameAPI() {
-  return {
-    engine: {},
-  };
+class PlayerMethods extends PlayerEntity {
+  static respawn(player: object): void {
+    PlayerMethods.prototype._respawn.call(PlayerMethods.#asPlayer(player));
+  }
+
+  static intermissionExit(player: object): void {
+    PlayerMethods.prototype._intermissionExit.call(PlayerMethods.#asPlayer(player));
+  }
+
+  static powerupFrame(player: object): void {
+    PlayerMethods.prototype._powerupFrame.call(PlayerMethods.#asPlayer(player));
+  }
+
+  static #asPlayer(player: object): Player {
+    // The methods are run on objects that carry only what they read; a real player needs an edict and a whole game.
+    return player as unknown as Player;
+  }
 }
 
 /**
  * Create a body queue node with edict-bound methods stubbed for unit tests.
- * @returns {BodyqueEntity} Stubbed body queue entity.
+ * @returns Stubbed body queue entity.
  */
-function createBodyqueNode() {
-  const body = new BodyqueEntity(null, createBodyqueGameAPI()).initializeEntity();
+function createBodyqueNode(): InstanceType<typeof BodyqueEntity> {
+  const body = new BodyqueEntity(null, createInertGameApi()).initializeEntity();
 
-  body.setModel = function setModel(model) {
+  body.setModel = function setModel(this: typeof body, model: string | null): void {
     this.model = model;
   };
 
-  body.setOrigin = function setOrigin(origin) {
+  body.setOrigin = function setOrigin(this: typeof body, origin: Vector): void {
     this.origin = origin.copy();
   };
 
-  body.setSize = function setSize(mins, maxs) {
+  body.setSize = function setSize(this: typeof body, mins: Vector, maxs: Vector): void {
     this.mins = mins.copy();
     this.maxs = maxs.copy();
   };
@@ -48,20 +65,20 @@ function createBodyqueNode() {
 
 void describe('PlayerEntity respawn flow', () => {
   void test('singleplayer respawn restarts the map', () => {
-    const appendedConsoleText = [];
+    const appendedConsoleText: string[] = [];
     const player = {
       game: {
         coop: false,
         deathmatch: false,
       },
       engine: {
-        AppendConsoleText(command) {
+        AppendConsoleText(command: string) {
           appendedConsoleText.push(command);
         },
       },
     };
 
-    PlayerEntity.prototype._respawn.call(player);
+    PlayerMethods.respawn(player);
 
     assert.deepEqual(appendedConsoleText, ['restart\n']);
   });
@@ -72,22 +89,22 @@ void describe('PlayerEntity respawn flow', () => {
     bodyA.owner = bodyB;
     bodyB.owner = bodyA;
 
-    const calls = [];
+    const calls: string[] = [];
     const player = {
       game: {
         coop: false,
         deathmatch: true,
         bodyque_head: bodyA,
       },
-      angles: new Vector(1, 2, 3),
+      angles: new VectorClass(1, 2, 3),
       model: 'progs/player.mdl',
       frame: 4,
       colormap: 16,
       movetype: 7,
-      velocity: new Vector(10, 20, 30),
-      origin: new Vector(100, 200, 300),
-      mins: new Vector(-16, -16, -24),
-      maxs: new Vector(16, 16, 32),
+      velocity: new VectorClass(10, 20, 30),
+      origin: new VectorClass(100, 200, 300),
+      mins: new VectorClass(-16, -16, -24),
+      maxs: new VectorClass(16, 16, 32),
       clear() {
         calls.push('clear');
       },
@@ -99,13 +116,13 @@ void describe('PlayerEntity respawn flow', () => {
       },
     };
 
-    PlayerEntity.prototype._respawn.call(player);
+    PlayerMethods.respawn(player);
 
     assert.deepEqual(calls, ['freshSpawnParameters', 'clear', 'putPlayerInServer']);
     assert.equal(player.game.bodyque_head, bodyB);
     assert.equal(bodyA.model, 'progs/player.mdl');
-    assert.deepEqual(bodyA.origin, new Vector(100, 200, 300));
-    assert.deepEqual(bodyA.velocity, new Vector(10, 20, 30));
+    assert.deepEqual(bodyA.origin, new VectorClass(100, 200, 300));
+    assert.deepEqual(bodyA.velocity, new VectorClass(10, 20, 30));
   });
 });
 
@@ -124,14 +141,14 @@ void describe('PlayerEntity intermission flow', () => {
       },
     };
 
-    PlayerEntity.prototype._intermissionExit.call(player);
+    PlayerMethods.intermissionExit(player);
 
     assert.equal(loadNextMapCalls, 1);
   });
 
   void test('episode-ending intermission prints finale text before loading the next map', () => {
-    const centerPrints = [];
-    let trackPlayed = null;
+    const centerPrints: string[] = [];
+    let trackPlayed: number | null = null;
     let loadNextMapCalls = 0;
     const player = {
       game: {
@@ -147,17 +164,19 @@ void describe('PlayerEntity intermission flow', () => {
       },
       engine: {
         registered: true,
-        PlayTrack(track) {
+        PlayTrack(track: number) {
           trackPlayed = track;
         },
       },
-      centerPrint(message) {
+      centerPrint(message: string) {
         centerPrints.push(message);
       },
+      // The stand-in has no prototype of a player, so it brings the method it calls.
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       _getEpisodeFinaleText: PlayerEntity.prototype._getEpisodeFinaleText,
     };
 
-    PlayerEntity.prototype._intermissionExit.call(player);
+    PlayerMethods.intermissionExit(player);
 
     assert.equal(player.game.intermission_running, 2);
     assert.equal(player.game.intermission_exittime, 43);
@@ -170,8 +189,8 @@ void describe('PlayerEntity intermission flow', () => {
 
 void describe('PlayerEntity powerup timers', () => {
   void test('expired invisibility restores the player model and clears the item flag', () => {
-    const dispatchedEvents = [];
-    const sounds = [];
+    const dispatchedEvents: number[] = [];
+    const sounds: string[] = [];
     const player = {
       health: 100,
       game: { time: 20 },
@@ -189,17 +208,17 @@ void describe('PlayerEntity powerup timers', () => {
         eyes: 22,
       },
       frame: 3,
-      dispatchEvent(eventType) {
+      dispatchEvent(eventType: number) {
         dispatchedEvents.push(eventType);
       },
       consolePrint() {
       },
-      startSound(_channel, soundName) {
+      startSound(_channel: number, soundName: string) {
         sounds.push(soundName);
       },
     };
 
-    PlayerEntity.prototype._powerupFrame.call(player);
+    PlayerMethods.powerupFrame(player);
 
     assert.equal(player.items & items.IT_INVISIBILITY, 0);
     assert.equal(player.invisible_finished, 0);
@@ -229,7 +248,7 @@ void describe('PlayerEntity powerup timers', () => {
       },
     };
 
-    PlayerEntity.prototype._powerupFrame.call(player);
+    PlayerMethods.powerupFrame(player);
 
     assert.equal(player.items & items.IT_INVULNERABILITY, 0);
     assert.equal(player.invincible_finished, 0);
@@ -256,7 +275,7 @@ void describe('PlayerEntity powerup timers', () => {
       },
     };
 
-    PlayerEntity.prototype._powerupFrame.call(player);
+    PlayerMethods.powerupFrame(player);
 
     assert.equal(player.air_finished, 22);
     assert.equal(player.items & items.IT_SUIT, items.IT_SUIT);

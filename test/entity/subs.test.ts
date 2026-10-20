@@ -2,49 +2,54 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
 import Vector from '../../../../shared/Vector.ts';
+import type { ScheduledThinkCallback } from '../../entity/BaseEntity.ts';
+import type { flags } from '../../Defs.ts';
+import type { Sub as SubHelper } from '../../entity/Subs.ts';
+import { createInertGameApi, createMutableEngineApi } from '../../../../../test/support/entityMocks.ts';
 
 await import('../../GameAPI.ts');
 
 const { default: BaseEntity } = await import('../../entity/BaseEntity.ts');
 const { DelayedThinkEntity, Sub, TriggerFieldEntity, TriggerFieldFlag } = await import('../../entity/Subs.ts');
 
+interface GameOverrides {
+  readonly engine?: object;
+  readonly worldspawn?: object | null;
+}
+
 /**
  * Create a minimal mock game API for helper tests.
- * @param {object} overrides Optional engine/game overrides.
- * @returns {object} Mock game API object.
+ * @param overrides Optional engine/game overrides.
+ * @returns Mock game API object.
  */
-function createMockGameAPI(overrides = {}) {
-  const engine = {
+function createMockGameAPI(overrides: GameOverrides = {}): ReturnType<typeof createInertGameApi> {
+  const engine = createMutableEngineApi({
     SpawnEntity() {
       return null;
     },
-    FindAllByFieldAndValue() {
-      return [];
-    },
-    PrecacheSound() {},
-    StartSound() {},
     ...overrides.engine,
-  };
+  });
 
-  return {
-    time: 0,
-    engine,
-    worldspawn: overrides.worldspawn ?? null,
-    ...overrides,
-  };
+  return createInertGameApi({ worldspawn: overrides.worldspawn ?? null }, engine);
 }
+
+type Entity = InstanceType<typeof BaseEntity>;
 
 class TestTargetEntity extends BaseEntity {
   static classname = 'test_subs_target';
 
-  usedBy = null;
+  usedBy: Entity | null = null;
   removed = false;
 
-  use(activatorEntity) {
+  useSub(sub: SubHelper): void {
+    this._sub = sub;
+  }
+
+  override use(activatorEntity: Entity): void {
     this.usedBy = activatorEntity;
   }
 
-  remove() {
+  override remove(): void {
     this.removed = true;
   }
 }
@@ -88,10 +93,10 @@ void describe('Sub helpers', () => {
 
   void test('useTargets spawns delayed helper entities when delay is set', () => {
     const activator = new TestTargetEntity(null, createMockGameAPI()).initializeEntity();
-    const spawnCalls = [];
+    const spawnCalls: Array<{ classname: string; initialData: Record<string, unknown> }> = [];
     const owner = new TestTargetEntity(null, createMockGameAPI({
       engine: {
-        SpawnEntity(classname, initialData) {
+        SpawnEntity(classname: string, initialData: Record<string, unknown>) {
           spawnCalls.push({ classname, initialData });
           return null;
         },
@@ -112,7 +117,7 @@ void describe('Sub helpers', () => {
 
 void describe('TriggerFieldEntity', () => {
   void test('expands the touch bounds on spawn', () => {
-    const sizeCalls = [];
+    const sizeCalls: Array<{ mins: Vector; maxs: Vector }> = [];
     const entity = new TriggerFieldEntity(null, createMockGameAPI()).initializeEntity();
     entity.mins.setTo(10, 20, 30);
     entity.maxs.setTo(40, 50, 60);
@@ -128,7 +133,7 @@ void describe('TriggerFieldEntity', () => {
   });
 
   void test('respects actor and debounce gating before forwarding use', () => {
-    const usedBy = [];
+    const usedBy: Entity[] = [];
     const owner = new TestTargetEntity(null, createMockGameAPI()).initializeEntity();
     owner.use = (entity) => {
       usedBy.push(entity);
@@ -142,7 +147,7 @@ void describe('TriggerFieldEntity', () => {
     assert.equal(usedBy.length, 0);
 
     class ActorEntity extends TestTargetEntity {
-      isActor() {
+      override isActor(): boolean {
         return true;
       }
     }
@@ -158,7 +163,8 @@ void describe('TriggerFieldEntity', () => {
     assert.equal(usedBy.length, 1);
 
     field.game.time = 1.5;
-    field.flags = TriggerFieldFlag.TFF_ANY_ENTITY_TRIGGERS;
+    // TriggerFieldEntity keeps its own flag bits in the entity's `flags` field, which the type says holds `flags`.
+    field.flags = TriggerFieldFlag.TFF_ANY_ENTITY_TRIGGERS as number as flags;
     field.touch(nonActor);
     assert.equal(usedBy.length, 2);
     assert.equal(usedBy[1], nonActor);
@@ -185,7 +191,7 @@ void describe('Sub movement helpers', () => {
   });
 
   void test('calcMove schedules a completion think and velocity toward the destination', () => {
-    const scheduleCalls = [];
+    const scheduleCalls: Array<{ time: number; callback: ScheduledThinkCallback<typeof entity>; identifier: string | null | undefined }> = [];
     const entity = new TestTargetEntity(null, createMockGameAPI()).initializeEntity();
     entity.origin.setTo(0, 0, 0);
     entity.ltime = 10;
@@ -197,7 +203,7 @@ void describe('Sub movement helpers', () => {
     };
 
     const sub = new Sub(entity);
-  entity._sub = sub;
+    entity.useSub(sub);
     const destination = new Vector(100, 0, 0);
     let callbackCount = 0;
 

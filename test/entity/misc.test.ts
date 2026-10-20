@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
+import { createInertEdict, createInertGameApi, createMutableEngineApi } from '../../../../../test/support/entityMocks.ts';
+import { serializableFieldsOf } from '../../../../../test/support/serialization.ts';
 import { effect, moveType, solid } from '../../Defs.ts';
 
 await import('../../GameAPI.ts');
@@ -15,24 +17,21 @@ const {
   StaticBubbleSpawnerEntity,
 } = await import('../../entity/Misc.ts');
 
+interface GameOverrides {
+  readonly engine?: object;
+}
+
 /**
  * Create a minimal mock game API for Misc entity tests.
- * @param {object} overrides Optional engine and game overrides.
- * @returns {object} Mock game API object.
+ * @param overrides Optional engine overrides.
+ * @returns Mock game API object.
  */
-function createMockGameAPI(overrides = {}) {
-  const engine = {
-    IsLoading() {
-      return false;
-    },
+function createMockGameAPI(overrides: GameOverrides = {}): ReturnType<typeof createInertGameApi> {
+  const engine = createMutableEngineApi({
     Lightstyle() {},
     SpawnEntity() {
       return null;
     },
-    PrecacheModel() {},
-    PrecacheSound() {},
-    SpawnAmbientSound() {},
-    StartSound() {},
     DispatchTempEntityEvent() {},
     DeterminePointContents() {
       return 0;
@@ -41,72 +40,39 @@ function createMockGameAPI(overrides = {}) {
       publish() {},
     },
     ...overrides.engine,
-  };
+  });
 
-  return {
-    time: 0,
-    engine,
+  return createInertGameApi({
     deathmatch: 0,
     nomonsters: 0,
     serverflags: 0,
-    worldspawn: overrides.worldspawn ?? null,
-    ...overrides,
-  };
+    worldspawn: null,
+  }, engine);
 }
 
 /**
  * Create a fixture for misc_model spawn behavior.
- * @param {string} model Path to the OBJ mesh.
- * @returns {{ entity: MiscModelEntity, precachedModels: string[], setModelCalls: string[] }} Fixture data.
+ * @param model Path to the OBJ mesh.
+ * @returns Fixture data.
  */
 function createMiscModelFixture(model = 'models/test/blocker.obj') {
-  const precachedModels = [];
-  const setModelCalls = [];
-  let boundEntity = null;
+  const precachedModels: string[] = [];
+  const setModelCalls: string[] = [];
+  let boundEntity: InstanceType<typeof MiscModelEntity> | null = null;
 
-  const edict = {
-    entity: null,
-    freeEdict() {},
-    setOrigin() {},
-    setModel(modelName) {
-      setModelCalls.push(modelName);
-      if (boundEntity !== null) {
-        boundEntity.model = modelName;
-      }
-    },
-    setMinMaxSize() {},
-    walkMove() {
-      return false;
-    },
-    changeYaw() {
-      return 0;
-    },
-    dropToFloor() {
-      return true;
-    },
-    isOnTheFloor() {
-      return false;
-    },
-    makeStatic() {},
-    aim() {
-      return null;
-    },
-    moveToGoal() {
-      return false;
-    },
-    isInPXS() {
-      return true;
-    },
-    getNextBestClient() {
-      return null;
-    },
+  const edict = createInertEdict();
+  edict.setModel = (modelName: string): void => {
+    setModelCalls.push(modelName);
+    if (boundEntity !== null) {
+      boundEntity.model = modelName;
+    }
   };
   const gameAPI = createMockGameAPI({
     engine: {
       IsLoading() {
         return true;
       },
-      PrecacheModel(modelName) {
+      PrecacheModel(modelName: string): void {
         precachedModels.push(modelName);
       },
     },
@@ -125,7 +91,7 @@ class TestEntity extends BaseEntity {
 
   removed = false;
 
-  remove() {
+  override remove(): void {
     this.removed = true;
   }
 }
@@ -133,25 +99,26 @@ class TestEntity extends BaseEntity {
 class TestMonster extends BaseMonster {
   static classname = 'test_misc_monster';
 
-  reachedCorner = null;
+  reachedCorner: InstanceType<typeof PathCornerEntity> | null = null;
 
-  moveTargetReached(pathCornerEntity) {
+  override moveTargetReached(pathCornerEntity: InstanceType<typeof PathCornerEntity>): boolean {
     this.reachedCorner = pathCornerEntity;
+    return false;
   }
 
-  spawn() {}
+  spawn(): void {}
 }
 
 void describe('Misc entity port', () => {
   void test('IntermissionCameraEntity uses decorated defaults', () => {
     const entity = new IntermissionCameraEntity(null, createMockGameAPI()).initializeEntity();
 
-    assert.ok(IntermissionCameraEntity.serializableFields.includes('mangle'));
+    assert.ok(serializableFieldsOf(IntermissionCameraEntity)?.includes('mangle'));
     assert.ok(entity.mangle.equalsTo(0, 0, 0));
   });
 
   void test('LightEntity removes inert lights and toggles targeted styles', () => {
-    const styles = [];
+    const styles: Array<{ style: number; value: string }> = [];
     const inert = new LightEntity(null, createMockGameAPI()).initializeEntity();
     let removed = false;
     inert.remove = () => {
@@ -162,7 +129,7 @@ void describe('Misc entity port', () => {
 
     const active = new LightEntity(null, createMockGameAPI({
       engine: {
-        Lightstyle(style, value) {
+        Lightstyle(style: number, value: string): void {
           styles.push({ style, value });
         },
       },
@@ -201,27 +168,23 @@ void describe('Misc entity port', () => {
   });
 
   void test('StaticBubbleSpawnerEntity turns itself into an invisible static entity and spawns nothing', () => {
-    const modelCalls = [];
+    const modelCalls: string[] = [];
     let madeStatic = 0;
     let spawned = 0;
-    let boundEntity = null;
-    const edict = {
-      entity: null,
-      setModel(modelName) {
-        modelCalls.push(modelName);
-        boundEntity.model = modelName;
-      },
-      setMinMaxSize() {},
-      makeStatic() {
-        madeStatic += 1;
-      },
+    let boundEntity: InstanceType<typeof StaticBubbleSpawnerEntity> | null = null;
+    const edict = createInertEdict();
+    edict.setModel = (modelName: string): void => {
+      modelCalls.push(modelName);
+      boundEntity!.model = modelName;
+    };
+    edict.makeStatic = (): void => {
+      madeStatic += 1;
     };
     const gameAPI = createMockGameAPI({
       engine: {
         IsLoading() {
           return true;
         },
-        PrecacheModel() {},
         SpawnEntity() {
           spawned += 1;
           return null;

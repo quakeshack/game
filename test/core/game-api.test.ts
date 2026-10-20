@@ -1,63 +1,52 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
+import type Cvar from '../../../../engine/common/Cvar.ts';
+import type { ServerEdict } from '../../../../engine/server/Edict.ts';
+import type EntityRegistry from '../../helper/Registry.ts';
+import { createInertEdict, createInertEngineApi } from '../../../../../test/support/entityMocks.ts';
+import { createMutableCvarStub } from '../../../../../test/support/cvarStub.ts';
+import { serializableFieldsOf } from '../../../../../test/support/serialization.ts';
+
 const { ServerGameAPI } = await import('../../GameAPI.ts');
 const { default: BaseEntity } = await import('../../entity/BaseEntity.ts');
 
-/**
- * Create a mutable mock cvar.
- * @param {number|string} initialValue Initial cvar value.
- * @returns {object} Mock cvar.
- */
-function createMockCvar(initialValue) {
-  const normalizedValue = Number(initialValue);
-
-  return {
-    value: normalizedValue,
-    string: String(normalizedValue),
-    set(nextValue) {
-      this.value = Number(nextValue);
-      this.string = String(this.value);
-    },
-    free() {
-    },
-  };
-}
+type GameAPI = InstanceType<typeof ServerGameAPI>;
+type StaticCvars = typeof ServerGameAPI._cvars;
 
 /**
  * Create the static cvar table used by ServerGameAPI tests.
- * @param {object} overrides Override values for selected cvars.
- * @returns {object} Mock static cvar registry.
+ * @param overrides Override values for selected cvars.
+ * @returns Mock static cvar registry.
  */
-function createStaticCvars(overrides = {}) {
+function createStaticCvars(overrides: Partial<Record<keyof StaticCvars, Cvar>> = {}): Record<keyof StaticCvars, Cvar> {
   return {
-    nomonster: createMockCvar(0),
-    fraglimit: createMockCvar(20),
-    timelimit: createMockCvar(15),
-    samelevel: createMockCvar(0),
-    noexit: createMockCvar(0),
-    skill: createMockCvar(1),
-    deathmatch: createMockCvar(0),
-    coop: createMockCvar(0),
+    nomonster: createMutableCvarStub(0),
+    fraglimit: createMutableCvarStub(20),
+    timelimit: createMutableCvarStub(15),
+    samelevel: createMutableCvarStub(0),
+    noexit: createMutableCvarStub(0),
+    skill: createMutableCvarStub(1),
+    deathmatch: createMutableCvarStub(0),
+    coop: createMutableCvarStub(0),
     ...overrides,
   };
 }
 
 /**
  * Create the minimal server engine surface required by ServerGameAPI construction tests.
- * @param {object} overrides Optional engine overrides.
- * @returns {object} Mock server engine.
+ * @returns Mock server engine.
  */
-function createMockServerEngine(overrides = {}) {
-  const cvars = {
-    teamplay: createMockCvar(0),
-    sv_gravity: createMockCvar(800),
-    sv_nextmap: createMockCvar(0),
+function createMockServerEngine(): ReturnType<typeof createInertEngineApi> {
+  const cvars: Record<string, Cvar> = {
+    teamplay: createMutableCvarStub(0),
+    sv_gravity: createMutableCvarStub(800),
+    sv_nextmap: createMutableCvarStub(0),
   };
 
-  return {
-    GetCvar(name) {
-      return cvars[name] ?? createMockCvar(0);
+  return createInertEngineApi({
+    GetCvar(name: string): Cvar {
+      return cvars[name] ?? createMutableCvarStub(0);
     },
     eventBus: {
       subscribe() {
@@ -65,15 +54,24 @@ function createMockServerEngine(overrides = {}) {
       },
     },
     maxplayers: 1,
-    ...overrides,
-  };
+  });
+}
+
+/**
+ * A game API that skipped its constructor, so a test sets just the members the method under test reads.
+ * @param members The members to set.
+ * @returns The game API.
+ */
+function createBareGameAPI(members: object): GameAPI {
+  // The constructor needs a whole engine; these tests exercise single methods that read a few members.
+  return Object.assign(Object.create(ServerGameAPI.prototype) as GameAPI, { constructor: ServerGameAPI }, members);
 }
 
 void describe('ServerGameAPI serialization', () => {
   void test('preserves the legacy serialized field set with decorator registration', () => {
     const gameAPI = new ServerGameAPI(createMockServerEngine());
 
-    assert.deepEqual(ServerGameAPI.serializableFields, [
+    assert.deepEqual(serializableFieldsOf(ServerGameAPI), [
       'mapname',
       'force_retouch',
       'stats',
@@ -107,7 +105,7 @@ void describe('ServerGameAPI serialization', () => {
 
     const serialized = gameAPI.serialize();
 
-    assert.deepEqual(Object.keys(serialized), ServerGameAPI.serializableFields);
+    assert.deepEqual(Object.keys(serialized), serializableFieldsOf(ServerGameAPI));
     assert.deepEqual(serialized.stats, ['S', {
       monsters_total: ['P', 0],
       monsters_killed: ['P', 0],
@@ -125,17 +123,17 @@ void describe('ServerGameAPI cvar access', () => {
 
     try {
       ServerGameAPI._cvars = createStaticCvars({
-        skill: createMockCvar(3),
-        deathmatch: createMockCvar(1),
+        skill: createMutableCvarStub(3),
+        deathmatch: createMutableCvarStub(1),
       });
 
-      const gameAPI = Object.create(ServerGameAPI.prototype);
-      gameAPI.constructor = ServerGameAPI;
-      gameAPI._cvars = {
-        teamplay: createMockCvar(2),
-        gravity: createMockCvar(900),
-        nextmap: createMockCvar(0),
-      };
+      const gameAPI = createBareGameAPI({
+        _cvars: {
+          teamplay: createMutableCvarStub(2),
+          gravity: createMutableCvarStub(900),
+          nextmap: createMutableCvarStub(0),
+        },
+      });
 
       assert.equal(gameAPI.skill, 3);
       assert.equal(gameAPI.deathmatch, 1);
@@ -154,27 +152,27 @@ void describe('ServerGameAPI cvar access', () => {
 
     try {
       const cvars = createStaticCvars({
-        coop: createMockCvar(1),
-        deathmatch: createMockCvar(1),
-        skill: createMockCvar(9),
+        coop: createMutableCvarStub(1),
+        deathmatch: createMutableCvarStub(1),
+        skill: createMutableCvarStub(9),
       });
       ServerGameAPI._cvars = cvars;
 
-      const gameAPI = Object.create(ServerGameAPI.prototype);
-      gameAPI.constructor = ServerGameAPI;
-      gameAPI.mapname = null;
-      gameAPI.serverflags = 0;
-      gameAPI.stats = {
-        subscribeToEvents() {
-          subscribedToEvents = true;
+      const gameAPI = createBareGameAPI({
+        mapname: null,
+        serverflags: 0,
+        stats: {
+          subscribeToEvents() {
+            subscribedToEvents = true;
+          },
         },
-      };
-      gameAPI._precacheResources = () => {
-        precachedResources = true;
-      };
-      gameAPI._initNextMap = () => {
-        initializedNextMap = true;
-      };
+        _precacheResources: () => {
+          precachedResources = true;
+        },
+        _initNextMap: () => {
+          initializedNextMap = true;
+        },
+      });
 
       gameAPI.init('e1m1', 7);
 
@@ -198,19 +196,23 @@ void describe('ServerGameAPI entity lifecycle', () => {
       static classname = 'deferred_init_entity';
       static serializableFields = ['initializerReady', 'constructorValue', 'precacheObservedValue'];
 
-      constructor(edict, gameAPI) {
+      declare initializerReady: number;
+      declare constructorValue: number;
+      declare precacheObservedValue: number;
+
+      constructor(edict: ServerEdict | null, gameAPI: GameAPI) {
         super(edict, gameAPI);
         this.constructorValue = 3;
       }
 
-      _initComponents() {
+      override _initComponents(): void {
         super._initComponents();
         this.initializerReady = 0;
         this.constructorValue = 0;
         this.precacheObservedValue = -1;
       }
 
-      _precache() {
+      _precache(): void {
         this.precacheObservedValue = this.initializerReady;
       }
     }
@@ -220,33 +222,30 @@ void describe('ServerGameAPI entity lifecycle', () => {
 
     try {
       ServerGameAPI._cvars = createStaticCvars();
+      // Only the two lookups prepareEntity makes; the real registry has a private table to fill.
       ServerGameAPI._entityRegistry = {
-        has(classname) {
+        has(classname: string): boolean {
           return classname === DeferredInitEntity.classname;
         },
-        get(classname) {
+        get(classname: string): typeof DeferredInitEntity | null {
           return classname === DeferredInitEntity.classname ? DeferredInitEntity : null;
         },
-      };
+      } as unknown as EntityRegistry;
 
-      const gameAPI = Object.create(ServerGameAPI.prototype);
-      gameAPI.constructor = ServerGameAPI;
-      gameAPI.engine = {
-        ConsoleWarning() {},
-        IsLoading() {
-          return false;
-        },
-      };
-      gameAPI._missingEntityClassStats = {};
-      gameAPI._isPreparingEntityAllowed = () => true;
+      const gameAPI = createBareGameAPI({
+        engine: createInertEngineApi({ ConsoleWarning() {} }),
+        _missingEntityClassStats: {},
+        _isPreparingEntityAllowed: () => true,
+      });
 
-      const edict = { entity: null };
+      const edict = createInertEdict();
 
       const prepared = gameAPI.prepareEntity(edict, DeferredInitEntity.classname, {
         initializerReady: 7,
       });
 
       assert.equal(prepared, true);
+      assert.ok(edict.entity instanceof DeferredInitEntity);
       assert.equal(edict.entity.precacheObservedValue, 7);
       assert.equal(edict.entity.constructorValue, 0);
     } finally {

@@ -2,92 +2,34 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import Vector from '../../../../shared/Vector.ts';
+import { createGameTrace, createInertEdict, createInertGameApi, createMutableEngineApi, type MutableEngineApi } from '../../../../../test/support/entityMocks.ts';
 
 import { flags, items, worldType } from '../../Defs.ts';
-import { entityClasses } from '../../GameAPI.ts';
 
-const OgreEntity = entityClasses.find((entityClass) => entityClass.classname === 'monster_ogre');
-const PlayerCtor = entityClasses.find((entityClass) => entityClass.classname === 'player');
+await import('../../GameAPI.ts');
+const { QuakeEntityAI } = await import('../../helper/AI.ts');
+const { default: OgreEntity } = await import('../../entity/monster/Ogre.ts');
+const { PlayerEntity } = await import('../../entity/Player.ts');
 
-assert.ok(OgreEntity, 'monster_ogre must be registered in GameAPI');
-assert.ok(PlayerCtor, 'player must be registered in GameAPI');
+/** A monster whose scheduled thinks are recorded instead of queued. */
+type ObservedMonster = InstanceType<typeof OgreEntity> & { _scheduledThinkArgs: unknown[]; engine: MutableEngineApi };
 
 /**
- * Create a minimal edict stub for AI tests.
- * @param {number} num Edict slot number.
- * @returns {object} Mock edict.
+ * The AI a monster thinks with.
+ * @param monster The monster.
+ * @returns Its Quake AI.
  */
-function createMockEdict(num) {
-  return {
-    num,
-    entity: null,
-    equals(other) {
-      return this === other;
-    },
-    freeEdict() {},
-    setOrigin() {},
-    setModel() {},
-    setMinMaxSize() {},
-    walkMove() {
-      return false;
-    },
-    changeYaw() {
-      return 0;
-    },
-    dropToFloor() {
-      return true;
-    },
-    isOnTheFloor() {
-      return false;
-    },
-    makeStatic() {},
-    aim() {
-      return null;
-    },
-    getNextBestClient() {
-      return null;
-    },
-    moveToGoal() {
-      return false;
-    },
-    isInPXS() {
-      return true;
-    },
-  };
+function aiOf(monster: ObservedMonster): InstanceType<typeof QuakeEntityAI> {
+  assert.ok(monster._ai instanceof QuakeEntityAI);
+  return monster._ai;
 }
 
 /**
  * Create the minimal engine surface required by the AI harness.
- * @returns {object} Mock engine API.
+ * @returns Mock engine API, with the members a test replaces writable.
  */
-function createMockEngine() {
-  return {
-    IsLoading() {
-      return false;
-    },
-    PrecacheModel() {},
-    PrecacheSound() {},
-    StartSound() {},
-    SpawnAmbientSound() {},
-    SpawnEntity() {
-      return { entity: null };
-    },
-    FindByFieldAndValue() {
-      return null;
-    },
-    FindAllByFieldAndValue() {
-      return [];
-    },
-    ParseQC() {
-      return null;
-    },
-    Traceline() {
-      return null;
-    },
-    SetAreaPortalState() {},
-    GetCvar() {
-      return { value: 0 };
-    },
+function createMockEngine(): MutableEngineApi {
+  return createMutableEngineApi({
     GetPHS() {
       return null;
     },
@@ -104,14 +46,14 @@ function createMockEngine() {
     eventBus: {
       publish() {},
     },
-  };
+  });
 }
 
 /**
  * Create shared game-wide AI state for the harness.
- * @returns {object} Mock game AI state.
+ * @returns Mock game AI state.
  */
-function createMockGameAI() {
+function createMockGameAI(): object {
   return {
     _sightEntity: null,
     _sightEntityTime: 0,
@@ -120,23 +62,23 @@ function createMockGameAI() {
 }
 
 /**
- * @returns {InstanceType<typeof OgreEntity>} monster fixture with a minimal engine API
+ * Create a monster fixture with a minimal engine API.
+ * @returns The monster.
  */
-function createMonsterVisibilityFixture() {
-  const edict = createMockEdict(1);
+function createMonsterVisibilityFixture(): ObservedMonster {
+  const edict = createInertEdict();
   const engine = createMockEngine();
 
-  const gameAPI = {
-    engine,
+  const gameAPI = createInertGameApi({
     time: 1,
     coop: 0,
     worldspawn: {
       worldtype: worldType.MEDIEVAL,
     },
     gameAI: createMockGameAI(),
-  };
+  }, engine);
 
-  const entity = new OgreEntity(edict, gameAPI).initializeEntity();
+  const entity = new OgreEntity(edict, gameAPI).initializeEntity() as ObservedMonster;
   edict.entity = entity;
 
   entity.health = 200;
@@ -150,7 +92,6 @@ function createMonsterVisibilityFixture() {
   entity.spawnflags = 0;
   entity.effects = 0;
   entity.flags = 0;
-  entity.items = 0;
   entity.ideal_yaw = 0;
   entity.attack_finished = 0;
   entity.nextthink = 0;
@@ -160,10 +101,10 @@ function createMonsterVisibilityFixture() {
   entity.thinkRun = () => {};
   entity.thinkStand = () => {};
   entity.thinkWalk = () => {};
-  entity._scheduleThink = (...args) => {
+  entity._scheduleThink = (...args: unknown[]) => {
     entity._scheduledThinkArgs = args;
   };
-  entity.attackFinished = (delay) => {
+  entity.attackFinished = (delay: number) => {
     entity.attack_finished = gameAPI.time + delay;
   };
   entity.getNextBestClient = () => null;
@@ -173,14 +114,13 @@ function createMonsterVisibilityFixture() {
 
 /**
  * Create a player fixture compatible with the monster AI routines.
- * @returns {InstanceType<typeof PlayerCtor>} Mock player entity.
+ * @returns Mock player entity.
  */
-function createPlayerFixture() {
-  const edict = createMockEdict(2);
+function createPlayerFixture(): InstanceType<typeof PlayerEntity> {
+  const edict = createInertEdict();
   const engine = createMockEngine();
 
-  const gameAPI = {
-    engine,
+  const gameAPI = createInertGameApi({
     time: 0,
     coop: 0,
     worldspawn: {
@@ -190,9 +130,9 @@ function createPlayerFixture() {
     stats: {
       sendToPlayer() {},
     },
-  };
+  }, engine);
 
-  const player = new PlayerCtor(edict, gameAPI).initializeEntity();
+  const player = new PlayerEntity(edict, gameAPI).initializeEntity();
   edict.entity = player;
 
   player.health = 100;
@@ -211,32 +151,24 @@ void describe('QuakeEntityAI._isVisible', () => {
     const entity = createMonsterVisibilityFixture();
     const target = createMonsterVisibilityFixture();
 
-    entity.engine.Traceline = () => ({
+    entity.engine.Traceline = () => createGameTrace({
       fraction: 1.0,
-      entity: null,
-      contents: {
-        inOpen: false,
-        inWater: false,
-      },
+      contents: { inOpen: false, inWater: false },
     });
 
-    assert.equal(entity._ai._isVisible(target), true);
+    assert.equal(aiOf(entity)._isVisible(target), true);
   });
 
   void test('rejects blocked sight lines when the trace stops short', () => {
     const entity = createMonsterVisibilityFixture();
     const target = createMonsterVisibilityFixture();
 
-    entity.engine.Traceline = () => ({
+    entity.engine.Traceline = () => createGameTrace({
       fraction: 0.5,
-      entity: null,
-      contents: {
-        inOpen: false,
-        inWater: false,
-      },
+      contents: { inOpen: false, inWater: false },
     });
 
-    assert.equal(entity._ai._isVisible(target), false);
+    assert.equal(aiOf(entity)._isVisible(target), false);
   });
 });
 
@@ -246,16 +178,12 @@ void describe('QuakeEntityAI.findTarget', () => {
     const player = createPlayerFixture();
 
     monster.getNextBestClient = () => player;
-    monster.engine.Traceline = () => ({
+    monster.engine.Traceline = () => createGameTrace({
       fraction: 1.0,
-      entity: null,
-      contents: {
-        inOpen: false,
-        inWater: false,
-      },
+      contents: { inOpen: false, inWater: false },
     });
 
-    const found = monster._ai.findTarget();
+    const found = aiOf(monster).findTarget();
 
     assert.equal(found, true);
     assert.equal(monster.enemy, player);
@@ -277,17 +205,13 @@ void describe('QuakeEntityAI.findTarget', () => {
     monster.getNextBestClient = () => player;
     monster.engine.Traceline = () => {
       visibilityChecks += 1;
-      return {
+      return createGameTrace({
         fraction: 1.0,
-        entity: null,
-        contents: {
-          inOpen: false,
-          inWater: false,
-        },
-      };
+        contents: { inOpen: false, inWater: false },
+      });
     };
 
-    const found = monster._ai.findTarget();
+    const found = aiOf(monster).findTarget();
 
     assert.equal(found, false);
     assert.equal(monster.enemy, null);
@@ -297,10 +221,11 @@ void describe('QuakeEntityAI.findTarget', () => {
   void test('ignores undefined client lookups without throwing', () => {
     const monster = createMonsterVisibilityFixture();
 
-    monster.getNextBestClient = () => undefined;
+    // A client lookup that answers undefined instead of null, which the engine's callers may do.
+    monster.getNextBestClient = (() => undefined) as unknown as () => null;
 
     assert.doesNotThrow(() => {
-      assert.equal(monster._ai.findTarget(), false);
+      assert.equal(aiOf(monster).findTarget(), false);
     });
     assert.equal(monster.enemy, null);
   });

@@ -2,6 +2,9 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 // Establish correct ESM evaluation order — GameAPI is the production entry point.
+import { statesOf } from '../../../../../test/support/entityStates.ts';
+import { serializableFieldsOf } from '../../../../../test/support/serialization.ts';
+
 await import('../../GameAPI.ts');
 
 const { default: FishMonsterEntity } = await import('../../entity/monster/Fish.ts');
@@ -30,19 +33,19 @@ void describe('FishMonsterEntity class metadata', () => {
   });
 
   void test('serializableFields is a frozen array from @entity', () => {
-    assert.ok(Array.isArray(FishMonsterEntity.serializableFields));
-    assert.ok(Object.isFrozen(FishMonsterEntity.serializableFields));
+    assert.ok(Array.isArray(serializableFieldsOf(FishMonsterEntity)));
+    assert.ok(Object.isFrozen(serializableFieldsOf(FishMonsterEntity)));
   });
 });
 
 void describe('FishMonsterEntity state machine', () => {
   void test('_states is populated after _initStates', () => {
-    assert.ok(FishMonsterEntity._states !== null);
-    assert.equal(typeof FishMonsterEntity._states, 'object');
+    assert.ok(statesOf(FishMonsterEntity) !== null);
+    assert.equal(typeof statesOf(FishMonsterEntity), 'object');
   });
 
   void test('stand sequence has 18 frames that loop', () => {
-    const states = FishMonsterEntity._states;
+    const states = statesOf(FishMonsterEntity);
     // f_stand1 through f_stand18, last loops to f_stand1
     for (let i = 1; i <= 18; i++) {
       const key = `f_stand${i}`;
@@ -53,7 +56,7 @@ void describe('FishMonsterEntity state machine', () => {
   });
 
   void test('walk sequence has 18 frames that loop', () => {
-    const states = FishMonsterEntity._states;
+    const states = statesOf(FishMonsterEntity);
     for (let i = 1; i <= 18; i++) {
       const key = `f_walk${i}`;
       assert.ok(key in states, `missing state ${key}`);
@@ -63,7 +66,7 @@ void describe('FishMonsterEntity state machine', () => {
   });
 
   void test('run sequence uses odd swim frames and loops', () => {
-    const states = FishMonsterEntity._states;
+    const states = statesOf(FishMonsterEntity);
     // 9 run frames: swim1, swim3, swim5, ..., swim17
     const expectedKeyframes = [1, 3, 5, 7, 9, 11, 13, 15, 17];
     for (let i = 0; i < 9; i++) {
@@ -75,7 +78,7 @@ void describe('FishMonsterEntity state machine', () => {
   });
 
   void test('attack sequence has 18 frames ending at f_run1', () => {
-    const states = FishMonsterEntity._states;
+    const states = statesOf(FishMonsterEntity);
     for (let i = 1; i <= 18; i++) {
       const key = `f_atta${i}`;
       assert.ok(key in states, `missing state ${key}`);
@@ -86,7 +89,7 @@ void describe('FishMonsterEntity state machine', () => {
   });
 
   void test('death sequence has 21 frames and does not loop', () => {
-    const states = FishMonsterEntity._states;
+    const states = statesOf(FishMonsterEntity);
     for (let i = 1; i <= 21; i++) {
       const key = `f_death${i}`;
       assert.ok(key in states, `missing state ${key}`);
@@ -97,7 +100,7 @@ void describe('FishMonsterEntity state machine', () => {
   });
 
   void test('pain sequence has 9 frames ending at f_run1', () => {
-    const states = FishMonsterEntity._states;
+    const states = statesOf(FishMonsterEntity);
     for (let i = 1; i <= 9; i++) {
       const key = `f_pain${i}`;
       assert.ok(key in states, `missing state ${key}`);
@@ -107,7 +110,7 @@ void describe('FishMonsterEntity state machine', () => {
   });
 
   void test('all state handlers are functions', () => {
-    const states = FishMonsterEntity._states;
+    const states = statesOf(FishMonsterEntity);
     for (const [name, state] of Object.entries(states)) {
       assert.equal(typeof state.handler, 'function', `${name} handler should be a function`);
     }

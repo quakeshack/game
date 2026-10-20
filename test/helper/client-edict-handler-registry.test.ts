@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
 import { BaseClientEdictHandler } from '../../../../shared/ClientEdict.ts';
+import type { ServerEngineAPI } from '../../../../shared/GameInterfaces.ts';
+import { createInertEngineApi } from '../../../../../test/support/entityMocks.ts';
 
 await import('../../GameAPI.ts');
 const { default: ClientEdictHandlerRegistry } = await import('../../helper/ClientEdictHandlerRegistry.ts');
@@ -20,6 +22,16 @@ class FirstHandler extends BaseClientEdictHandler {
 
 class SecondHandler extends BaseClientEdictHandler {
   static classname = 'test_second';
+}
+
+/**
+ * Run `_precacheResources` of a game API class against an engine, without building the game.
+ * @param engine The engine API the game precaches through.
+ * @param gameAPIClass The game API class whose handler registry is used.
+ */
+function precacheResources(engine: ServerEngineAPI, gameAPIClass: typeof ServerGameAPI): void {
+  // The method reads `engine` and `constructor` of its receiver; the constructor needs a whole engine.
+  ServerGameAPI.prototype._precacheResources.call({ engine, constructor: gameAPIClass } as unknown as InstanceType<typeof ServerGameAPI>);
 }
 
 void describe('ClientEdictHandlerRegistry', () => {
@@ -47,17 +59,17 @@ void describe('ClientEdictHandlerRegistry', () => {
 
 void describe('ClientEdictHandlerRegistry.precacheAll', () => {
   void test('lets every registered handler declare what the server has to precache', () => {
-    const precached = [];
+    const precached: ServerEngineAPI[] = [];
 
     class PrecachingHandler extends BaseClientEdictHandler {
       static classname = 'test_precaching';
 
-      static _precache(engineAPI) {
+      static override _precache(engineAPI: ServerEngineAPI): void {
         precached.push(engineAPI);
       }
     }
 
-    const engine = {};
+    const engine = createInertEngineApi();
 
     new ClientEdictHandlerRegistry([PrecachingHandler, FirstHandler]).precacheAll(engine);
 
@@ -68,14 +80,13 @@ void describe('ClientEdictHandlerRegistry.precacheAll', () => {
 
 void describe('ServerGameAPI._precacheResources', () => {
   void test('precaches the models of the client-only entities through the handler registry', () => {
-    const models = [];
-    const engine = {
-      PrecacheModel: (name) => models.push(name),
-      PrecacheSound() {},
+    const models: string[] = [];
+    const engine = createInertEngineApi({
+      PrecacheModel: (name: string) => models.push(name),
       PrecacheEntity() {},
-    };
+    });
 
-    ServerGameAPI.prototype._precacheResources.call({ engine, constructor: ServerGameAPI });
+    precacheResources(engine, ServerGameAPI);
 
     for (const model of ['progs/gib1.mdl', 'progs/gib2.mdl', 'progs/gib3.mdl', 'progs/zom_gib.mdl', 'progs/s_bubble.spr']) {
       assert.ok(models.includes(model), `${model} is precached`);
@@ -83,12 +94,12 @@ void describe('ServerGameAPI._precacheResources', () => {
   });
 
   void test('uses the registry of the mod subclass it is called on', () => {
-    const precached = [];
+    const precached: string[] = [];
 
     class MarkerHandler extends BaseClientEdictHandler {
       static classname = 'test_marker';
 
-      static _precache() {
+      static override _precache(): void {
         precached.push('marker');
       }
     }
@@ -97,10 +108,7 @@ void describe('ServerGameAPI._precacheResources', () => {
       static _clientEdictHandlerRegistry = new ClientEdictHandlerRegistry([MarkerHandler]);
     }
 
-    ServerGameAPI.prototype._precacheResources.call({
-      engine: { PrecacheModel() {}, PrecacheSound() {} },
-      constructor: ModServerGameAPI,
-    });
+    precacheResources(createInertEngineApi(), ModServerGameAPI);
 
     assert.deepEqual(precached, ['marker']);
   });

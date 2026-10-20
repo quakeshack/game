@@ -5,6 +5,9 @@ import Vector from '../../../../../shared/Vector.ts';
 import ClientEntities from '../../../../../engine/client/ClientEntities.ts';
 import GameModule from '../../../../../engine/common/GameModule.ts';
 import { moveType } from '../../../Defs.ts';
+import { asClientEngineAPI } from '../fixtures.ts';
+import { createInertEngineApi } from '../../../../../../test/support/entityMocks.ts';
+import { createGameModuleStub } from '../../../../../../test/support/fixtures.ts';
 import { useClientStateOf } from '../../../../../../test/support/clientState.ts';
 import { createSingleLeafWorld } from '../../../../../../test/support/bspTree.ts';
 import { useHostOf } from '../../../../../../test/support/host.ts';
@@ -21,14 +24,24 @@ const { GibClientEdictHandler } = await import('../../../client/entity/Gibs.ts')
 const FRAMETIME = 0.1;
 const FLOOR_Z = 0;
 
+interface Clock {
+  time: number;
+}
+
+interface WorldState {
+  worldmodel: ReturnType<typeof createSingleLeafWorld>;
+  paused: boolean;
+  model_precache?: unknown[];
+}
+
 /**
  * A world trace result matching `CollisionTrace`'s shape.
- * @param {Vector} end where the trace ended
- * @param {number} fraction how far it got
- * @param {Vector} normal the plane it hit
- * @returns {object} a CollisionTrace-shaped mock trace
+ * @param end where the trace ended
+ * @param fraction how far it got
+ * @param normal the plane it hit
+ * @returns a CollisionTrace-shaped mock trace
  */
-function worldTrace(end, fraction = 1.0, normal = new Vector()) {
+function worldTrace(end: Vector, fraction = 1.0, normal = new Vector()) {
   return {
     fraction,
     allsolid: false,
@@ -43,11 +56,11 @@ function worldTrace(end, fraction = 1.0, normal = new Vector()) {
 
 /**
  * A world with a single floor at FLOOR_Z, clipping a traced segment to the plane like a real trace.
- * @param {Vector} start trace start
- * @param {Vector} end trace end
- * @returns {object} the mock trace
+ * @param start trace start
+ * @param end trace end
+ * @returns the mock trace
  */
-function floorWorld(start, end) {
+function floorWorld(start: Vector, end: Vector) {
   if (end[2] >= FLOOR_Z) {
     return worldTrace(end);
   }
@@ -59,12 +72,12 @@ function floorWorld(start, end) {
 
 /**
  * Runs a callback in a world with gravity 800, a floor at FLOOR_Z and a controllable clock.
- * @param {{time: number}} clock the mutable client clock
- * @param {() => void} callback
+ * @param clock the mutable client clock
+ * @param callback what to run, given the client state of the world
  */
-function withWorld(clock, callback) {
+function withWorld(clock: Clock, callback: (state: WorldState) => void): void {
   const previous = { CL: engineMocks.CL, Host: engineMocks.Host };
-  const state = { worldmodel: createSingleLeafWorld(), paused: false };
+  const state: WorldState = { worldmodel: createSingleLeafWorld(), paused: false };
 
   Object.defineProperty(state, 'time', { get: () => clock.time });
   engineMocks.CL = { pmove: { movevars: { gravity: 800 } }, state, nolerp: { value: 0 }, collision: { traceStaticWorldLine: floorWorld } };
@@ -73,7 +86,7 @@ function withWorld(clock, callback) {
   const restoreHost = useHostOf(engineMocks.Host);
 
   try {
-    callback();
+    callback(state);
   } finally {
     restoreHost();
     restoreClientState();
@@ -83,17 +96,16 @@ function withWorld(clock, callback) {
 
 /**
  * Spawns a gib the way the game's client code does, through a real `ClientEntities`.
- * @param {{time: number}} clock the mutable client clock
- * @param {Vector} origin start position
- * @param {Vector} velocity launch velocity
- * @returns {{clientEntities: ClientEntities, gib: import('../../../../../engine/client/ClientEntities.ts').ClientEdict}} the entities and the gib
+ * @param clock the mutable client clock
+ * @param origin start position
+ * @param velocity launch velocity
+ * @returns the entities and the gib
  */
-function spawnGib(clock, origin, velocity) {
+function spawnGib(clock: Clock, origin: Vector, velocity: Vector) {
   const previous = GameModule.active;
-  GameModule.active = {
-    identification: { name: 'Test Game', author: 'test', version: [1, 0, 0], capabilities: [] },
-    ClientGameAPI: { GetClientEdictHandler: (classname) => (classname === 'client_gib' ? GibClientEdictHandler : null) },
-  };
+  GameModule.active = createGameModuleStub({
+    ClientGameAPI: { GetClientEdictHandler: (classname: string) => (classname === 'client_gib' ? GibClientEdictHandler : null) },
+  });
 
   try {
     const clientEntities = new ClientEntities();
@@ -103,11 +115,11 @@ function spawnGib(clock, origin, velocity) {
           return clock.time;
         },
       },
-      SpawnClientEntity: (classname) => clientEntities.allocateSimulatedEntity(classname),
-      ModForName: (name) => ({ name, mins: new Vector(-8, -8, -8), maxs: new Vector(8, 8, 8) }),
+      SpawnClientEntity: (classname: string) => clientEntities.allocateSimulatedEntity(classname),
+      ModForName: (name: string) => ({ name, mins: new Vector(-8, -8, -8), maxs: new Vector(8, 8, 8) }),
     };
 
-    GibClientEdictHandler.spawnGib(engine, 'progs/gib1.mdl', origin, velocity);
+    GibClientEdictHandler.spawnGib(asClientEngineAPI(engine), 'progs/gib1.mdl', origin, velocity);
 
     return { clientEntities, gib: [...clientEntities.getEntities()][0] };
   } finally {
@@ -117,10 +129,10 @@ function spawnGib(clock, origin, velocity) {
 
 /**
  * Advances the clock and runs one client frame, physics included.
- * @param {{time: number}} clock the mutable client clock
- * @param {ClientEntities} clientEntities the entities to run
+ * @param clock the mutable client clock
+ * @param clientEntities the entities to run
  */
-function frame(clock, clientEntities) {
+function frame(clock: Clock, clientEntities: ClientEntities): void {
   clock.time += FRAMETIME;
   clientEntities.think();
 }
@@ -187,7 +199,7 @@ void describe('GibClientEdictHandler', () => {
   void describe('save/load', () => {
     void test('round-trips the remaining lifetime and the physics state through ClientEntities', () => {
       const clock = { time: 100 };
-      let saved;
+      let saved: ReturnType<ClientEntities['serialize']> = [];
 
       withWorld(clock, () => {
         const { clientEntities, gib } = spawnGib(clock, new Vector(0, 0, 300), new Vector(30, 0, 0));
@@ -206,16 +218,15 @@ void describe('GibClientEdictHandler', () => {
       // a brand new session with an unrelated clock
       const newClock = { time: 3 };
 
-      withWorld(newClock, () => {
+      withWorld(newClock, (state) => {
         const previous = GameModule.active;
-        GameModule.active = {
-          identification: { name: 'Test Game', author: 'test', version: [1, 0, 0], capabilities: [] },
+        GameModule.active = createGameModuleStub({
           ClientGameAPI: { GetClientEdictHandler: () => GibClientEdictHandler },
-        };
+        });
 
         try {
           const restoredEntities = new ClientEntities();
-          engineMocks.CL.state.model_precache = [undefined, { name: 'progs/gib1.mdl', mins: new Vector(-8, -8, -8), maxs: new Vector(8, 8, 8) }];
+          state.model_precache = [undefined, { name: 'progs/gib1.mdl', mins: new Vector(-8, -8, -8), maxs: new Vector(8, 8, 8) }];
           restoredEntities.deserialize(saved);
 
           const [restored] = [...restoredEntities.getEntities()];
@@ -238,35 +249,49 @@ void describe('GibClientEdictHandler', () => {
 
   void describe('spawnGib', () => {
     void test('sets up and spawns a client-only gib with the given model, origin and velocity', () => {
-      let spawned = null;
+      interface SpawnedGib {
+        classname: string;
+        model: { name: string } | null;
+        angles: Vector;
+        velocity: Vector;
+        origin: Vector | null;
+        spawnCalls: number;
+        setOrigin(origin: Vector): void;
+        spawn(): void;
+      }
+
+      let spawnedGib: SpawnedGib | null = null;
       const engine = {
-        SpawnClientEntity(classname) {
-          spawned = {
+        SpawnClientEntity(classname: string): SpawnedGib {
+          const gib: SpawnedGib = {
             classname,
             model: null,
             angles: new Vector(Infinity, Infinity, Infinity),
             velocity: new Vector(),
             origin: null,
             spawnCalls: 0,
-            setOrigin(origin) {
-              spawned.origin = origin.copy();
+            setOrigin(origin: Vector): void {
+              gib.origin = origin.copy();
             },
-            spawn() {
-              spawned.spawnCalls += 1;
+            spawn(): void {
+              gib.spawnCalls += 1;
             },
           };
-          return spawned;
+          spawnedGib = gib;
+          return gib;
         },
-        ModForName(name) {
+        ModForName(name: string): { name: string } {
           return { name };
         },
       };
 
-      GibClientEdictHandler.spawnGib(engine, 'progs/gib2.mdl', new Vector(1, 2, 3), new Vector(4, 5, 6));
+      GibClientEdictHandler.spawnGib(asClientEngineAPI(engine), 'progs/gib2.mdl', new Vector(1, 2, 3), new Vector(4, 5, 6));
 
+      const spawned = spawnedGib as SpawnedGib | null;
+      assert.ok(spawned);
       assert.equal(spawned.classname, 'client_gib');
-      assert.equal(spawned.model.name, 'progs/gib2.mdl');
-      assert.deepEqual([...spawned.origin], [1, 2, 3]);
+      assert.equal(spawned.model?.name, 'progs/gib2.mdl');
+      assert.deepEqual([...(spawned.origin ?? [])], [1, 2, 3]);
       assert.deepEqual([...spawned.velocity], [4, 5, 6]);
       // a fresh ClientEdict starts with Infinity angles, which would poison the tumble's quaternion math
       assert.deepEqual([...spawned.angles], [0, 0, 0]);
@@ -276,9 +301,9 @@ void describe('GibClientEdictHandler', () => {
 
   void describe('_precache', () => {
     void test('precaches every gib model and the meat gib so clients can resolve them', () => {
-      const models = [];
+      const models: string[] = [];
 
-      GibClientEdictHandler._precache({ PrecacheModel: (name) => models.push(name) });
+      GibClientEdictHandler._precache(createInertEngineApi({ PrecacheModel: (name: string) => models.push(name) }));
 
       assert.deepEqual(models, ['progs/gib1.mdl', 'progs/gib2.mdl', 'progs/gib3.mdl', 'progs/zom_gib.mdl']);
     });

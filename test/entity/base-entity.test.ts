@@ -1,21 +1,15 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
+import { createInertGameApi } from '../../../../../test/support/entityMocks.ts';
+import { serializableFieldsOf } from '../../../../../test/support/serialization.ts';
+import type { ServerGameAPI } from '../../GameAPI.ts';
 import BaseEntity from '../../entity/BaseEntity.ts';
 import { serializableObject, serializable, Serializer } from '../../helper/MiscHelpers.ts';
 
-/**
- * Create the minimal game API surface required by serializer tests.
- * @returns {object} Mock game API.
- */
-function createMockGameAPI() {
-  return {
-    engine: {
-      IsLoading() {
-        return false;
-      },
-    },
-  };
+/** BaseEntity is abstract; this is the entity with nothing added to it. */
+class PlainEntity extends BaseEntity {
+  static classname = 'plain_entity';
 }
 
 void describe('Serializer', () => {
@@ -23,6 +17,7 @@ void describe('Serializer', () => {
     class StaticSerializable {
       static serializableFields = ['count'];
 
+      readonly _serializer: Serializer<StaticSerializable>;
       count = 3;
       skipped = 'ignore-me';
 
@@ -42,16 +37,18 @@ void describe('Serializer', () => {
 
 void describe('@entity / @serializable decorators', () => {
   void test('BaseEntity.serializableFields is a frozen array from @entity', () => {
-    assert.ok(Array.isArray(BaseEntity.serializableFields));
-    assert.ok(Object.isFrozen(BaseEntity.serializableFields));
-    assert.ok(BaseEntity.serializableFields.includes('ltime'));
-    assert.ok(BaseEntity.serializableFields.includes('origin'));
-    assert.ok(BaseEntity.serializableFields.includes('_scheduledThinks'));
+    const fields = serializableFieldsOf(BaseEntity);
+
+    assert.ok(Array.isArray(fields));
+    assert.ok(Object.isFrozen(fields));
+    assert.ok(fields.includes('ltime'));
+    assert.ok(fields.includes('origin'));
+    assert.ok(fields.includes('_scheduledThinks'));
   });
 
   void test('Serializer collects all decorated BaseEntity fields', () => {
-    const entity = new BaseEntity(null, createMockGameAPI()).initializeEntity();
-    const serialized = entity._serializer.serialize();
+    const entity = new PlainEntity(null, createInertGameApi()).initializeEntity();
+    const serialized = entity.serialize();
     assert.ok('ltime' in serialized);
     assert.ok('origin' in serialized);
     assert.ok('message' in serialized);
@@ -64,14 +61,16 @@ void describe('@entity / @serializable decorators', () => {
       static classname = 'legacy_child';
       static serializableFields = ['customProp'];
 
-      constructor(gameAPI) {
+      customProp: number;
+
+      constructor(gameAPI: ServerGameAPI) {
         super(null, gameAPI);
         this.customProp = 42;
       }
     }
 
-    const child = new LegacyChild(createMockGameAPI()).initializeEntity();
-    const serialized = child._serializer.serialize();
+    const child = new LegacyChild(createInertGameApi()).initializeEntity();
+    const serialized = child.serialize();
     assert.ok('ltime' in serialized, 'inherits decorated parent fields');
     assert.ok('customProp' in serialized, 'includes own static array fields');
   });
@@ -92,20 +91,25 @@ void describe('BasePropEntity decorator port', async () => {
     class TestPropEntity extends BasePropEntity {
       static classname = 'test_prop_entity';
 
-      spawn() {}
+      get hasSub(): boolean {
+        return this._sub !== null;
+      }
+
+      spawn(): void {}
     }
 
-    const entity = new TestPropEntity(null, createMockGameAPI()).initializeEntity();
-    const serialized = entity._serializer.serialize();
+    const entity = new TestPropEntity(null, createInertGameApi()).initializeEntity();
+    const serialized = entity.serialize();
+    const fields = serializableFieldsOf(BasePropEntity);
 
-    assert.ok(Array.isArray(BasePropEntity.serializableFields));
-    assert.ok(Object.isFrozen(BasePropEntity.serializableFields));
-    assert.ok(BasePropEntity.serializableFields.includes('sounds'));
-    assert.ok(BasePropEntity.serializableFields.includes('pos1'));
-    assert.ok(BasePropEntity.serializableFields.includes('state'));
+    assert.ok(Array.isArray(fields));
+    assert.ok(Object.isFrozen(fields));
+    assert.ok(fields.includes('sounds'));
+    assert.ok(fields.includes('pos1'));
+    assert.ok(fields.includes('state'));
     assert.equal(entity.sounds, 0);
     assert.equal(entity.state, PropState.STATE_TOP);
-    assert.equal(entity._sub !== null, true);
+    assert.equal(entity.hasSub, true);
     assert.ok('sounds' in serialized);
     assert.ok('pos1' in serialized);
     assert.ok('state' in serialized);
@@ -123,12 +127,15 @@ void describe('BaseMonster decorator port', async () => {
     await import('../../entity/monster/BaseMonster.ts');
 
   void test('BaseMonster.serializableFields is a frozen array from @entity', () => {
-    assert.ok(Array.isArray(BaseMonster.serializableFields));
-    assert.ok(Object.isFrozen(BaseMonster.serializableFields));
+    const fields = serializableFieldsOf(BaseMonster);
+
+    assert.ok(Array.isArray(fields));
+    assert.ok(Object.isFrozen(fields));
   });
 
   void test('BaseMonster decorated fields include expected keys', () => {
-    const fields = BaseMonster.serializableFields;
+    const fields = serializableFieldsOf(BaseMonster);
+    assert.ok(fields);
     for (const key of ['pausetime', 'movetarget', 'health', 'ideal_yaw', 'yaw_speed', 'bloodcolor', 'enemy', 'goalentity', 'cnt', '_ai']) {
       assert.ok(fields.includes(key), `missing field "${key}"`);
     }
@@ -138,14 +145,19 @@ void describe('BaseMonster decorator port', async () => {
     // collectSerializableFields walks the prototype chain to merge fields from
     // all @entity-decorated ancestors.  We verify this by constructing a mock
     // instance whose prototype chain looks like: instance → BaseMonster → BaseEntity.
+    const entityFields = serializableFieldsOf(BaseEntity);
+    const monsterFields = serializableFieldsOf(BaseMonster);
+    assert.ok(entityFields);
+    assert.ok(monsterFields);
+
     const merged = [...new Set([
-      ...BaseEntity.serializableFields,
-      ...BaseMonster.serializableFields,
+      ...entityFields,
+      ...monsterFields,
     ])];
-    for (const key of BaseEntity.serializableFields) {
+    for (const key of entityFields) {
       assert.ok(merged.includes(key), `missing inherited field "${key}"`);
     }
-    for (const key of BaseMonster.serializableFields) {
+    for (const key of monsterFields) {
       assert.ok(merged.includes(key), `missing own field "${key}"`);
     }
   });
@@ -155,22 +167,25 @@ void describe('BaseMonster decorator port', async () => {
     // so their own serializableFields arrays should be empty (only BaseMonster's
     // and BaseEntity's are inherited via collectSerializableFields at runtime).
     for (const Ctor of [WalkMonster, FlyMonster, SwimMonster]) {
-      const fields = Ctor.serializableFields;
+      const fields = serializableFieldsOf(Ctor);
       assert.ok(Array.isArray(fields), `${Ctor.name} missing serializableFields`);
       assert.ok(Object.isFrozen(fields), `${Ctor.name} serializableFields not frozen`);
     }
   });
 
   void test('MeatSprayEntity has its own decorator-generated serializableFields', () => {
-    assert.ok(Array.isArray(MeatSprayEntity.serializableFields));
-    assert.ok(Object.isFrozen(MeatSprayEntity.serializableFields));
+    const fields = serializableFieldsOf(MeatSprayEntity);
+
+    assert.ok(Array.isArray(fields));
+    assert.ok(Object.isFrozen(fields));
     // MeatSprayEntity extends BaseEntity with no extra @serializable fields,
     // so its own array should be empty.
-    assert.equal(MeatSprayEntity.serializableFields.length, 0);
+    assert.equal(fields.length, 0);
   });
 
   void test('non-serializable fields are excluded from BaseMonster', () => {
-    const fields = BaseMonster.serializableFields;
+    const fields = serializableFieldsOf(BaseMonster);
+    assert.ok(fields);
     assert.ok(!fields.includes('_damageHandler'), '_damageHandler should not be serialized');
     assert.ok(!fields.includes('_sub'), '_sub should not be serialized');
   });

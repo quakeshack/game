@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
 import Vector from '../../../../shared/Vector.ts';
-import { createMockClientEngine, createMockTexture } from './fixtures.ts';
+import type { ClientEventValue } from '../../../../shared/GameInterfaces.ts';
+import type { ClientGameAPI as ClientGame, Id1Clientdata } from '../../client/ClientAPI.ts';
+import { asClientEngineAPI, createMockClientEngine, createMockTexture, type MockClientEngine } from './fixtures.ts';
 
 const { clientEvent, clientEventName, effect, items } = await import('../../Defs.ts');
 await import('../../GameAPI.ts');
@@ -17,12 +19,31 @@ const { ClientGameAPI } = clientApiModule;
 const { GibClientEdictHandler } = await import('../../client/entity/Gibs.ts');
 const { AirBubblesClientEdictHandler, BubbleClientEdictHandler } = await import('../../client/entity/Bubbles.ts');
 
+type Hud = InstanceType<typeof Q1HUD>;
+
+/** The HUD state that tests read and set, which the HUD keeps to itself. */
+class HudInspector extends Q1HUD {
+  static damageOf(hud: Hud) {
+    return (hud as HudInspector).damage;
+  }
+
+  static intermissionOf(hud: Hud) {
+    return (hud as HudInspector).intermission;
+  }
+
+  static statsOf(hud: Hud) {
+    const { stats } = hud as HudInspector;
+    assert.ok(stats, 'the HUD has stats after init()');
+    return stats;
+  }
+}
+
 /**
  * Create a minimal clientdata map for HUD and client API tests.
- * @param {object} overrides Override values.
- * @returns {object} Mock clientdata.
+ * @param overrides Override values.
+ * @returns Mock clientdata.
  */
-function createClientdata(overrides = {}) {
+function createClientdata(overrides: Partial<Id1Clientdata> = {}): Id1Clientdata {
   return {
     health: 100,
     armorvalue: 0,
@@ -39,11 +60,25 @@ function createClientdata(overrides = {}) {
   };
 }
 
+/**
+ * The game a HUD is built around: the player's clientdata and the server info.
+ * @param engine The mock engine.
+ * @param clientdata What the HUD reads of the player.
+ * @returns The game, typed as the client game API the HUD takes.
+ */
+function createGame(engine: MockClientEngine, clientdata: Id1Clientdata = createClientdata()): ClientGame {
+  // The HUD reads these two members of the game.
+  return {
+    clientdata,
+    serverInfo: new ServerInfo(asClientEngineAPI(engine)),
+  } as unknown as ClientGame;
+}
+
 void describe('id1 client sync', () => {
   void test('updates stats and server info from client events', () => {
     const engine = createMockClientEngine();
-    const stats = new ClientStats(engine);
-    const serverInfo = new ServerInfo(engine);
+    const stats = new ClientStats(asClientEngineAPI(engine));
+    const serverInfo = new ServerInfo(asClientEngineAPI(engine));
 
     engine.eventBus.publish(clientEventName(clientEvent.STATS_INIT), 'monsters_total', 13);
     engine.eventBus.publish(clientEventName(clientEvent.STATS_UPDATED), 'secrets_found', 2);
@@ -60,12 +95,13 @@ void describe('id1 client sync', () => {
     assert.equal(stats.secrets_found, 2);
     assert.equal(serverInfo.hostname, 'Slipgate Complex');
     assert.equal(serverInfo.coop, '1');
-    assert.equal(serverInfo.map, 'e1m8');
+    // the server info grows a field for every server cvar the engine announces
+    assert.equal(Object.fromEntries(Object.entries(serverInfo)).map, 'e1m8');
   });
 
   void test('parses numeric stat strings and ignores non-numeric stat strings', () => {
     const engine = createMockClientEngine();
-    const stats = new ClientStats(engine);
+    const stats = new ClientStats(asClientEngineAPI(engine));
 
     engine.eventBus.publish(clientEventName(clientEvent.STATS_INIT), 'monsters_total', '13');
     engine.eventBus.publish(clientEventName(clientEvent.STATS_UPDATED), 'secrets_found', ' 2 ');
@@ -80,60 +116,54 @@ void describe('id1 client sync', () => {
 void describe('id1 client HUD state', () => {
   void test('restores saved vectors and stat counters when loading HUD state', () => {
     const engine = createMockClientEngine();
-    const game = {
-      clientdata: createClientdata(),
-      serverInfo: new ServerInfo(engine),
-    };
-    const hud = new Q1HUD(game, engine);
+    const game = createGame(engine, createClientdata());
+    const hud = new Q1HUD(game, asClientEngineAPI(engine));
 
     hud.init();
-    hud.damage.time = 4;
-    hud.damage.attackOrigin = new Vector(1, 2, 3);
-    hud.damage.damageReceived = 9;
-    hud.intermission.running = true;
-    hud.intermission.message = 'Episode complete';
-    hud.intermission.mapCompletedTime = 17;
-    hud.stats.monsters_total = 10;
-    hud.stats.monsters_killed = 7;
-    hud.stats.secrets_total = 5;
-    hud.stats.secrets_found = 4;
+    HudInspector.damageOf(hud).time = 4;
+    HudInspector.damageOf(hud).attackOrigin = new Vector(1, 2, 3);
+    HudInspector.damageOf(hud).damageReceived = 9;
+    HudInspector.intermissionOf(hud).running = true;
+    HudInspector.intermissionOf(hud).message = 'Episode complete';
+    HudInspector.intermissionOf(hud).mapCompletedTime = 17;
+    HudInspector.statsOf(hud).monsters_total = 10;
+    HudInspector.statsOf(hud).monsters_killed = 7;
+    HudInspector.statsOf(hud).secrets_total = 5;
+    HudInspector.statsOf(hud).secrets_found = 4;
 
     const savedState = hud.saveState();
 
-    hud.damage.time = 0;
-    hud.damage.attackOrigin = new Vector();
-    hud.damage.damageReceived = 0;
-    hud.intermission.running = false;
-    hud.intermission.message = null;
-    hud.intermission.mapCompletedTime = 0;
-    hud.stats.monsters_total = 0;
-    hud.stats.monsters_killed = 0;
-    hud.stats.secrets_total = 0;
-    hud.stats.secrets_found = 0;
+    HudInspector.damageOf(hud).time = 0;
+    HudInspector.damageOf(hud).attackOrigin = new Vector();
+    HudInspector.damageOf(hud).damageReceived = 0;
+    HudInspector.intermissionOf(hud).running = false;
+    HudInspector.intermissionOf(hud).message = null;
+    HudInspector.intermissionOf(hud).mapCompletedTime = 0;
+    HudInspector.statsOf(hud).monsters_total = 0;
+    HudInspector.statsOf(hud).monsters_killed = 0;
+    HudInspector.statsOf(hud).secrets_total = 0;
+    HudInspector.statsOf(hud).secrets_found = 0;
 
     hud.loadState(savedState);
 
-    assert.ok(hud.damage.attackOrigin instanceof Vector);
-    assert.deepEqual(Array.from(hud.damage.attackOrigin), [1, 2, 3]);
-    assert.equal(hud.damage.damageReceived, 9);
-    assert.equal(hud.intermission.message, 'Episode complete');
-    assert.equal(hud.stats.monsters_killed, 7);
+    assert.ok(HudInspector.damageOf(hud).attackOrigin instanceof Vector);
+    assert.deepEqual(Array.from(HudInspector.damageOf(hud).attackOrigin), [1, 2, 3]);
+    assert.equal(HudInspector.damageOf(hud).damageReceived, 9);
+    assert.equal(HudInspector.intermissionOf(hud).message, 'Episode complete');
+    assert.equal(HudInspector.statsOf(hud).monsters_killed, 7);
   });
 
   void test('draws the invulnerability disc and 666 armor value', () => {
     const engine = createMockClientEngine();
 
-    Q1HUD.Init(engine);
+    Q1HUD.Init(asClientEngineAPI(engine));
 
     try {
-      const game = {
-        clientdata: createClientdata({
+      const game = createGame(engine, createClientdata({
           items: items.IT_INVULNERABILITY,
           armorvalue: 42,
-        }),
-        serverInfo: new ServerInfo(engine),
-      };
-      const hud = new Q1HUD(game, engine);
+        }));
+      const hud = new Q1HUD(game, asClientEngineAPI(engine));
 
       hud.init();
       hud.draw();
@@ -141,32 +171,32 @@ void describe('id1 client HUD state', () => {
       assert.equal(engine.drawPics.some(({ pic }) => pic.name === 'DISC'), true);
       assert.equal(engine.drawPics.filter(({ pic }) => pic.name === 'ANUM_6').length, 3);
     } finally {
-      Q1HUD.Shutdown(engine);
+      Q1HUD.Shutdown(asClientEngineAPI(engine));
     }
   });
 
   void test('frees loaded HUD textures and unregisters score commands on shutdown', () => {
-    const loadedTextures = [];
+    const loadedTextures: Array<ReturnType<typeof createMockTexture>> = [];
     const engine = createMockClientEngine({
-      LoadPicFromWad(name) {
+      LoadPicFromWad(name: string) {
         const texture = createMockTexture(name);
         loadedTextures.push(texture);
         return texture;
       },
-      LoadPicFromLump(name) {
+      LoadPicFromLump(name: string) {
         const texture = createMockTexture(name, 64, 16);
         loadedTextures.push(texture);
         return texture;
       },
     });
 
-    Q1HUD.Init(engine);
+    Q1HUD.Init(asClientEngineAPI(engine));
 
     assert.equal(loadedTextures.length > 0, true);
     assert.equal(engine.commands.has('+showscores'), true);
     assert.equal(engine.commands.has('-showscores'), true);
 
-    Q1HUD.Shutdown(engine);
+    Q1HUD.Shutdown(asClientEngineAPI(engine));
 
     assert.equal(loadedTextures.every((texture) => texture.freed), true);
     assert.equal(engine.commands.has('+showscores'), false);
@@ -176,14 +206,11 @@ void describe('id1 client HUD state', () => {
   void test('shows the solo scoreboard automatically when the player is dead', () => {
     const engine = createMockClientEngine();
 
-    Q1HUD.Init(engine);
+    Q1HUD.Init(asClientEngineAPI(engine));
 
     try {
-      const game = {
-        clientdata: createClientdata({ health: 0 }),
-        serverInfo: new ServerInfo(engine),
-      };
-      const hud = new Q1HUD(game, engine);
+      const game = createGame(engine, createClientdata({ health: 0 }));
+      const hud = new Q1HUD(game, asClientEngineAPI(engine));
 
       hud.init();
       hud.draw();
@@ -191,21 +218,18 @@ void describe('id1 client HUD state', () => {
       assert.equal(engine.drawPics.some(({ pic }) => pic.name === 'SCOREBAR'), true);
       assert.equal(engine.drawPics.some(({ pic }) => pic.name === 'SBAR'), false);
     } finally {
-      Q1HUD.Shutdown(engine);
+      Q1HUD.Shutdown(asClientEngineAPI(engine));
     }
   });
 
   void test('+showscores/-showscores toggle the scoreboard through draw()', () => {
     const engine = createMockClientEngine();
 
-    Q1HUD.Init(engine);
+    Q1HUD.Init(asClientEngineAPI(engine));
 
     try {
-      const game = {
-        clientdata: createClientdata(),
-        serverInfo: new ServerInfo(engine),
-      };
-      const hud = new Q1HUD(game, engine);
+      const game = createGame(engine, createClientdata());
+      const hud = new Q1HUD(game, asClientEngineAPI(engine));
 
       hud.init();
 
@@ -213,31 +237,28 @@ void describe('id1 client HUD state', () => {
       hud.draw();
       assert.equal(engine.drawPics.some(({ pic }) => pic.name === 'SCOREBAR'), false);
 
-      void engine.commands.get('+showscores')();
+      void engine.commands.get('+showscores')?.();
       engine.drawPics.length = 0;
       hud.draw();
       assert.equal(engine.drawPics.some(({ pic }) => pic.name === 'SCOREBAR'), true);
 
-      void engine.commands.get('-showscores')();
+      void engine.commands.get('-showscores')?.();
       engine.drawPics.length = 0;
       hud.draw();
       assert.equal(engine.drawPics.some(({ pic }) => pic.name === 'SCOREBAR'), false);
     } finally {
-      Q1HUD.Shutdown(engine);
+      Q1HUD.Shutdown(asClientEngineAPI(engine));
     }
   });
 
   void test('draws finale text from center-print during intermission', () => {
     const engine = createMockClientEngine();
 
-    Q1HUD.Init(engine);
+    Q1HUD.Init(asClientEngineAPI(engine));
 
     try {
-      const game = {
-        clientdata: createClientdata(),
-        serverInfo: new ServerInfo(engine),
-      };
-      const hud = new Q1HUD(game, engine);
+      const game = createGame(engine, createClientdata());
+      const hud = new Q1HUD(game, asClientEngineAPI(engine));
 
       hud.init();
       engine.eventBus.publish(clientEventName(clientEvent.INTERMISSION_START), null, new Vector(), new Vector());
@@ -249,7 +270,7 @@ void describe('id1 client HUD state', () => {
       assert.equal(engine.drawPics.some(({ pic }) => pic.name === 'finale'), true);
       assert.equal(engine.drawStrings.some(({ text }) => text.includes('Rune of Earth')), true);
     } finally {
-      Q1HUD.Shutdown(engine);
+      Q1HUD.Shutdown(asClientEngineAPI(engine));
     }
   });
 
@@ -278,14 +299,11 @@ void describe('id1 client HUD state', () => {
       },
     });
 
-    Q1HUD.Init(engine);
+    Q1HUD.Init(asClientEngineAPI(engine));
 
     try {
-      const game = {
-        clientdata: createClientdata(),
-        serverInfo: new ServerInfo(engine),
-      };
-      const hud = new Q1HUD(game, engine);
+      const game = createGame(engine, createClientdata());
+      const hud = new Q1HUD(game, asClientEngineAPI(engine));
 
       hud.init();
       engine.eventBus.publish('client.center-print', 'The End');
@@ -296,7 +314,7 @@ void describe('id1 client HUD state', () => {
       assert.equal(engine.drawStrings.some(({ text }) => text.includes('The End')), true);
       assert.equal(engine.drawPics.some(({ pic }) => pic.name === 'SBAR'), false);
     } finally {
-      Q1HUD.Shutdown(engine);
+      Q1HUD.Shutdown(asClientEngineAPI(engine));
     }
   });
 
@@ -325,14 +343,11 @@ void describe('id1 client HUD state', () => {
       },
     });
 
-    Q1HUD.Init(engine);
+    Q1HUD.Init(asClientEngineAPI(engine));
 
     try {
-      const game = {
-        clientdata: createClientdata(),
-        serverInfo: new ServerInfo(engine),
-      };
-      const hud = new Q1HUD(game, engine);
+      const game = createGame(engine, createClientdata());
+      const hud = new Q1HUD(game, asClientEngineAPI(engine));
 
       hud.init();
       engine.eventBus.publish('client.center-print', 'You are in the slipgate complex.');
@@ -343,7 +358,7 @@ void describe('id1 client HUD state', () => {
       assert.equal(engine.drawStrings.some(({ text }) => text.includes('You are in the slipgate complex.')), true);
       assert.equal(engine.drawPics.some(({ pic }) => pic.name === 'SBAR'), false);
     } finally {
-      Q1HUD.Shutdown(engine);
+      Q1HUD.Shutdown(asClientEngineAPI(engine));
     }
   });
 
@@ -366,7 +381,7 @@ void describe('id1 client HUD state', () => {
         time: 0,
         viewangles: new Vector(),
         vieworigin: new Vector(),
-        score(index) {
+        score(index: number) {
           return [
             { isActive: true, frags: 5, name: 'Ranger', ping: 45, colors: 0x4f },
             { isActive: true, frags: 8, name: 'Player', ping: 20, colors: 0xf4 },
@@ -376,14 +391,11 @@ void describe('id1 client HUD state', () => {
       },
     });
 
-    Q1HUD.Init(engine);
+    Q1HUD.Init(asClientEngineAPI(engine));
 
     try {
-      const game = {
-        clientdata: createClientdata(),
-        serverInfo: new ServerInfo(engine),
-      };
-      const hud = new Q1HUD(game, engine);
+      const game = createGame(engine, createClientdata());
+      const hud = new Q1HUD(game, asClientEngineAPI(engine));
 
       hud.init();
       hud.draw();
@@ -392,7 +404,7 @@ void describe('id1 client HUD state', () => {
       assert.equal(engine.drawStrings.some(({ text, x }) => text === 'Player' && x === 372), false);
       assert.equal(engine.drawStrings.some(({ text, x }) => text === '[' && x === 324), false);
     } finally {
-      Q1HUD.Shutdown(engine);
+      Q1HUD.Shutdown(asClientEngineAPI(engine));
     }
   });
 
@@ -415,7 +427,7 @@ void describe('id1 client HUD state', () => {
         time: 0,
         viewangles: new Vector(),
         vieworigin: new Vector(),
-        score(index) {
+        score(index: number) {
           return [
             { isActive: true, frags: 4, name: 'Player', ping: 20, colors: 0x4f },
             { isActive: true, frags: 3, name: 'Ranger', ping: 45, colors: 0xf4 },
@@ -424,14 +436,11 @@ void describe('id1 client HUD state', () => {
       },
     });
 
-    Q1HUD.Init(engine);
+    Q1HUD.Init(asClientEngineAPI(engine));
 
     try {
-      const game = {
-        clientdata: createClientdata(),
-        serverInfo: new ServerInfo(engine),
-      };
-      const hud = new Q1HUD(game, engine);
+      const game = createGame(engine, createClientdata());
+      const hud = new Q1HUD(game, asClientEngineAPI(engine));
 
       hud.init();
       engine.eventBus.publish('client.chat.message', 'Ranger', 'Ready?', false);
@@ -441,24 +450,21 @@ void describe('id1 client HUD state', () => {
       assert.equal(engine.drawStrings.some(({ text }) => text === 'Ranger: Ready?'), true);
       assert.equal(engine.sounds.length, 0);
     } finally {
-      Q1HUD.Shutdown(engine);
+      Q1HUD.Shutdown(asClientEngineAPI(engine));
     }
   });
 
   void test('draws inventory ammo counts using the classic small glyph digits', () => {
     const engine = createMockClientEngine();
 
-    Q1HUD.Init(engine);
+    Q1HUD.Init(asClientEngineAPI(engine));
 
     try {
-      const game = {
-        clientdata: createClientdata({
+      const game = createGame(engine, createClientdata({
           items: items.IT_SHOTGUN,
           ammo_shells: 25,
-        }),
-        serverInfo: new ServerInfo(engine),
-      };
-      const hud = new Q1HUD(game, engine);
+        }));
+      const hud = new Q1HUD(game, asClientEngineAPI(engine));
 
       hud.init();
       hud.draw();
@@ -471,7 +477,7 @@ void describe('id1 client HUD state', () => {
       )), true);
       assert.equal(engine.drawStrings.some(({ text }) => text === '025' || text === ' 25'), false);
     } finally {
-      Q1HUD.Shutdown(engine);
+      Q1HUD.Shutdown(asClientEngineAPI(engine));
     }
   });
 
@@ -494,14 +500,11 @@ void describe('id1 client HUD state', () => {
       },
     });
 
-    Q1HUD.Init(engine);
+    Q1HUD.Init(asClientEngineAPI(engine));
 
     try {
-      const game = {
-        clientdata: createClientdata(),
-        serverInfo: new ServerInfo(engine),
-      };
-      const hud = new Q1HUD(game, engine);
+      const game = createGame(engine, createClientdata());
+      const hud = new Q1HUD(game, asClientEngineAPI(engine));
 
       hud.init();
       hud.draw();
@@ -514,7 +517,7 @@ void describe('id1 client HUD state', () => {
         color: new Vector(1.0, 1.0, 1.0),
       }]);
     } finally {
-      Q1HUD.Shutdown(engine);
+      Q1HUD.Shutdown(asClientEngineAPI(engine));
     }
   });
 
@@ -537,14 +540,11 @@ void describe('id1 client HUD state', () => {
       },
     });
 
-    Q1HUD.Init(engine);
+    Q1HUD.Init(asClientEngineAPI(engine));
 
     try {
-      const game = {
-        clientdata: createClientdata(),
-        serverInfo: new ServerInfo(engine),
-      };
-      const hud = new Q1HUD(game, engine);
+      const game = createGame(engine, createClientdata());
+      const hud = new Q1HUD(game, asClientEngineAPI(engine));
 
       hud.init();
       engine.eventBus.publish(clientEventName(clientEvent.INTERMISSION_START), null, new Vector(), new Vector());
@@ -552,25 +552,22 @@ void describe('id1 client HUD state', () => {
 
       assert.equal(engine.drawStrings.some(({ text }) => text === '+'), false);
     } finally {
-      Q1HUD.Shutdown(engine);
+      Q1HUD.Shutdown(asClientEngineAPI(engine));
     }
   });
 
   void test('flashes newly picked weapon icons before settling back to the selected icon', () => {
     const engine = createMockClientEngine();
 
-    Q1HUD.Init(engine);
+    Q1HUD.Init(asClientEngineAPI(engine));
 
     try {
-      const game = {
-        clientdata: createClientdata({
+      const game = createGame(engine, createClientdata({
           items: items.IT_SHOTGUN,
           weapon: items.IT_SHOTGUN,
           ammo_shells: 25,
-        }),
-        serverInfo: new ServerInfo(engine),
-      };
-      const hud = new Q1HUD(game, engine);
+        }));
+      const hud = new Q1HUD(game, asClientEngineAPI(engine));
 
       hud.init();
       engine.eventBus.publish(clientEventName(clientEvent.ITEM_PICKED), {}, ['shotgun'], 'Shotgun', items.IT_SHOTGUN);
@@ -585,7 +582,7 @@ void describe('id1 client HUD state', () => {
       assert.equal(engine.drawPics.some(({ pic }) => pic.name.startsWith('INVA')), false);
       assert.equal(engine.drawPics.some(({ pic }) => pic.name === 'INV2_SHOTGUN'), true);
     } finally {
-      Q1HUD.Shutdown(engine);
+      Q1HUD.Shutdown(asClientEngineAPI(engine));
     }
   });
 });
@@ -593,25 +590,25 @@ void describe('id1 client HUD state', () => {
 void describe('id1 client API', () => {
   void test('publishes client events and restores saved game state', () => {
     const engine = createMockClientEngine();
-    const receivedEvents = [];
-    const receivedFieldChanges = [];
-    const clientGame = new ClientGameAPI(engine);
+    const receivedEvents: Array<readonly ClientEventValue[]> = [];
+    const receivedFieldChanges: Array<readonly ClientEventValue[]> = [];
+    const clientGame = new ClientGameAPI(asClientEngineAPI(engine));
 
     clientGame.init();
 
-    engine.eventBus.subscribe(clientEventName(clientEvent.TEST_EVENT), (...args) => {
+    engine.eventBus.subscribe(clientEventName(clientEvent.TEST_EVENT), (...args: readonly ClientEventValue[]) => {
       receivedEvents.push(args);
     });
 
-    engine.eventBus.subscribe('client.clientdata.field-changed', (...args) => {
+    engine.eventBus.subscribe('client.clientdata.field-changed', (...args: readonly ClientEventValue[]) => {
       receivedFieldChanges.push(args);
     });
 
     clientGame.clientdata.health = 33;
     clientGame.serverInfo.hostname = 'Old Name';
-    clientGame.hud.damage.time = 2;
-    clientGame.hud.damage.damageReceived = 11;
-    clientGame.hud.damage.attackOrigin = new Vector(4, 5, 6);
+    HudInspector.damageOf(clientGame.hud).time = 2;
+    HudInspector.damageOf(clientGame.hud).damageReceived = 11;
+    HudInspector.damageOf(clientGame.hud).attackOrigin = new Vector(4, 5, 6);
 
     const savedGame = clientGame.saveGame();
 
@@ -623,8 +620,8 @@ void describe('id1 client API', () => {
     assert.deepEqual(receivedEvents, [['alpha', 7]]);
     assert.equal(clientGame.clientdata.health, 33);
     assert.equal(clientGame.serverInfo.hostname, 'Old Name');
-    assert.ok(clientGame.hud.damage.attackOrigin instanceof Vector);
-    assert.deepEqual(Array.from(clientGame.hud.damage.attackOrigin), [4, 5, 6]);
+    assert.ok(HudInspector.damageOf(clientGame.hud).attackOrigin instanceof Vector);
+    assert.deepEqual(Array.from(HudInspector.damageOf(clientGame.hud).attackOrigin), [4, 5, 6]);
     assert.equal(receivedFieldChanges.some(([field]) => field === 'health'), true);
 
     receivedFieldChanges.length = 0;
@@ -636,7 +633,7 @@ void describe('id1 client API', () => {
   });
 
   void test('updates the viewmodel and muzzleflash effects during the frame', () => {
-    const dlight = {};
+    const dlight: Record<string, ClientEventValue> = {};
     const engine = createMockClientEngine({
       AllocDlight() {
         return dlight;
@@ -662,7 +659,7 @@ void describe('id1 client API', () => {
         },
       },
     });
-    const clientGame = new ClientGameAPI(engine);
+    const clientGame = new ClientGameAPI(asClientEngineAPI(engine));
 
     clientGame.init();
     clientGame.clientdata = createClientdata({
@@ -674,16 +671,16 @@ void describe('id1 client API', () => {
     clientGame.startFrame();
 
     assert.equal(clientGame.viewmodel.visible, true);
-    assert.equal(clientGame.viewmodel.model.name, 'progs/v_shot.mdl');
+    assert.equal(clientGame.viewmodel.model?.name, 'progs/v_shot.mdl');
     assert.equal(clientGame.viewmodel.frame, 3);
-    assert.deepEqual(Array.from(dlight.origin), [30, 20, 62]);
+    assert.deepEqual(Array.from(dlight.origin as Vector), [30, 20, 62]);
     assert.equal(dlight.minlight, 32);
     assert.equal(dlight.die, 10.2);
   });
 
   void test('spawns a persistent client-only gib when EMIT_GIB arrives, and resolves its handler', () => {
     const engine = createMockClientEngine();
-    const clientGame = new ClientGameAPI(engine);
+    const clientGame = new ClientGameAPI(asClientEngineAPI(engine));
 
     clientGame.init();
 
@@ -694,8 +691,8 @@ void describe('id1 client API', () => {
     const [gib] = engine.spawnedClientEntities;
     assert.equal(gib.classname, 'client_gib');
     assert.deepEqual(gib.options, {});
-    assert.equal(gib.model.name, 'progs/gib2.mdl');
-    assert.deepEqual([...gib.origin], [1, 2, 3]);
+    assert.equal(gib.model?.name, 'progs/gib2.mdl');
+    assert.deepEqual([...(gib.origin ?? [])], [1, 2, 3]);
     assert.deepEqual([...gib.velocity], [4, 5, 6]);
     // a fresh ClientEdict starts with Infinity angles, which would poison the tumble's quaternion math
     assert.deepEqual([...gib.angles], [0, 0, 0]);
@@ -706,7 +703,7 @@ void describe('id1 client API', () => {
 
   void test('spawns delayed client-only bubbles when EMIT_BUBBLES arrives, and resolves their handler', () => {
     const engine = createMockClientEngine();
-    const clientGame = new ClientGameAPI(engine);
+    const clientGame = new ClientGameAPI(asClientEngineAPI(engine));
 
     clientGame.init();
 
@@ -714,8 +711,8 @@ void describe('id1 client API', () => {
 
     assert.equal(engine.spawnedClientEntities.length, 3);
     assert.ok(engine.spawnedClientEntities.every((bubble) => bubble.classname === 'client_bubble'));
-    assert.ok(engine.spawnedClientEntities.every((bubble) => bubble.model.name === 'progs/s_bubble.spr'));
-    assert.ok(engine.spawnedClientEntities.every((bubble) => bubble.spawned === true));
+    assert.ok(engine.spawnedClientEntities.every((bubble) => bubble.model?.name === 'progs/s_bubble.spr'));
+    assert.ok(engine.spawnedClientEntities.every((bubble) => bubble.spawned));
 
     assert.equal(ClientGameAPI.GetClientEdictHandler('client_bubble'), BubbleClientEdictHandler);
   });
@@ -728,7 +725,7 @@ void describe('id1 client API', () => {
 void describe('id1 client game status bar', () => {
   void test('keeps 48 pixels for the status bar up to a view size of 110, 24 for the small one, none at 120', () => {
     const engine = createMockClientEngine();
-    const clientGame = new ClientGameAPI(engine);
+    const clientGame = new ClientGameAPI(asClientEngineAPI(engine));
 
     assert.deepEqual([30, 90, 109, 110, 119, 120].map((viewsize) => clientGame.hudReservedHeight(viewsize)), [48, 48, 48, 24, 24, 0]);
   });
@@ -737,18 +734,15 @@ void describe('id1 client game status bar', () => {
 void describe('id1 HUD center print', () => {
   /**
    * Builds a HUD on a mock engine, with the HUD's static state initialized.
-   * @returns {{ engine: ReturnType<typeof createMockClientEngine>, hud: InstanceType<typeof Q1HUD> }} Both.
+   * @returns Both.
    */
   function createHud() {
     const engine = createMockClientEngine();
-    const game = {
-      clientdata: createClientdata(),
-      serverInfo: new ServerInfo(engine),
-    };
+    const game = createGame(engine, createClientdata());
 
-    Q1HUD.Init(engine);
+    Q1HUD.Init(asClientEngineAPI(engine));
 
-    const hud = new Q1HUD(game, engine);
+    const hud = new Q1HUD(game, asClientEngineAPI(engine));
     hud.init();
 
     return { engine, hud };
@@ -756,10 +750,10 @@ void describe('id1 HUD center print', () => {
 
   /**
    * Lists what the HUD drew as text.
-   * @param {ReturnType<typeof createMockClientEngine>} engine The mock engine.
-   * @returns {string[]} The strings.
+   * @param engine The mock engine.
+   * @returns The strings.
    */
-  function drawnText(engine) {
+  function drawnText(engine: MockClientEngine): string[] {
     return engine.drawStrings.map(({ text }) => text);
   }
 
@@ -834,18 +828,15 @@ void describe('id1 HUD center print', () => {
 void describe('id1 HUD pause sign', () => {
   /**
    * Builds a HUD on a mock engine, with the HUD's static state initialized.
-   * @returns {{ engine: ReturnType<typeof createMockClientEngine>, hud: InstanceType<typeof Q1HUD> }} Both.
+   * @returns Both.
    */
   function createHud() {
     const engine = createMockClientEngine();
-    const game = {
-      clientdata: createClientdata(),
-      serverInfo: new ServerInfo(engine),
-    };
+    const game = createGame(engine, createClientdata());
 
-    Q1HUD.Init(engine);
+    Q1HUD.Init(asClientEngineAPI(engine));
 
-    const hud = new Q1HUD(game, engine);
+    const hud = new Q1HUD(game, asClientEngineAPI(engine));
     hud.init();
 
     return { engine, hud };
@@ -853,10 +844,10 @@ void describe('id1 HUD pause sign', () => {
 
   /**
    * Finds what the HUD drew of the pause sign.
-   * @param {ReturnType<typeof createMockClientEngine>} engine The mock engine.
-   * @returns {Array<{ x: number, y: number, pic: { name: string }, scale: number }>} The draws of the lump.
+   * @param engine The mock engine.
+   * @returns The draws of the lump.
    */
-  function pauseDraws(engine) {
+  function pauseDraws(engine: MockClientEngine) {
     return engine.drawPics.filter(({ pic }) => pic.name.includes('pause'));
   }
 

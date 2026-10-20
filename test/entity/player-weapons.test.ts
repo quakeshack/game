@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
+import type { PlayerEntity as Player } from '../../entity/Player.ts';
+import { statesOf } from '../../../../../test/support/entityStates.ts';
+import { serializableFieldsOf } from '../../../../../test/support/serialization.ts';
+
 await import('../../GameAPI.ts');
 
 const defsModule = await import('../../Defs.ts');
@@ -15,10 +19,10 @@ PlayerEntity._initStates();
 
 /**
  * Create a player-like object for weapon selection tests.
- * @param {object} overrides Field overrides for the mock player.
- * @returns {object} Mock player state.
+ * @param overrides Field overrides for the mock player.
+ * @returns Mock player state.
  */
-function createWeaponSelectionPlayer(overrides = {}) {
+function createWeaponSelectionPlayer(overrides: Record<string, unknown> = {}) {
   return {
     items: items.IT_AXE,
     ammo_shells: 0,
@@ -26,8 +30,19 @@ function createWeaponSelectionPlayer(overrides = {}) {
     ammo_rockets: 0,
     ammo_cells: 0,
     waterlevel: waterlevel.WATERLEVEL_NONE,
+    weapon: 0,
     ...overrides,
   };
+}
+
+/**
+ * The player methods run on stand-ins that carry just the members the method reads.
+ * @param standIn The object the method runs on.
+ * @returns The same object, typed as the player the method expects.
+ */
+function asPlayer(standIn: object): Player {
+  // A real player needs an edict and a whole game; chooseBestWeapon and applyBackpack read a handful of fields.
+  return standIn as unknown as Player;
 }
 
 void describe('Player and weapon module surface', () => {
@@ -39,19 +54,19 @@ void describe('Player and weapon module surface', () => {
   });
 
   void test('registers player-specific state through serializer decorators', () => {
-    const serializableFields = Reflect.get(PlayerEntity, 'serializableFields');
+    const serializableFields = serializableFieldsOf(PlayerEntity);
 
     assert.equal(Array.isArray(serializableFields), true);
-    assert.equal(serializableFields.includes('_spawnParameters'), true);
-    assert.equal(serializableFields.includes('weapon'), true);
-    assert.equal(serializableFields.includes('invincible_sound_time'), true);
-    assert.equal(serializableFields.includes('_modelIndex'), true);
+    assert.equal(serializableFields?.includes('_spawnParameters'), true);
+    assert.equal(serializableFields?.includes('weapon'), true);
+    assert.equal(serializableFields?.includes('invincible_sound_time'), true);
+    assert.equal(serializableFields?.includes('_modelIndex'), true);
   });
 });
 
 void describe('PlayerEntity state machine', () => {
   void test('standing and running loops wrap correctly', () => {
-    const states = PlayerEntity._states;
+    const states = statesOf(PlayerEntity);
 
     assert.equal(states.player_stand5.nextState, 'player_stand1');
     assert.equal(states.player_stand_axe12.nextState, 'player_stand_axe1');
@@ -60,7 +75,7 @@ void describe('PlayerEntity state machine', () => {
   });
 
   void test('continuous-fire states alternate correctly', () => {
-    const states = PlayerEntity._states;
+    const states = statesOf(PlayerEntity);
 
     assert.equal(states.player_nail1.keyframe, 'nailatt1');
     assert.equal(states.player_nail1.nextState, 'player_nail2');
@@ -72,7 +87,7 @@ void describe('PlayerEntity state machine', () => {
   });
 
   void test('pain and death chains terminate and keep handlers where needed', () => {
-    const states = PlayerEntity._states;
+    const states = statesOf(PlayerEntity);
 
     assert.equal(states.player_pain6.nextState, null);
     assert.equal(states.player_pain_axe6.nextState, null);
@@ -92,7 +107,7 @@ void describe('PlayerEntity weapon selection', () => {
       items: items.IT_AXE | items.IT_SHOTGUN | items.IT_SUPER_SHOTGUN,
     });
 
-    assert.equal(PlayerEntity.prototype.chooseBestWeapon.call(player), items.IT_AXE);
+    assert.equal(PlayerEntity.prototype.chooseBestWeapon.call(asPlayer(player)), items.IT_AXE);
   });
 
   void test('skips lightning underwater and keeps the best safe weapon', () => {
@@ -103,7 +118,7 @@ void describe('PlayerEntity weapon selection', () => {
       waterlevel: waterlevel.WATERLEVEL_WAIST,
     });
 
-    assert.equal(PlayerEntity.prototype.chooseBestWeapon.call(player), items.IT_ROCKET_LAUNCHER);
+    assert.equal(PlayerEntity.prototype.chooseBestWeapon.call(asPlayer(player)), items.IT_ROCKET_LAUNCHER);
   });
 
   void test('prefers the highest-priority usable weapon', () => {
@@ -114,11 +129,11 @@ void describe('PlayerEntity weapon selection', () => {
       ammo_rockets: 1,
     });
 
-    assert.equal(PlayerEntity.prototype.chooseBestWeapon.call(player), items.IT_GRENADE_LAUNCHER);
+    assert.equal(PlayerEntity.prototype.chooseBestWeapon.call(asPlayer(player)), items.IT_GRENADE_LAUNCHER);
   });
 
   void test('applyBackpack caps ammo and switches to the picked weapon outside deathmatch', () => {
-    const selectedWeapons = [];
+    const selectedWeapons: number[] = [];
     const player = {
       ...createWeaponSelectionPlayer({
         ammo_shells: 95,
@@ -128,13 +143,13 @@ void describe('PlayerEntity weapon selection', () => {
       }),
       constructor: PlayerEntity,
       game: { deathmatch: false },
-      setWeapon(weapon) {
+      setWeapon(this: { weapon: number }, weapon: number) {
         selectedWeapons.push(weapon);
         this.weapon = weapon;
       },
     };
 
-    const changed = PlayerEntity.prototype.applyBackpack.call(player, {
+    const changed = PlayerEntity.prototype.applyBackpack.call(asPlayer(player), {
       ammo_shells: 10,
       ammo_nails: 0,
       ammo_rockets: 5,
@@ -151,7 +166,7 @@ void describe('PlayerEntity weapon selection', () => {
   });
 
   void test('applyBackpack does not switch weapons when only collecting ammo for an owned weapon', () => {
-    const selectedWeapons = [];
+    const selectedWeapons: number[] = [];
     const player = {
       ...createWeaponSelectionPlayer({
         ammo_shells: 10,
@@ -161,7 +176,7 @@ void describe('PlayerEntity weapon selection', () => {
       }),
       constructor: PlayerEntity,
       game: { deathmatch: false },
-      setWeapon(weapon) {
+      setWeapon(this: { weapon: number }, weapon: number) {
         selectedWeapons.push(weapon);
         this.weapon = weapon;
       },
@@ -169,7 +184,7 @@ void describe('PlayerEntity weapon selection', () => {
 
     // item_shells pickup: no item flags, but tags along a preferred weapon (the shotgun)
     // the player already owns.
-    const changed = PlayerEntity.prototype.applyBackpack.call(player, {
+    const changed = PlayerEntity.prototype.applyBackpack.call(asPlayer(player), {
       ammo_shells: 10,
       ammo_nails: 0,
       ammo_rockets: 0,
@@ -185,7 +200,7 @@ void describe('PlayerEntity weapon selection', () => {
   });
 
   void test('applyBackpack does not switch weapons when re-collecting an already-owned weapon', () => {
-    const selectedWeapons = [];
+    const selectedWeapons: number[] = [];
     const player = {
       ...createWeaponSelectionPlayer({
         ammo_rockets: 5,
@@ -194,14 +209,14 @@ void describe('PlayerEntity weapon selection', () => {
       }),
       constructor: PlayerEntity,
       game: { deathmatch: false },
-      setWeapon(weapon) {
+      setWeapon(this: { weapon: number }, weapon: number) {
         selectedWeapons.push(weapon);
         this.weapon = weapon;
       },
     };
 
     // Walking over another rocket launcher pickup while already owning one still tops up ammo.
-    const changed = PlayerEntity.prototype.applyBackpack.call(player, {
+    const changed = PlayerEntity.prototype.applyBackpack.call(asPlayer(player), {
       ammo_shells: 0,
       ammo_nails: 0,
       ammo_rockets: 5,

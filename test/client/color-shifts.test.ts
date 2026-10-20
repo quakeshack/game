@@ -3,7 +3,9 @@ import { describe, test } from 'node:test';
 
 import { content } from '../../../../shared/Defs.ts';
 import Vector from '../../../../shared/Vector.ts';
-import { createMockClientEngine } from './fixtures.ts';
+import type { ClientGameAPI } from '../../client/ClientAPI.ts';
+import type { PostProcessEffectDescriptor } from '../../../../shared/GameInterfaces.ts';
+import { asClientEngineAPI, createMockClientEngine } from './fixtures.ts';
 
 const { clientEvent, clientEventName, items } = await import('../../Defs.ts');
 await import('../../GameAPI.ts');
@@ -12,12 +14,29 @@ const { ColorShifts } = await import('../../client/ColorShifts.ts');
 const { ServerInfo } = await import('../../client/Sync.ts');
 const { Q1HUD } = await import('../../client/HUD.ts');
 
+interface ColorShiftNumbers {
+  readonly color: ArrayLike<number>;
+  readonly alpha: number;
+}
+
+/**
+ * The color and alpha of a color-shift entry of a stack or a pulse.
+ * @param entry The entry.
+ * @returns Its settings, which a color shift of the game always fills in.
+ */
+function colorShiftOf(entry: PostProcessEffectDescriptor | undefined): ColorShiftNumbers {
+  assert.ok(entry && entry.id === 'color-shift', 'a color-shift entry');
+  const { color, alpha } = entry.settings;
+  assert.ok(color !== undefined && alpha !== undefined, 'color and alpha are set');
+  return { color, alpha };
+}
+
 /**
  * Reads the numbers of an entry of the stack or of a pulse the way the engine would apply them.
- * @param {{ color?: ArrayLike<number>, alpha?: number }} settings The settings of a `color-shift` entry.
- * @returns {{ color: number[], alpha: number }} The color in 0 to 255, rounded, and the alpha in 0 to 255.
+ * @param settings The settings of a `color-shift` entry.
+ * @returns The color in 0 to 255, rounded, and the alpha in 0 to 255.
  */
-function inQuakeUnits(settings) {
+function inQuakeUnits(settings: ColorShiftNumbers): { color: number[]; alpha: number } {
   return {
     color: Array.from(settings.color, (value) => Math.round(value * 255)),
     alpha: Math.round(settings.alpha * 255 * 1000) / 1000,
@@ -26,11 +45,11 @@ function inQuakeUnits(settings) {
 
 /**
  * Builds the colors with a mock engine.
- * @returns {{ engine: ReturnType<typeof createMockClientEngine>, shifts: InstanceType<typeof ColorShifts> }} Both.
+ * @returns Both.
  */
 function create() {
   const engine = createMockClientEngine();
-  const shifts = new ColorShifts(engine);
+  const shifts = new ColorShifts(asClientEngineAPI(engine));
 
   shifts.init();
   engine.postProcessStacks.length = 0;
@@ -42,9 +61,9 @@ void describe('id1 ColorShifts', () => {
   void test('creates the channels in the order Quake mixes the tints in', () => {
     const engine = createMockClientEngine();
 
-    new ColorShifts(engine).init();
+    new ColorShifts(asClientEngineAPI(engine)).init();
 
-    assert.deepEqual(engine.postProcessStacks.map(({ options }) => options.channel), [
+    assert.deepEqual(engine.postProcessStacks.map(({ options }) => options?.channel), [
       'id1.liquid', 'id1.damage', 'id1.bonus', 'id1.powerup', 'id1.info',
     ]);
   });
@@ -57,7 +76,7 @@ void describe('id1 ColorShifts', () => {
       shifts.liquid(content.CONTENT_SLIME);
       shifts.liquid(content.CONTENT_LAVA);
 
-      assert.deepEqual(engine.postProcessStacks.map(({ options, stack }) => [options.channel, inQuakeUnits(stack[0].settings)]), [
+      assert.deepEqual(engine.postProcessStacks.map(({ options, stack }) => [options?.channel, inQuakeUnits(colorShiftOf(stack[0]))]), [
         ['id1.liquid', { color: [130, 80, 50], alpha: 128 }],
         ['id1.liquid', { color: [0, 25, 5], alpha: 150 }],
         ['id1.liquid', { color: [255, 80, 0], alpha: 150 }],
@@ -100,9 +119,9 @@ void describe('id1 ColorShifts', () => {
       shifts.damage(0, 20);
 
       const [{ descriptor, options }] = engine.postProcessPulses;
-      assert.equal(options.channel, 'id1.damage');
+      assert.equal(options?.channel, 'id1.damage');
       assert.equal(descriptor.key, 'damage');
-      assert.deepEqual(inQuakeUnits(descriptor.settings), { color: [255, 0, 0], alpha: 30 });
+      assert.deepEqual(inQuakeUnits(colorShiftOf(descriptor)), { color: [255, 0, 0], alpha: 30 });
       // 30 alpha units at 150 per second
       assert.equal(descriptor.timing.fadeOut, 30 / 150);
     });
@@ -113,7 +132,7 @@ void describe('id1 ColorShifts', () => {
       shifts.damage(30, 10);
       shifts.damage(10, 30);
 
-      assert.deepEqual(engine.postProcessPulses.map(({ descriptor }) => inQuakeUnits(descriptor.settings).color), [
+      assert.deepEqual(engine.postProcessPulses.map(({ descriptor }) => inQuakeUnits(colorShiftOf(descriptor)).color), [
         [200, 100, 100],
         [220, 50, 50],
       ]);
@@ -126,13 +145,13 @@ void describe('id1 ColorShifts', () => {
       shifts.frame(0.1); // 15 fell off: 15 left
       shifts.damage(0, 20); // 15 + 30
 
-      assert.deepEqual(engine.postProcessPulses.map(({ descriptor }) => inQuakeUnits(descriptor.settings).alpha), [30, 45]);
+      assert.deepEqual(engine.postProcessPulses.map(({ descriptor }) => inQuakeUnits(colorShiftOf(descriptor)).alpha), [30, 45]);
 
       for (let hit = 0; hit < 10; hit++) {
         shifts.damage(0, 200);
       }
 
-      assert.equal(inQuakeUnits(engine.postProcessPulses.at(-1).descriptor.settings).alpha, 150);
+      assert.equal(inQuakeUnits(colorShiftOf(engine.postProcessPulses.at(-1)?.descriptor)).alpha, 150);
     });
 
     void test('lets the flash fall to nothing', () => {
@@ -142,7 +161,7 @@ void describe('id1 ColorShifts', () => {
       shifts.frame(10);
       shifts.damage(0, 20);
 
-      assert.equal(inQuakeUnits(engine.postProcessPulses[1].descriptor.settings).alpha, 30);
+      assert.equal(inQuakeUnits(colorShiftOf(engine.postProcessPulses[1].descriptor)).alpha, 30);
     });
   });
 
@@ -153,9 +172,9 @@ void describe('id1 ColorShifts', () => {
       shifts.flash('bonus', new Vector(0.5, 0.25, 1), 0.2);
 
       const [{ descriptor, options }] = engine.postProcessPulses;
-      assert.equal(options.channel, 'id1.bonus');
+      assert.equal(options?.channel, 'id1.bonus');
       assert.equal(descriptor.key, 'bonus');
-      assert.equal(descriptor.settings.alpha, 0.2);
+      assert.equal(colorShiftOf(descriptor).alpha, 0.2);
       // 0.2 * 255 = 51 alpha units at 100 per second
       assert.equal(descriptor.timing.fadeOut, 51 / 100);
     });
@@ -165,7 +184,7 @@ void describe('id1 ColorShifts', () => {
 
       shifts.flash('info', new Vector(1, 1, 0), 0.2);
 
-      assert.equal(engine.postProcessPulses[0].options.channel, 'id1.info');
+      assert.equal(engine.postProcessPulses[0].options?.channel, 'id1.info');
     });
   });
 
@@ -177,7 +196,7 @@ void describe('id1 ColorShifts', () => {
       shifts.powerup(color, 0.3);
       shifts.powerup(color, 0.27);
 
-      assert.deepEqual(engine.postProcessStacks.map(({ options, stack }) => [options.channel, stack[0].settings.alpha]), [
+      assert.deepEqual(engine.postProcessStacks.map(({ options, stack }) => [options?.channel, colorShiftOf(stack[0]).alpha]), [
         ['id1.powerup', 0.3],
         ['id1.powerup', 0.27],
       ]);
@@ -210,7 +229,7 @@ void describe('id1 ColorShifts', () => {
 
       shifts.damage(0, 20);
 
-      assert.equal(inQuakeUnits(engine.postProcessPulses.at(-1).descriptor.settings).alpha, 30);
+      assert.equal(inQuakeUnits(colorShiftOf(engine.postProcessPulses.at(-1)?.descriptor)).alpha, 30);
     });
   });
 });
@@ -218,20 +237,22 @@ void describe('id1 ColorShifts', () => {
 void describe('id1 HUD color shifts', () => {
   /**
    * Builds a HUD on a mock engine that is ready to receive events.
-   * @param {object} [clientdata] What the HUD reads of the player.
-   * @returns {{ engine: ReturnType<typeof createMockClientEngine>, hud: InstanceType<typeof Q1HUD> }} Both.
+   * @param clientdata What the HUD reads of the player.
+   * @returns Both.
    */
-  function createHud(clientdata = {}) {
+  function createHud(clientdata: Partial<{ health: number; armorvalue: number; armortype: number; items: number }> = {}) {
     const engine = createMockClientEngine();
+    const state = { health: 100, armorvalue: 0, armortype: 0, items: 0, ...clientdata };
+    // The HUD reads the player's clientdata and the server info of the game.
     const game = {
-      clientdata: { health: 100, armorvalue: 0, armortype: 0, items: 0, ...clientdata },
-      serverInfo: new ServerInfo(engine),
-    };
-    const hud = new Q1HUD(game, engine);
+      clientdata: state,
+      serverInfo: new ServerInfo(asClientEngineAPI(engine)),
+    } as unknown as ClientGameAPI;
+    const hud = new Q1HUD(game, asClientEngineAPI(engine));
 
     hud.init();
 
-    return { engine, hud };
+    return { engine, hud, clientdata: state };
   }
 
   void test('flashes for a hit the engine tells about, with the armor and the damage that got through', () => {
@@ -240,8 +261,8 @@ void describe('id1 HUD color shifts', () => {
     engine.eventBus.publish('client.damage', { damageReceived: 10, armorLost: 30, attackOrigin: new Vector(1, 0, 0) });
 
     const [{ descriptor, options }] = engine.postProcessPulses;
-    assert.equal(options.channel, 'id1.damage');
-    assert.deepEqual(inQuakeUnits(descriptor.settings).color, [200, 100, 100]);
+    assert.equal(options?.channel, 'id1.damage');
+    assert.deepEqual(inQuakeUnits(colorShiftOf(descriptor)).color, [200, 100, 100]);
   });
 
   void test('flashes for a pickup and for a secret', () => {
@@ -260,24 +281,24 @@ void describe('id1 HUD color shifts', () => {
     hud.startFrame();
 
     const last = engine.postProcessStacks.at(-1);
-    assert.equal(last.options.channel, 'id1.liquid');
-    assert.deepEqual(inQuakeUnits(last.stack[0].settings), { color: [130, 80, 50], alpha: 128 });
+    assert.equal(last?.options?.channel, 'id1.liquid');
+    assert.deepEqual(inQuakeUnits(colorShiftOf(last.stack[0])), { color: [130, 80, 50], alpha: 128 });
   });
 
   void test('tints for the quad, and takes it off when it is gone', () => {
-    const { engine, hud } = createHud({ items: items.IT_QUAD });
+    const { engine, hud, clientdata } = createHud({ items: items.IT_QUAD });
     engine.IndexToRGB = () => [0, 0, 1];
 
     hud.startFrame();
 
-    const withQuad = engine.postProcessStacks.filter(({ options }) => options.channel === 'id1.powerup').at(-1);
-    assert.deepEqual(Array.from(withQuad.stack[0].settings.color), [0, 0, 1]);
-    assert.ok(withQuad.stack[0].settings.alpha >= 0.25 && withQuad.stack[0].settings.alpha <= 0.35);
+    const withQuad = engine.postProcessStacks.filter(({ options }) => options?.channel === 'id1.powerup').at(-1);
+    assert.deepEqual(Array.from(colorShiftOf(withQuad?.stack[0]).color), [0, 0, 1]);
+    assert.ok(colorShiftOf(withQuad?.stack[0]).alpha >= 0.25 && colorShiftOf(withQuad?.stack[0]).alpha <= 0.35);
 
-    hud.game.clientdata.items = 0;
+    clientdata.items = 0;
     hud.startFrame();
 
-    assert.deepEqual(engine.postProcessStacks.filter(({ options }) => options.channel === 'id1.powerup').at(-1).stack, []);
+    assert.deepEqual(engine.postProcessStacks.filter(({ options }) => options?.channel === 'id1.powerup').at(-1)?.stack, []);
   });
 
   void test('takes the tints off when the client disconnects', () => {
@@ -287,7 +308,7 @@ void describe('id1 HUD color shifts', () => {
     engine.eventBus.publish('client.disconnected');
 
     const resets = engine.postProcessStacks.slice(-5);
-    assert.deepEqual(resets.map(({ options }) => options.channel), ['id1.liquid', 'id1.damage', 'id1.bonus', 'id1.powerup', 'id1.info']);
+    assert.deepEqual(resets.map(({ options }) => options?.channel), ['id1.liquid', 'id1.damage', 'id1.bonus', 'id1.powerup', 'id1.info']);
     assert.ok(resets.every(({ stack }) => stack.length === 0));
   });
 });

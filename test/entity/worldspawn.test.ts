@@ -2,121 +2,97 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import Vector from '../../../../shared/Vector.ts';
+import type { ServerEdict } from '../../../../engine/server/Edict.ts';
+import type BaseEntity from '../../entity/BaseEntity.ts';
+import type { PlayerEntity } from '../../entity/Player.ts';
+import { createInertEdict, createInertEngineApi, createInertGameApi } from '../../../../../test/support/entityMocks.ts';
 import { moveType } from '../../Defs.ts';
 
 await import('../../GameAPI.ts');
 
 const { BodyqueEntity, CopyToBodyQue, WorldspawnEntity } = await import('../../entity/Worldspawn.ts');
 
+type Worldspawn = InstanceType<typeof WorldspawnEntity>;
+
 /**
  * Create a mock server edict that keeps entity fields in sync.
- * @param {number} num Edict slot number.
- * @returns {import('../../../../shared/GameInterfaces.ts').ServerEdict} Mock edict.
+ * @param num Edict slot number.
+ * @returns The mock edict and the call that attaches the entity built around it.
  */
-function createMockEdict(num) {
-  const entityRef = { current: null };
+function createMockEdict(num: number): { edict: ServerEdict; bindEntity: (entity: BaseEntity) => void } {
+  let current: BaseEntity | null = null;
+  const edict = createInertEdict();
 
-  return /** @type {import('../../../../shared/GameInterfaces.ts').ServerEdict} */ ({
+  Object.assign(edict, {
     num,
-    entity: null,
-    freeEdict() {},
-    setOrigin(origin) {
-      entityRef.current.origin = origin.copy();
+    setOrigin(origin: Vector): void {
+      current!.origin = origin.copy();
     },
-    setModel(model) {
-      entityRef.current.model = model;
+    setModel(model: string | null): void {
+      current!.model = model;
     },
-    setMinMaxSize(mins, maxs) {
-      entityRef.current.mins = mins.copy();
-      entityRef.current.maxs = maxs.copy();
-    },
-    walkMove() {
-      return false;
-    },
-    changeYaw() {
-      return 0;
-    },
-    dropToFloor() {
-      return true;
-    },
-    isOnTheFloor() {
-      return false;
-    },
-    makeStatic() {},
-    aim() {
-      return null;
-    },
-    moveToGoal() {
-      return false;
-    },
-    isInPXS() {
-      return true;
-    },
-    getNextBestClient() {
-      return null;
-    },
-    __setEntity(entity) {
-      entityRef.current = entity;
-      this.entity = entity;
+    setMinMaxSize(mins: Vector, maxs: Vector): void {
+      current!.mins = mins.copy();
+      current!.maxs = maxs.copy();
     },
   });
+
+  return {
+    edict,
+    bindEntity(entity: BaseEntity): void {
+      current = entity;
+      edict.entity = entity;
+    },
+  };
 }
 
 /**
  * Create a minimal worldspawn fixture with spawnable body queue entities.
- * @returns {{ worldspawn: WorldspawnEntity, gameAPI: object, precachedSounds: string[], precachedModels: string[], lightstyles: Array<{ style: number, value: string }>, cvars: Array<{ name: string, value: string }>, spawnClassnames: string[] }} Fixture data.
+ * @returns Fixture data.
  */
 function createWorldspawnFixture() {
-  const precachedSounds = [];
-  const precachedModels = [];
-  const lightstyles = [];
-  const cvars = [];
-  const spawnClassnames = [];
+  const precachedSounds: string[] = [];
+  const precachedModels: string[] = [];
+  const lightstyles: Array<{ style: number; value: string }> = [];
+  const cvars: Array<{ name: string; value: string }> = [];
+  const spawnClassnames: string[] = [];
   let nextEdictNum = 10;
-  const gameAPI = {
-    engine: null,
-    worldspawn: /** @type {WorldspawnEntity|null} */ (null),
-    lastspawn: /** @type {WorldspawnEntity|null} */ (null),
-    bodyque_head: /** @type {BodyqueEntity|null} */ (null),
-  };
 
-  const engine = {
-    IsLoading() {
-      return false;
-    },
-    PrecacheSound(sound) {
+  const engine = createInertEngineApi({
+    PrecacheSound(sound: string): void {
       precachedSounds.push(sound);
     },
-    PrecacheModel(model) {
+    PrecacheModel(model: string): void {
       precachedModels.push(model);
     },
-    ParseQC() {
-      return null;
-    },
-    SetCvar(name, value) {
+    SetCvar(name: string, value: string): void {
       cvars.push({ name, value });
     },
-    Lightstyle(style, value) {
+    Lightstyle(style: number, value: string): void {
       lightstyles.push({ style, value });
     },
-    SpawnEntity(classname) {
+    SpawnEntity(classname: string) {
       spawnClassnames.push(classname);
       if (classname !== BodyqueEntity.classname) {
         return { entity: null };
       }
 
-      const edict = createMockEdict(nextEdictNum++);
+      const { edict, bindEntity } = createMockEdict(nextEdictNum++);
       const entity = new BodyqueEntity(edict, gameAPI).initializeEntity().precacheEntity();
-      edict.__setEntity(entity);
+      bindEntity(entity);
       return { entity };
     },
-  };
+  });
 
-  gameAPI.engine = engine;
+  const gameAPI = createInertGameApi({
+    worldspawn: null,
+    lastspawn: null,
+    bodyque_head: null,
+  }, engine);
 
-  const worldspawnEdict = createMockEdict(1);
+  const { edict: worldspawnEdict, bindEntity } = createMockEdict(1);
   const worldspawn = new WorldspawnEntity(worldspawnEdict, gameAPI).initializeEntity().precacheEntity();
-  worldspawnEdict.__setEntity(worldspawn);
+  bindEntity(worldspawn);
   worldspawn.origin = new Vector();
   worldspawn.model = 'maps/start.bsp';
 
@@ -125,7 +101,8 @@ function createWorldspawnFixture() {
 
 void describe('WorldspawnEntity spawn', () => {
   void test('creates a four-entry QC body queue ring and initializes world lighting', () => {
-    const previousWorldspawn = /** @type {WorldspawnEntity} */ ({ marker: 'previous' });
+    // Only compared by identity.
+    const previousWorldspawn = { marker: 'previous' } as unknown as Worldspawn;
     const { worldspawn, gameAPI, cvars, lightstyles, spawnClassnames, precachedSounds, precachedModels } = createWorldspawnFixture();
 
     gameAPI.worldspawn = previousWorldspawn;
@@ -136,8 +113,9 @@ void describe('WorldspawnEntity spawn', () => {
     assert.equal(gameAPI.lastspawn, previousWorldspawn);
     assert.equal(gameAPI.worldspawn, worldspawn);
     assert.equal(spawnClassnames.length, 4);
-    assert.ok(gameAPI.bodyque_head instanceof BodyqueEntity);
-    assert.equal(gameAPI.bodyque_head.owner.owner.owner.owner, gameAPI.bodyque_head);
+    const head = gameAPI.bodyque_head;
+    assert.ok(head instanceof BodyqueEntity);
+    assert.equal(head.owner?.owner?.owner?.owner, head);
     assert.deepEqual(cvars, [{ name: 'sv_gravity', value: '100' }]);
     assert.equal(lightstyles.length, 13);
     assert.deepEqual(lightstyles[0], { style: 0, value: 'm' });
@@ -152,7 +130,9 @@ void describe('WorldspawnEntity spawn', () => {
     worldspawn.spawn();
 
     const firstBody = gameAPI.bodyque_head;
+    assert.ok(firstBody);
     const nextBody = firstBody.owner;
+    // CopyToBodyQue reads these members of the player.
     const player = {
       angles: new Vector(10, 20, 30),
       model: 'progs/player.mdl',
@@ -165,7 +145,7 @@ void describe('WorldspawnEntity spawn', () => {
       maxs: new Vector(16, 16, 32),
     };
 
-    CopyToBodyQue(gameAPI, /** @type {import('../../entity/Player.ts').PlayerEntity} */ (player));
+    CopyToBodyQue(gameAPI, player as unknown as PlayerEntity);
 
     assert.deepEqual(cvars, [{ name: 'sv_gravity', value: '800' }]);
     assert.ok(firstBody.angles.equalsTo(10, 20, 30));

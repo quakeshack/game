@@ -2,7 +2,11 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import Vector from '../../../../shared/Vector.ts';
+import type BaseEntity from '../../entity/BaseEntity.ts';
+import { createEntityStub, createInertEdict, createInertGameApi, createMutableEngineApi, type EntityConstructor, recordSpawns, type WithMutableEngine } from '../../../../../test/support/entityMocks.ts';
 import { effect } from '../../Defs.ts';
+
+import { statesOf } from '../../../../../test/support/entityStates.ts';
 
 await import('../../GameAPI.ts');
 
@@ -12,48 +16,14 @@ ShalrathMonsterEntity._initStates();
 
 /**
  * Create a minimal Shalrath fixture for focused behavior tests.
- * @param {typeof ShalrathMonsterEntity} MonsterClass Monster constructor under test.
- * @returns {ShalrathMonsterEntity} Monster fixture instance.
+ * @param MonsterClass Monster constructor under test.
+ * @returns Monster fixture instance.
  */
-function createMonsterFixture(MonsterClass) {
-  const edict = {
-    num: 1,
-    entity: null,
-    isFree() {
-      return false;
-    },
-    freeEdict() {},
-    setOrigin() {},
-    setModel() {},
-    setMinMaxSize() {},
-    walkMove() {
-      return false;
-    },
-    changeYaw() {
-      return 0;
-    },
-    dropToFloor() {
-      return true;
-    },
-    isOnTheFloor() {
-      return false;
-    },
-    makeStatic() {},
-    aim() {
-      return null;
-    },
-    moveToGoal() {
-      return false;
-    },
-    isInPXS() {
-      return true;
-    },
-    getNextBestClient() {
-      return null;
-    },
-  };
+function createMonsterFixture<T extends BaseEntity>(MonsterClass: EntityConstructor<T>): WithMutableEngine<T> {
+  const edict = createInertEdict();
+  edict.isFree = () => false;
 
-  const engine = {
+  const engine = createMutableEngineApi({
     IsLoading() {
       return false;
     },
@@ -69,26 +39,25 @@ function createMonsterFixture(MonsterClass) {
     eventBus: {
       publish() {},
     },
-  };
+  });
 
-  const gameAPI = {
-    engine,
+  const gameAPI = createInertGameApi({
     time: 0,
     skill: 1,
     deathmatch: 0,
     nomonsters: 0,
-  };
+  }, engine);
 
   const entity = new MonsterClass(edict, gameAPI).initializeEntity();
   edict.entity = entity;
   entity.origin = new Vector(10, 20, 30);
   entity.angles = new Vector();
-  entity.enemy = {
+  entity.enemy = createEntityStub({
     origin: new Vector(90, 20, 30),
     health: 100,
-  };
+  });
 
-  return entity;
+  return entity as WithMutableEngine<T>;
 }
 
 void describe('ShalrathMonsterEntity metadata', () => {
@@ -108,7 +77,7 @@ void describe('ShalrathMonsterEntity metadata', () => {
 
 void describe('ShalrathMonsterEntity state machine', () => {
   void test('walk and run loops match the QuakeC frame counts', () => {
-    const states = ShalrathMonsterEntity._states;
+    const states = statesOf(ShalrathMonsterEntity);
 
     assert.equal(states.shal_stand.keyframe, 'walk1');
     assert.equal(states.shal_stand.nextState, 'shal_stand');
@@ -122,7 +91,7 @@ void describe('ShalrathMonsterEntity state machine', () => {
   });
 
   void test('attack, pain, and death chains keep the original frame counts', () => {
-    const states = ShalrathMonsterEntity._states;
+    const states = statesOf(ShalrathMonsterEntity);
 
     for (let i = 1; i <= 11; i++) {
       assert.equal(states[`shal_attack${i}`].keyframe, `attack${i}`);
@@ -144,14 +113,10 @@ void describe('ShalrathMonsterEntity state machine', () => {
 void describe('ShalrathMonsterEntity QC fixes', () => {
   void test('launchMissile adds muzzleflash, plays attack2, and spawns a missile', () => {
     const shalrath = createMonsterFixture(ShalrathMonsterEntity);
-    const spawned = [];
-    const sounds = [];
+    const spawned = recordSpawns(shalrath.engine);
+    const sounds: string[] = [];
 
-    shalrath.engine.SpawnEntity = (classname, initialData) => {
-      spawned.push({ classname, initialData });
-      return { entity: null };
-    };
-    shalrath.startSound = (_channel, soundName) => {
+    shalrath.startSound = (_channel: number, soundName: string) => {
       sounds.push(soundName);
     };
 
@@ -166,39 +131,7 @@ void describe('ShalrathMonsterEntity QC fixes', () => {
 
   void test('missile spawn starts above the owner and adds the classic spin', () => {
     const owner = createMonsterFixture(ShalrathMonsterEntity);
-    const edict = {
-      num: 2,
-      entity: null,
-      freeEdict() {},
-      setOrigin() {},
-      setModel() {},
-      setMinMaxSize() {},
-      walkMove() {
-        return false;
-      },
-      changeYaw() {
-        return 0;
-      },
-      dropToFloor() {
-        return true;
-      },
-      isOnTheFloor() {
-        return false;
-      },
-      makeStatic() {},
-      aim() {
-        return null;
-      },
-      moveToGoal() {
-        return false;
-      },
-      isInPXS() {
-        return true;
-      },
-      getNextBestClient() {
-        return null;
-      },
-    };
+    const edict = createInertEdict();
 
     const missile = new ShalrathMissileEntity(edict, owner.game).initializeEntity();
     edict.entity = missile;

@@ -2,6 +2,10 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import Vector from '../../../../shared/Vector.ts';
+import type BaseEntity from '../../entity/BaseEntity.ts';
+import { createEntityStub, createGameTrace, createInertEdict, createInertGameApi, createMutableEngineApi, type EntityConstructor, type WithMutableEngine } from '../../../../../test/support/entityMocks.ts';
+
+import { statesOf } from '../../../../../test/support/entityStates.ts';
 
 await import('../../GameAPI.ts');
 
@@ -11,45 +15,13 @@ ShamblerMonsterEntity._initStates();
 
 /**
  * Create a minimal Shambler fixture for focused behavior tests.
- * @param {typeof ShamblerMonsterEntity} MonsterClass Monster constructor under test.
- * @returns {ShamblerMonsterEntity} Monster fixture instance.
+ * @param MonsterClass Monster constructor under test.
+ * @returns Monster fixture instance.
  */
-function createMonsterFixture(MonsterClass) {
-  const edict = {
-    num: 1,
-    entity: null,
-    freeEdict() {},
-    setOrigin() {},
-    setModel() {},
-    setMinMaxSize() {},
-    walkMove() {
-      return false;
-    },
-    changeYaw() {
-      return 0;
-    },
-    dropToFloor() {
-      return true;
-    },
-    isOnTheFloor() {
-      return false;
-    },
-    makeStatic() {},
-    aim() {
-      return null;
-    },
-    moveToGoal() {
-      return false;
-    },
-    isInPXS() {
-      return true;
-    },
-    getNextBestClient() {
-      return null;
-    },
-  };
+function createMonsterFixture<T extends BaseEntity>(MonsterClass: EntityConstructor<T>): WithMutableEngine<T> {
+  const edict = createInertEdict();
 
-  const engine = {
+  const engine = createMutableEngineApi({
     IsLoading() {
       return false;
     },
@@ -66,15 +38,14 @@ function createMonsterFixture(MonsterClass) {
     eventBus: {
       publish() {},
     },
-  };
+  });
 
-  const gameAPI = {
-    engine,
+  const gameAPI = createInertGameApi({
     time: 0,
     skill: 1,
     deathmatch: 0,
     nomonsters: 0,
-  };
+  }, engine);
 
   const entity = new MonsterClass(edict, gameAPI).initializeEntity();
   edict.entity = entity;
@@ -82,7 +53,7 @@ function createMonsterFixture(MonsterClass) {
   entity.angles = new Vector();
   entity.enemy = null;
 
-  return entity;
+  return entity as WithMutableEngine<T>;
 }
 
 void describe('ShamblerMonsterEntity metadata', () => {
@@ -102,7 +73,7 @@ void describe('ShamblerMonsterEntity metadata', () => {
 
 void describe('ShamblerMonsterEntity state machine', () => {
   void test('stand, walk, and run loops match the QuakeC frame counts', () => {
-    const states = ShamblerMonsterEntity._states;
+    const states = statesOf(ShamblerMonsterEntity);
 
     for (let i = 1; i <= 17; i++) {
       assert.equal(states[`sham_stand${i}`].keyframe, `stand${i}`);
@@ -121,7 +92,7 @@ void describe('ShamblerMonsterEntity state machine', () => {
   });
 
   void test('melee chains return to the run loop', () => {
-    const states = ShamblerMonsterEntity._states;
+    const states = statesOf(ShamblerMonsterEntity);
 
     for (let i = 1; i <= 12; i++) {
       assert.equal(states[`sham_smash${i}`].keyframe, `smash${i}`);
@@ -137,7 +108,7 @@ void describe('ShamblerMonsterEntity state machine', () => {
   });
 
   void test('magic sequence keeps the legacy extra magic3 state and skips directly to magic9', () => {
-    const states = ShamblerMonsterEntity._states;
+    const states = statesOf(ShamblerMonsterEntity);
 
     assert.equal(states.sham_magic1.keyframe, 'magic1');
     assert.equal(states.sham_magic2.keyframe, 'magic2');
@@ -157,7 +128,7 @@ void describe('ShamblerMonsterEntity state machine', () => {
   });
 
   void test('pain and death sequences transition correctly', () => {
-    const states = ShamblerMonsterEntity._states;
+    const states = statesOf(ShamblerMonsterEntity);
 
     for (let i = 1; i <= 6; i++) {
       assert.equal(states[`sham_pain${i}`].keyframe, `pain${i}`);
@@ -171,7 +142,7 @@ void describe('ShamblerMonsterEntity state machine', () => {
   });
 
   void test('active states keep handlers while passive pain and death frames omit them', () => {
-    const states = ShamblerMonsterEntity._states;
+    const states = statesOf(ShamblerMonsterEntity);
 
     for (const name of ['sham_stand1', 'sham_walk12', 'sham_run6', 'sham_smash10', 'sham_swingl7', 'sham_swingr7', 'sham_magic1', 'sham_magic3', 'sham_magic3b', 'sham_magic11']) {
       assert.equal(typeof states[name].handler, 'function', `${name} handler should be a function`);
@@ -193,21 +164,19 @@ void describe('ShamblerMonsterEntity QC fixes', () => {
     let soundCalls = 0;
     let beamCalls = 0;
 
-    shambler.enemy = {
+    shambler.enemy = createEntityStub({
       origin: new Vector(64, 0, 0),
-    };
+    });
     shambler._ai.face = () => {};
     shambler.startSound = () => {
       soundCalls += 1;
     };
-    shambler.traceline = () => ({
+    shambler.traceline = () => createGameTrace({
       point: new Vector(64, 0, 0),
     });
-    shambler._damageInflictor = {
-      lightningDamage() {},
-      dispatchBeamEvent() {
-        beamCalls += 1;
-      },
+    // The beam reaches the engine through the shambler's own damage inflictor.
+    shambler.engine.DispatchBeamEvent = () => {
+      beamCalls += 1;
     };
 
     shambler.castLightning();

@@ -2,7 +2,12 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import Vector from '../../../../shared/Vector.ts';
+import type BaseEntity from '../../entity/BaseEntity.ts';
+import { createInertEdict, createInertGameApi, createMutableEngineApi, recordSpawns, type EntityConstructor, type WithMutableEngine } from '../../../../../test/support/entityMocks.ts';
 import { clientEvent, damage, moveType, solid } from '../../Defs.ts';
+
+import { statesOf } from '../../../../../test/support/entityStates.ts';
+import { serializableFieldsOf } from '../../../../../test/support/serialization.ts';
 
 await import('../../GameAPI.ts');
 
@@ -10,48 +15,23 @@ const { default: OldOneMonster } = await import('../../entity/monster/OldOne.ts'
 
 OldOneMonster._initStates();
 
+/** An old one that lets a test replace the animation state machine. */
+class TestOldOne extends OldOneMonster {
+  stubRunState(handler: (nextState: string | null) => boolean): void {
+    this._runState = handler;
+  }
+}
+
 /**
  * Create a minimal OldOne fixture for focused behavior tests.
- * @param {typeof OldOneMonster} MonsterClass Monster constructor under test.
- * @param {object} [gameOverrides] Optional game API overrides.
- * @returns {OldOneMonster} Monster fixture instance.
+ * @param MonsterClass Monster constructor under test.
+ * @param gameOverrides Optional game API overrides.
+ * @returns Monster fixture instance.
  */
-function createMonsterFixture(MonsterClass, gameOverrides = {}) {
-  const edict = {
-    num: 1,
-    entity: null,
-    freeEdict() {},
-    setOrigin() {},
-    setModel() {},
-    setMinMaxSize() {},
-    walkMove() {
-      return false;
-    },
-    changeYaw() {
-      return 0;
-    },
-    dropToFloor() {
-      return true;
-    },
-    isOnTheFloor() {
-      return false;
-    },
-    makeStatic() {},
-    aim() {
-      return null;
-    },
-    moveToGoal() {
-      return false;
-    },
-    isInPXS() {
-      return true;
-    },
-    getNextBestClient() {
-      return null;
-    },
-  };
+function createMonsterFixture<T extends BaseEntity>(MonsterClass: EntityConstructor<T>, gameOverrides: object = {}): WithMutableEngine<T> {
+  const edict = createInertEdict();
 
-  const engine = {
+  const engine = createMutableEngineApi({
     IsLoading() {
       return false;
     },
@@ -76,17 +56,16 @@ function createMonsterFixture(MonsterClass, gameOverrides = {}) {
     eventBus: {
       publish() {},
     },
-  };
+  });
 
-  const gameAPI = {
-    engine,
+  const gameAPI = createInertGameApi({
     time: 10,
     deathmatch: 0,
     nomonsters: 0,
     intermission_running: 0,
     intermission_exittime: 0,
     ...gameOverrides,
-  };
+  }, engine);
 
   const entity = new MonsterClass(edict, gameAPI).initializeEntity();
   edict.entity = entity;
@@ -100,8 +79,8 @@ void describe('OldOneMonster metadata', () => {
   void test('class metadata matches the original monster', () => {
     assert.equal(OldOneMonster.classname, 'monster_oldone');
     assert.equal(OldOneMonster._modelDefault, 'progs/oldone.mdl');
-    assert.ok(Array.isArray(OldOneMonster.serializableFields));
-    assert.ok(Object.isFrozen(OldOneMonster.serializableFields));
+    assert.ok(Array.isArray(serializableFieldsOf(OldOneMonster)));
+    assert.ok(Object.isFrozen(serializableFieldsOf(OldOneMonster)));
   });
 
   void test('thrash light levels preserve the QuakeC sequence', () => {
@@ -111,7 +90,7 @@ void describe('OldOneMonster metadata', () => {
 
 void describe('OldOneMonster state machine', () => {
   void test('idle sequence keeps all 46 frames and loops', () => {
-    const states = OldOneMonster._states;
+    const states = statesOf(OldOneMonster);
 
     for (let i = 1; i <= 46; i++) {
       assert.equal(states[`old_idle${i}`].keyframe, `old${i}`);
@@ -120,7 +99,7 @@ void describe('OldOneMonster state machine', () => {
   });
 
   void test('thrash sequence keeps the duplicate shake12 frame and terminal loop', () => {
-    const states = OldOneMonster._states;
+    const states = statesOf(OldOneMonster);
 
     for (let i = 1; i <= 11; i++) {
       assert.equal(states[`old_thrash${i}`].keyframe, `shake${i}`);
@@ -134,7 +113,7 @@ void describe('OldOneMonster state machine', () => {
 
 void describe('OldOneMonster QC fixes', () => {
   void test('pain resets health so only the telefrag finale can kill the boss', () => {
-    const oldOne = createMonsterFixture(OldOneMonster);
+    const oldOne = createMonsterFixture(TestOldOne);
 
     oldOne.health = 1;
     oldOne.thinkPain();
@@ -143,17 +122,17 @@ void describe('OldOneMonster QC fixes', () => {
   });
 
   void test('thrash15 restarts the cycle until the third pass', () => {
-    const oldOne = createMonsterFixture(OldOneMonster);
-    const lightStyles = [];
+    const oldOne = createMonsterFixture(TestOldOne);
+    const lightStyles: string[] = [];
     let stateName = null;
 
-    oldOne.engine.Lightstyle = (_style, level) => {
+    oldOne.engine.Lightstyle = (_style: number, level: string) => {
       lightStyles.push(level);
     };
-    oldOne._runState = (nextState) => {
+    oldOne.stubRunState((nextState: string | null) => {
       stateName = nextState;
       return true;
-    };
+    });
 
     oldOne._thrash15Callback();
     assert.equal(oldOne.cnt, 1);
@@ -168,15 +147,15 @@ void describe('OldOneMonster QC fixes', () => {
   });
 
   void test('spawn sets the classic boss bounds and telefrag-only health', () => {
-    const oldOne = createMonsterFixture(OldOneMonster);
+    const oldOne = createMonsterFixture(TestOldOne);
     let stateName = null;
     let published = null;
 
-    oldOne._runState = (nextState) => {
+    oldOne.stubRunState((nextState: string | null) => {
       stateName = nextState;
       return true;
-    };
-    oldOne.engine.eventBus.publish = (eventName, entity) => {
+    });
+    oldOne.engine.eventBus.publish = (eventName: string, entity: unknown) => {
       published = { eventName, entity };
     };
 
@@ -191,26 +170,20 @@ void describe('OldOneMonster QC fixes', () => {
   });
 
   void test('finale4 tolerates a stand-in edict without an entity', () => {
-    const oldOne = createMonsterFixture(OldOneMonster);
-    let playTrack = null;
-    const lightStyles = [];
+    const oldOne = createMonsterFixture(TestOldOne);
+    let playTrack: number | null = null;
+    const lightStyles: string[] = [];
     let removed = false;
-    const gibEvents = [];
+    const gibEvents: Array<{ eventCode: clientEvent; model: string; origin: Vector; velocity: Vector }> = [];
 
-    oldOne.engine.BroadcastClientEvent = (_expedited, eventCode, model, origin, velocity) => {
+    oldOne.engine.BroadcastClientEvent = (_expedited: boolean, eventCode: clientEvent, model: string, origin: Vector, velocity: Vector) => {
       gibEvents.push({ eventCode, model, origin, velocity });
     };
-    oldOne.engine.SpawnEntity = (classname) => {
-      if (classname === 'misc_null') {
-        return { entity: null };
-      }
-
-      return { entity: null };
-    };
-    oldOne.engine.PlayTrack = (track) => {
+    recordSpawns(oldOne.engine);
+    oldOne.engine.PlayTrack = (track: number) => {
       playTrack = track;
     };
-    oldOne.engine.Lightstyle = (_style, level) => {
+    oldOne.engine.Lightstyle = (_style: number, level: string) => {
       lightStyles.push(level);
     };
     oldOne.remove = () => {

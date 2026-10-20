@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
+import type { ServerEngineAPI } from '../../../../shared/GameInterfaces.ts';
+import { createInertEngineApi } from '../../../../../test/support/entityMocks.ts';
 import BaseEntity from '../../entity/BaseEntity.ts';
 
 const registryModule = await import('../../helper/Registry.ts');
@@ -14,46 +16,45 @@ class RegisteredEntity extends BaseEntity {
   static parseModelDataCalls = 0;
   static initStatesCalls = 0;
 
-  static _precache(_engineAPI) {
+  static override _precache(_engineAPI: ServerEngineAPI): void {
     void _engineAPI;
     this.precacheCalls += 1;
   }
 
-  static _parseModelData(_engineAPI) {
+  static override _parseModelData(_engineAPI: ServerEngineAPI): void {
     void _engineAPI;
     this.parseModelDataCalls += 1;
   }
 
-  static _initStates() {
+  static override _initStates(): void {
     this.initStatesCalls += 1;
   }
 }
 
 class ServerOnlyEntity extends BaseEntity {
   static classname = 'server_only_entity';
-  static clientEntityFields = [];
+  static clientEntityFields: string[] = [];
   static precacheCalls = 0;
   static parseModelDataCalls = 0;
   static initStatesCalls = 0;
 
-  static _precache(_engineAPI) {
+  static override _precache(_engineAPI: ServerEngineAPI): void {
     void _engineAPI;
     this.precacheCalls += 1;
   }
 
-  static _parseModelData(_engineAPI) {
+  static override _parseModelData(_engineAPI: ServerEngineAPI): void {
     void _engineAPI;
     this.parseModelDataCalls += 1;
   }
 
-  static _initStates() {
+  static override _initStates(): void {
     this.initStatesCalls += 1;
   }
 }
 
 /**
  * Reset static hook counters for both test entity classes.
- * @returns {void}
  */
 function resetCounters() {
   RegisteredEntity.precacheCalls = 0;
@@ -79,7 +80,7 @@ void describe('EntityRegistry', () => {
     resetCounters();
 
     const registry = new EntityRegistry([RegisteredEntity, ServerOnlyEntity]);
-    const engineAPI = {};
+    const engineAPI = createInertEngineApi();
 
     registry.precacheAll(engineAPI);
     registry.initializeAll(engineAPI);

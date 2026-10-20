@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
 import Vector from '../../../../shared/Vector.ts';
+import type { ScheduledThinkCallback } from '../../entity/BaseEntity.ts';
+import type { Sub } from '../../entity/Subs.ts';
+import { createInertGameApi, createMutableEngineApi, createSubStub } from '../../../../../test/support/entityMocks.ts';
 
 await import('../../GameAPI.ts');
 
@@ -17,29 +20,63 @@ const {
   TriggerMonsterjumpEntity,
 } = await import('../../entity/Triggers.ts');
 
+type Entity = InstanceType<typeof BaseEntity>;
+type Player = InstanceType<typeof PlayerEntity>;
+
+interface GameOverrides {
+  readonly engine?: object;
+  readonly time?: number;
+}
+
+/** A multiple trigger that lets a test replace its movement helper and run the trigger. */
+class TestMultipleTrigger extends MultipleTriggerEntity {
+  useSub(sub: Sub): void {
+    this._sub = sub;
+  }
+
+  trigger(activator: Entity): void {
+    this._trigger(activator);
+  }
+
+  get isActive(): boolean {
+    return this._isActive;
+  }
+}
+
+/** A count trigger whose movement helper a test replaces. */
+class TestCountTrigger extends CountTriggerEntity {
+  useSub(sub: Sub): void {
+    this._sub = sub;
+  }
+}
+
+/** A teleport trigger whose movement helper a test replaces. */
+class TestTeleportTrigger extends TeleportTriggerEntity {
+  useSub(sub: Sub): void {
+    this._sub = sub;
+  }
+}
+
 /**
  * Create a minimal mock game API for trigger tests.
- * @param {object} overrides Optional engine/game overrides.
- * @returns {object} Mock game API object.
+ * @param overrides Optional engine/game overrides.
+ * @returns Mock game API object.
  */
-function createMockGameAPI(overrides = {}) {
-  const engine = {
+function createMockGameAPI(overrides: GameOverrides = {}): ReturnType<typeof createInertGameApi> {
+  const engine = createMutableEngineApi({
     SpawnEntity() {
       return null;
     },
-    SpawnAmbientSound() {},
-    PrecacheSound() {},
     BroadcastPrint() {},
     SetCvar() {},
     eventBus: {
       publish() {},
     },
     ...overrides.engine,
-  };
+  });
 
-  return {
-    time: 0,
-    engine,
+  return createInertGameApi({
+    time: overrides.time ?? 0,
     noexit: 0,
     mapname: 'e1m1',
     coop: 0,
@@ -47,8 +84,7 @@ function createMockGameAPI(overrides = {}) {
     force_retouch: 0,
     loadNextMap() {},
     startIntermission() {},
-    ...overrides,
-  };
+  }, engine);
 }
 
 class TestEntity extends BaseEntity {
@@ -56,18 +92,18 @@ class TestEntity extends BaseEntity {
 
   removed = false;
 
-  remove() {
+  override remove(): void {
     this.removed = true;
   }
 }
 
 /**
  * Build a player-shaped test double that satisfies instanceof checks.
- * @param {object} overrides Optional field or method overrides.
- * @returns {PlayerEntity} Player-like test entity.
+ * @param overrides Optional field or method overrides.
+ * @returns Player-like test entity.
  */
-function createPlayerStub(overrides = {}) {
-  return Object.assign(Object.create(PlayerEntity.prototype), {
+function createPlayerStub(overrides: Partial<Player> = {}): Player {
+  return Object.assign(Object.create(PlayerEntity.prototype) as Player, {
     health: 100,
     solid: solid.SOLID_SLIDEBOX,
     flags: flags.FL_ONGROUND,
@@ -80,7 +116,7 @@ function createPlayerStub(overrides = {}) {
     netname: 'Player',
     centerPrint() {},
     startSound() {},
-    setOrigin(origin) {
+    setOrigin(this: Player, origin: Vector) {
       this.origin.set(origin);
     },
     ...overrides,
@@ -89,8 +125,8 @@ function createPlayerStub(overrides = {}) {
 
 void describe('Triggers port', () => {
   void test('MultipleTriggerEntity applies QC defaults and rearms health-gated triggers', () => {
-    const scheduledThinks = [];
-    const entity = new MultipleTriggerEntity(null, createMockGameAPI()).initializeEntity();
+    const scheduledThinks: Array<{ nextThink: number; callback: ScheduledThinkCallback<typeof entity> }> = [];
+    const entity = new TestMultipleTrigger(null, createMockGameAPI()).initializeEntity();
     entity.model = '*1';
     entity.health = 12;
     entity.setModel = () => {};
@@ -106,36 +142,30 @@ void describe('Triggers port', () => {
     assert.equal(entity.takedamage, damage.DAMAGE_YES);
     assert.equal(entity.solid, solid.SOLID_BBOX);
 
-    entity._sub = {
-      useTargets() {},
-      setMovedir() {},
-    };
-    entity._trigger(new TestEntity(null, createMockGameAPI()).initializeEntity());
+    entity.useSub(createSubStub());
+    entity.trigger(new TestEntity(null, createMockGameAPI()).initializeEntity());
 
     assert.equal(scheduledThinks.length, 1);
-    scheduledThinks[0].callback();
-    assert.equal(entity._isActive, false);
+    scheduledThinks[0].callback.call(entity, entity);
+    assert.equal(entity.isActive, false);
     assert.equal(entity.health, 12);
   });
 
   void test('CountTriggerEntity shows countdown text and fires when it reaches zero', () => {
-    const prints = [];
-    const usedTargets = [];
+    const prints: string[] = [];
+    const usedTargets: Entity[] = [];
     const player = createPlayerStub({
-      centerPrint(message) {
+      centerPrint(message: string) {
         prints.push(message);
       },
     });
-    const entity = new CountTriggerEntity(null, createMockGameAPI()).initializeEntity();
-    entity._sub = {
+    const entity = new TestCountTrigger(null, createMockGameAPI()).initializeEntity();
+    entity.useSub(createSubStub({
       useTargets(userEntity) {
         usedTargets.push(userEntity);
       },
-      setMovedir() {},
-    };
-    entity.lazyRemove = () => {
-      entity.removed = true;
-    };
+    }));
+    entity.lazyRemove = () => {};
     entity.count = 2;
 
     entity.use(player);
@@ -146,8 +176,8 @@ void describe('Triggers port', () => {
   });
 
   void test('TeleportTriggerEntity moves players, spawns effects, and sets exit velocity', () => {
-    const spawnRequests = [];
-    const usedTargets = [];
+    const spawnRequests: Array<{ classname: string; initialData: object }> = [];
+    const usedTargets: Entity[] = [];
     const player = createPlayerStub();
     player.origin.setTo(10, 20, 30);
     player.velocity.setTo(1, 2, 3);
@@ -156,21 +186,20 @@ void describe('Triggers port', () => {
     destination.origin.setTo(100, 200, 300);
     destination.mangle.setTo(0, 0, 0);
 
-    const entity = new TeleportTriggerEntity(null, createMockGameAPI({
+    const entity = new TestTeleportTrigger(null, createMockGameAPI({
       time: 5,
       engine: {
-        SpawnEntity(classname, initialData) {
+        SpawnEntity(classname: string, initialData: object) {
           spawnRequests.push({ classname, initialData });
           return { entity: null };
         },
       },
     })).initializeEntity();
-    entity._sub = {
+    entity.useSub(createSubStub({
       useTargets(userEntity) {
         usedTargets.push(userEntity);
       },
-      setMovedir() {},
-    };
+    }));
     entity.target = 'tele_dest';
     entity.findFirstEntityByFieldAndValue = () => destination;
 

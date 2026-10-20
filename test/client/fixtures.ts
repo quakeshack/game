@@ -1,4 +1,5 @@
-import type { ClientEdict, ClientEventValue } from '../../../../shared/GameInterfaces.ts';
+import type { ClientEngineAPI } from '../../../../engine/client/ClientEngineAPI.ts';
+import type { ClientEdict, ClientEventValue, PostProcessPulseDescriptor, PostProcessPulseOptions, PostProcessStack, PostProcessStackOptions } from '../../../../shared/GameInterfaces.ts';
 
 import Vector from '../../../../shared/Vector.ts';
 
@@ -157,14 +158,6 @@ interface MockViewRect {
   height: number;
 }
 
-/** What a game hands to `PostProcess.pulse`. */
-export interface MockPulse {
-  readonly id: string;
-  readonly key?: string;
-  readonly settings: { readonly color?: ArrayLike<number>; readonly alpha?: number };
-  readonly timing: { readonly fadeIn?: number; readonly hold?: number; readonly fadeOut?: number };
-}
-
 interface MockClientState {
   gametime: number;
   frametime: number;
@@ -228,8 +221,8 @@ export interface MockClientEngine {
   drawPics: Array<{ x: number; y: number; pic: MockTexture; scale: number }>;
   drawRects: Array<{ x: number; y: number; width: number; height: number; color: Vector; alpha: number }>;
   drawStrings: Array<{ x: number; y: number; text: string; scale: number; color: Vector }>;
-  postProcessStacks: Array<{ stack: readonly unknown[]; options: { channel?: string; fade?: number } | undefined }>;
-  postProcessPulses: Array<{ descriptor: MockPulse; options: { channel?: string } | undefined }>;
+  postProcessStacks: Array<{ stack: PostProcessStack; options: PostProcessStackOptions | undefined }>;
+  postProcessPulses: Array<{ descriptor: PostProcessPulseDescriptor; options: PostProcessPulseOptions | undefined }>;
   rocketTrails: Array<{ start: Vector; end: Vector; type: number }>;
   spawnedClientEntities: MockSpawnedClientEntity[];
   cvarSets: Array<[string, CvarInput]>;
@@ -269,10 +262,10 @@ export interface MockClientEngine {
     calculateDefault(input: unknown, result: unknown): void;
   };
   PostProcess: {
-    setStack(stack: readonly unknown[], options?: { channel?: string; fade?: number }): void;
+    setStack(stack: PostProcessStack, options?: PostProcessStackOptions): void;
     clearStack(channel?: string): void;
     hasStack(channel?: string): boolean;
-    pulse(descriptor: MockPulse, options?: { channel?: string }): void;
+    pulse(descriptor: PostProcessPulseDescriptor, options?: PostProcessPulseOptions): void;
   };
   Menu: MockMenuAPI;
   SaveSlots: {
@@ -287,6 +280,16 @@ export interface MockClientEngine {
     ): () => void;
     RequestSessionsRefresh(): void;
   };
+}
+
+/**
+ * A stand-in for the engine as the engine API the game code takes.
+ * @param engine The mock engine of {@link createMockClientEngine}, or a smaller stand-in with just the members the code under test calls.
+ * @returns The same object, typed as the real API.
+ */
+export function asClientEngineAPI(engine: object): ClientEngineAPI {
+  // The stand-ins implement the members game code calls, with stand-ins for the engine's GL and audio classes.
+  return engine as unknown as ClientEngineAPI;
 }
 
 /**
@@ -397,10 +400,10 @@ export function captureRegisteredPages(engine: MockClientEngine): Map<string, Me
 
 export interface MockSessionDiscoveryChannel {
   /** Pass as `Multiplayer.SubscribeSessions` in a `createMockClientEngine`/rig override. */
-  SubscribeSessions(
+  SubscribeSessions: (
     onSessions: (sessions: MockDiscoveredSession[]) => void,
     onStatus?: (status: MockSessionDiscoveryStatus) => void,
-  ): () => void;
+  ) => () => void;
   /** Pushes a fresh session list to every currently-subscribed listener (simulates a live diff). */
   push(sessions: MockDiscoveredSession[]): void;
   /** Pushes a status update to every currently-subscribed listener. */
@@ -629,8 +632,8 @@ export function createMockClientEngine(
   const drawPics: Array<{ x: number; y: number; pic: MockTexture; scale: number }> = [];
   const drawRects: Array<{ x: number; y: number; width: number; height: number; color: Vector; alpha: number }> = [];
   const drawStrings: Array<{ x: number; y: number; text: string; scale: number; color: Vector }> = [];
-  const postProcessStacks: Array<{ stack: readonly unknown[]; options: { channel?: string; fade?: number } | undefined }> = [];
-  const postProcessPulses: Array<{ descriptor: MockPulse; options: { channel?: string } | undefined }> = [];
+  const postProcessStacks: Array<{ stack: PostProcessStack; options: PostProcessStackOptions | undefined }> = [];
+  const postProcessPulses: Array<{ descriptor: PostProcessPulseDescriptor; options: PostProcessPulseOptions | undefined }> = [];
   const rocketTrails: Array<{ start: Vector; end: Vector; type: number }> = [];
   const spawnedClientEntities: MockSpawnedClientEntity[] = [];
   const cvarSets: Array<[string, CvarInput]> = [];
@@ -811,12 +814,12 @@ export function createMockClientEngine(
       },
     },
     PostProcess: {
-      setStack(stack: readonly unknown[], options?: { channel?: string; fade?: number }): void {
+      setStack(stack: PostProcessStack, options?: PostProcessStackOptions): void {
         postProcessStacks.push({ stack, options });
       },
       clearStack(): void {},
       hasStack(): boolean { return false; },
-      pulse(descriptor: MockPulse, options?: { channel?: string }): void {
+      pulse(descriptor: PostProcessPulseDescriptor, options?: PostProcessPulseOptions): void {
         postProcessPulses.push({ descriptor, options });
       },
     },

@@ -2,6 +2,9 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import Vector from '../../../../shared/Vector.ts';
+import type { ScheduledThinkCallback } from '../../entity/BaseEntity.ts';
+import type { Sub } from '../../entity/Subs.ts';
+import { createInertEdict, createInertEngineApi, createInertGameApi, createSubStub, finishMove, type CalcMoveCall } from '../../../../../test/support/entityMocks.ts';
 import { damage, moveType, solid } from '../../Defs.ts';
 
 await import('../../GameAPI.ts');
@@ -10,91 +13,49 @@ const { PlayerEntity } = await import('../../entity/Player.ts');
 const { ButtonEntity } = await import('../../entity/props/Buttons.ts');
 const { state } = await import('../../entity/props/BasePropEntity.ts');
 
+/** A button whose movement helper a test replaces, which the entity keeps to itself. */
+class TestButton extends ButtonEntity {
+  useSub(sub: Sub): void {
+    this._sub = sub;
+  }
+}
+
 /**
  * Create a minimal button fixture for focused behavior tests.
- * @returns {{ button: ButtonEntity, engine: object, setModelCalls: string[], precachedSounds: string[] }} Button fixture data.
+ * @returns Button fixture data.
  */
-function createButtonFixture() {
-  const setModelCalls = [];
-  const precachedSounds = [];
-  const edict = {
-    num: 1,
-    entity: null,
-    freeEdict() {},
-    setOrigin() {},
-    setModel(model) {
-      setModelCalls.push(model);
-    },
-    setMinMaxSize() {},
-    walkMove() {
-      return false;
-    },
-    changeYaw() {
-      return 0;
-    },
-    dropToFloor() {
-      return true;
-    },
-    isOnTheFloor() {
-      return false;
-    },
-    makeStatic() {},
-    aim() {
-      return null;
-    },
-    moveToGoal() {
-      return false;
-    },
-    isInPXS() {
-      return true;
-    },
-    getNextBestClient() {
-      return null;
-    },
+function createButtonFixture(): { button: TestButton; setModelCalls: string[]; precachedSounds: string[] } {
+  const setModelCalls: string[] = [];
+  const precachedSounds: string[] = [];
+  const edict = createInertEdict();
+  edict.setModel = (model: string): void => {
+    setModelCalls.push(model);
   };
 
-  const engine = {
-    IsLoading() {
-      return false;
-    },
-    PrecacheModel() {},
-    PrecacheSound(sound) {
+  const engine = createInertEngineApi({
+    PrecacheSound(sound: string): void {
       precachedSounds.push(sound);
     },
-    ParseQC() {
-      return null;
-    },
-    StartSound() {},
-    SpawnEntity() {
-      return { entity: null };
-    },
     DispatchTempEntityEvent() {},
-    FindByFieldAndValue() {
-      return null;
-    },
-    FindAllByFieldAndValue() {
-      return [];
-    },
     eventBus: {
       publish() {},
     },
-  };
+  });
 
-  const gameAPI = {
-    engine,
+  const gameAPI = createInertGameApi({
     time: 3,
     deathmatch: 0,
     nomonsters: 0,
-  };
+  }, engine);
 
-  const button = new ButtonEntity(edict, gameAPI).initializeEntity().precacheEntity();
+  const button = new TestButton(edict, gameAPI).initializeEntity().precacheEntity();
   edict.entity = button;
   button.origin = new Vector(10, 20, 30);
   button.angles = new Vector();
   button.size = new Vector(64, 16, 8);
   button.model = 'progs/button.bsp';
 
-  return { button, engine, setModelCalls, precachedSounds };
+  return { button, setModelCalls, precachedSounds };
 }
 
 void describe('ButtonEntity spawn', () => {
@@ -102,14 +63,12 @@ void describe('ButtonEntity spawn', () => {
     const { button, precachedSounds, setModelCalls } = createButtonFixture();
     let setMovedirCalls = 0;
 
-    button._sub = {
+    button.useSub(createSubStub({
       setMovedir() {
         setMovedirCalls++;
         button.movedir.setTo(1, 0, 0);
       },
-      calcMove() {},
-      useTargets() {},
-    };
+    }));
 
     button.spawn();
 
@@ -129,13 +88,11 @@ void describe('ButtonEntity spawn', () => {
   void test('enables takedamage and stores max health for shootable buttons', () => {
     const { button } = createButtonFixture();
 
-    button._sub = {
+    button.useSub(createSubStub({
       setMovedir() {
         button.movedir.setTo(0, 1, 0);
       },
-      calcMove() {},
-      useTargets() {},
-    };
+    }));
     button.health = 25;
 
     button.spawn();
@@ -148,34 +105,38 @@ void describe('ButtonEntity spawn', () => {
 void describe('ButtonEntity interaction', () => {
   void test('touch ignores non-player entities and shootable buttons', () => {
     const { button } = createButtonFixture();
-    const player = Object.create(PlayerEntity.prototype);
+    const player = Object.create(PlayerEntity.prototype) as InstanceType<typeof PlayerEntity>;
     const pushVector = new Vector();
-    const firedWith = [];
+    const calcMoveCalls: CalcMoveCall[] = [];
 
-    button._buttonFire = (userEntity) => {
-      firedWith.push(userEntity);
-    };
+    // Firing a button starts its move, which is what a touch that is not ignored would do.
+    button.useSub(createSubStub({
+      calcMove(target, speed, callback) {
+        calcMoveCalls.push({ target, speed, callback });
+      },
+    }));
+    button.noise = 'buttons/switch02.wav';
+    button.state = state.STATE_BOTTOM;
 
     button.touch(button, pushVector);
     button.max_health = 5;
     button.touch(player, pushVector);
 
-    assert.deepEqual(firedWith, []);
+    assert.deepEqual(calcMoveCalls, []);
+    assert.equal(button.state, state.STATE_BOTTOM);
   });
 
   void test('use starts the opening move and ignores repeat triggers while already active', () => {
     const { button } = createButtonFixture();
-    const calcMoveCalls = [];
-    const soundCalls = [];
+    const calcMoveCalls: CalcMoveCall[] = [];
+    const soundCalls: string[] = [];
     const userEntity = button;
 
-    button._sub = {
-      setMovedir() {},
+    button.useSub(createSubStub({
       calcMove(target, speed, callback) {
         calcMoveCalls.push({ target, speed, callback });
       },
-      useTargets() {},
-    };
+    }));
     button.pos2 = new Vector(100, 20, 30);
     button.speed = 55;
     button.noise = 'buttons/switch02.wav';
@@ -197,20 +158,19 @@ void describe('ButtonEntity interaction', () => {
 
   void test('wait, return, and death preserve the QC button cycle', () => {
     const { button } = createButtonFixture();
-    const calcMoveCalls = [];
-    const scheduledThinks = [];
-    const usedTargets = [];
+    const calcMoveCalls: CalcMoveCall[] = [];
+    const scheduledThinks: Array<{ nextThink: number; callback: ScheduledThinkCallback<TestButton> }> = [];
+    const usedTargets: unknown[] = [];
     const attacker = button;
 
-    button._sub = {
-      setMovedir() {},
+    button.useSub(createSubStub({
       calcMove(target, speed, callback) {
         calcMoveCalls.push({ target, speed, callback });
       },
       useTargets(userEntity) {
         usedTargets.push(userEntity);
       },
-    };
+    }));
     button._scheduleThink = (nextThink, callback) => {
       scheduledThinks.push({ nextThink, callback });
     };
@@ -231,7 +191,7 @@ void describe('ButtonEntity interaction', () => {
     assert.equal(button.state, state.STATE_UP);
     assert.equal(calcMoveCalls.length, 1);
 
-    calcMoveCalls[0].callback();
+    finishMove(calcMoveCalls[0], button);
 
     assert.equal(button.state, state.STATE_TOP);
     assert.equal(button.frame, 1);
@@ -239,7 +199,7 @@ void describe('ButtonEntity interaction', () => {
     assert.equal(scheduledThinks.length, 1);
     assert.equal(scheduledThinks[0].nextThink, 7);
 
-    scheduledThinks[0].callback();
+    scheduledThinks[0].callback.call(button, button);
 
     assert.equal(button.state, state.STATE_DOWN);
     assert.equal(button.frame, 0);
@@ -248,7 +208,7 @@ void describe('ButtonEntity interaction', () => {
     assert.ok(calcMoveCalls[1].target.equalsTo(10, 20, 30));
     assert.equal(calcMoveCalls[1].speed, 30);
 
-    calcMoveCalls[1].callback();
+    finishMove(calcMoveCalls[1], button);
 
     assert.equal(button.state, state.STATE_BOTTOM);
   });

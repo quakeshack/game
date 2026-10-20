@@ -2,6 +2,10 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import Vector from '../../../../shared/Vector.ts';
+import type BaseEntity from '../../entity/BaseEntity.ts';
+import { createEntityStub, createInertEdict, createInertGameApi, createMutableEngineApi, type EntityConstructor, type SpawnRequest } from '../../../../../test/support/entityMocks.ts';
+
+import { statesOf } from '../../../../../test/support/entityStates.ts';
 
 await import('../../GameAPI.ts');
 
@@ -11,17 +15,24 @@ const { HellKnightMonster, KnightMonster, KnightSpike } = await import('../../en
 KnightMonster._initStates();
 HellKnightMonster._initStates();
 
+/** A knight that lets a test replace the animation state machine. */
+class TestKnight extends KnightMonster {
+  stubRunState(handler: (nextState: string | null) => boolean): void {
+    this._runState = handler;
+  }
+}
+
 /**
  * Create a knight-family monster fixture with a minimal mock game API.
  * @param MonsterClass Monster constructor under test.
  * @param gameOverrides Overrides for the mock game API.
  * @returns Fixture state for the spawned monster.
  */
-function createMonsterFixture(MonsterClass, gameOverrides = {}) {
-  const soundCalls = [];
-  const spawnRequests = [];
-  const edict = { entity: null };
-  const engine = {
+function createMonsterFixture<T extends BaseEntity>(MonsterClass: EntityConstructor<T>, gameOverrides: object = {}) {
+  const soundCalls: unknown[][] = [];
+  const spawnRequests: SpawnRequest[] = [];
+  const edict = createInertEdict();
+  const engine = createMutableEngineApi({
     IsLoading() {
       return false;
     },
@@ -32,7 +43,7 @@ function createMonsterFixture(MonsterClass, gameOverrides = {}) {
     },
     PrecacheModel() {
     },
-    SpawnEntity(classname, initialData = {}) {
+    SpawnEntity(classname: string, initialData: Record<string, unknown> = {}) {
       spawnRequests.push({ classname, initialData });
       return { entity: null };
     },
@@ -48,9 +59,8 @@ function createMonsterFixture(MonsterClass, gameOverrides = {}) {
       publish() {
       },
     },
-  };
-  const gameAPI = {
-    engine,
+  });
+  const gameAPI = createInertGameApi({
     time: 10,
     skill: 1,
     deathmatch: 0,
@@ -60,14 +70,14 @@ function createMonsterFixture(MonsterClass, gameOverrides = {}) {
       return false;
     },
     ...gameOverrides,
-  };
+  }, engine);
 
   const entity = new MonsterClass(edict, gameAPI).initializeEntity();
   edict.entity = entity;
   entity.origin = new Vector();
   entity.view_ofs = new Vector();
   entity.movedir = new Vector();
-  entity.startSound = (...args) => {
+  entity.startSound = (...args: unknown[]) => {
     soundCalls.push(args);
   };
 
@@ -80,7 +90,7 @@ function createMonsterFixture(MonsterClass, gameOverrides = {}) {
  * @param expected Expected vector.
  * @param epsilon Allowed floating-point tolerance.
  */
-function assertVectorNear(actual, expected, epsilon = 1e-6) {
+function assertVectorNear(actual: Vector, expected: Vector, epsilon = 1e-6): void {
   for (let i = 0; i < 3; i++) {
     assert.ok(Math.abs(actual[i] - expected[i]) <= epsilon, `component ${i} mismatch: ${actual[i]} !== ${expected[i]}`);
   }
@@ -103,14 +113,14 @@ void describe('KnightMonster metadata', () => {
 
 void describe('KnightMonster state machine', () => {
   void test('core movement sequences loop', () => {
-    const states = KnightMonster._states;
+    const states = statesOf(KnightMonster);
     assert.equal(states.knight_stand9.nextState, 'knight_stand1');
     assert.equal(states.knight_walk14.nextState, 'knight_walk1');
     assert.equal(states.knight_run8.nextState, 'knight_run1');
   });
 
   void test('combat and death chains return or terminate correctly', () => {
-    const states = KnightMonster._states;
+    const states = statesOf(KnightMonster);
     assert.equal(states.knight_runatk11.nextState, 'knight_run1');
     assert.equal(states.knight_atk10.nextState, 'knight_run1');
     assert.equal(states.knight_pain3.nextState, 'knight_run1');
@@ -120,13 +130,13 @@ void describe('KnightMonster state machine', () => {
   });
 
   void test('bow states keep the kneel loop and return to walking', () => {
-    const states = KnightMonster._states;
+    const states = statesOf(KnightMonster);
     assert.equal(states.knight_bow5.nextState, 'knight_bow5');
     assert.equal(states.knight_bow10.nextState, 'knight_walk1');
   });
 
   void test('sequence-generated handlers remain present on knight states', () => {
-    const states = KnightMonster._states;
+    const states = statesOf(KnightMonster);
     assert.equal(typeof states.knight_runatk2.handler, 'function');
     assert.equal(typeof states.knight_bow1.handler, 'function');
     assert.equal(typeof states.knight_die1.handler, 'function');
@@ -134,24 +144,24 @@ void describe('KnightMonster state machine', () => {
   });
 
   void test('thinkMelee keeps the legacy distance split between melee and run attack', () => {
-    const { entity } = createMonsterFixture(KnightMonster);
-    const runStates = [];
+    const { entity } = createMonsterFixture(TestKnight);
+    const runStates: Array<string | null> = [];
 
-    entity._runState = (state) => {
+    entity.stubRunState((state) => {
       runStates.push(state);
       return true;
-    };
+    });
 
-    entity.enemy = {
+    entity.enemy = createEntityStub({
       origin: new Vector(60, 0, 0),
       view_ofs: new Vector(),
-    };
+    });
     entity.thinkMelee();
 
-    entity.enemy = {
+    entity.enemy = createEntityStub({
       origin: new Vector(120, 0, 0),
       view_ofs: new Vector(),
-    };
+    });
     entity.thinkMelee();
 
     entity.enemy = null;
@@ -181,14 +191,14 @@ void describe('HellKnightMonster metadata', () => {
 
 void describe('HellKnightMonster state machine', () => {
   void test('core movement sequences loop', () => {
-    const states = HellKnightMonster._states;
+    const states = statesOf(HellKnightMonster);
     assert.equal(states.hknight_stand9.nextState, 'hknight_stand1');
     assert.equal(states.hknight_walk20.nextState, 'hknight_walk1');
     assert.equal(states.hknight_run8.nextState, 'hknight_run1');
   });
 
   void test('missile and charge chains return as expected', () => {
-    const states = HellKnightMonster._states;
+    const states = statesOf(HellKnightMonster);
     assert.equal(states.hknight_magica14.nextState, 'hknight_run1');
     assert.equal(states.hknight_magicb13.nextState, 'hknight_run1');
     assert.equal(states.hknight_magicc11.nextState, 'hknight_run1');
@@ -200,13 +210,13 @@ void describe('HellKnightMonster state machine', () => {
   });
 
   void test('death chains terminate correctly', () => {
-    const states = HellKnightMonster._states;
+    const states = statesOf(HellKnightMonster);
     assert.equal(states.hknight_die12.nextState, null);
     assert.equal(states.hknight_dieb9.nextState, null);
   });
 
   void test('sequence-generated handlers remain present on hell knight states', () => {
-    const states = HellKnightMonster._states;
+    const states = statesOf(HellKnightMonster);
     assert.equal(typeof states.hknight_run1.handler, 'function');
     assert.equal(typeof states.hknight_char_b1.handler, 'function');
     assert.equal(typeof states.hknight_pain2.handler, 'function');
@@ -218,9 +228,9 @@ void describe('HellKnightMonster state machine', () => {
     const originalRandom = Math.random;
 
     entity.origin = new Vector(5, -10, 20);
-    entity.enemy = {
+    entity.enemy = createEntityStub({
       origin: new Vector(45, 10, 20),
-    };
+    });
 
     Math.random = () => 0.5;
 
@@ -230,6 +240,7 @@ void describe('HellKnightMonster state machine', () => {
       Math.random = originalRandom;
     }
 
+    assert.ok(entity.enemy);
     const offsetAngles = entity.enemy.origin.copy().subtract(entity.origin).toAngles();
     offsetAngles[1] += 12;
     const { forward } = offsetAngles.angleVectors();

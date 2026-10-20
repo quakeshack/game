@@ -1,6 +1,9 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
+import { statesOf } from '../../../../../test/support/entityStates.ts';
+import { serializableFieldsOf } from '../../../../../test/support/serialization.ts';
+
 await import('../../GameAPI.ts');
 
 const { default: DogMonsterEntity } = await import('../../entity/monster/Dog.ts');
@@ -28,20 +31,20 @@ void describe('DogMonsterEntity class metadata', () => {
   });
 
   void test('serializableFields is a frozen array from @entity', () => {
-    assert.ok(Array.isArray(DogMonsterEntity.serializableFields));
-    assert.ok(Object.isFrozen(DogMonsterEntity.serializableFields));
-    assert.deepEqual(DogMonsterEntity.serializableFields, ['_isLeaping']);
+    assert.ok(Array.isArray(serializableFieldsOf(DogMonsterEntity)));
+    assert.ok(Object.isFrozen(serializableFieldsOf(DogMonsterEntity)));
+    assert.deepEqual(serializableFieldsOf(DogMonsterEntity), ['_isLeaping']);
   });
 });
 
 void describe('DogMonsterEntity state machine', () => {
   void test('_states is populated after _initStates', () => {
-    assert.ok(DogMonsterEntity._states !== null);
-    assert.equal(typeof DogMonsterEntity._states, 'object');
+    assert.ok(statesOf(DogMonsterEntity) !== null);
+    assert.equal(typeof statesOf(DogMonsterEntity), 'object');
   });
 
   void test('stand sequence has 9 frames that loop', () => {
-    const states = DogMonsterEntity._states;
+    const states = statesOf(DogMonsterEntity);
     for (let i = 1; i <= 9; i++) {
       const key = `dog_stand${i}`;
       assert.ok(key in states, `missing state ${key}`);
@@ -51,7 +54,7 @@ void describe('DogMonsterEntity state machine', () => {
   });
 
   void test('walk sequence has 8 frames that loop', () => {
-    const states = DogMonsterEntity._states;
+    const states = statesOf(DogMonsterEntity);
     for (let i = 1; i <= 8; i++) {
       const key = `dog_walk${i}`;
       assert.ok(key in states, `missing state ${key}`);
@@ -61,7 +64,7 @@ void describe('DogMonsterEntity state machine', () => {
   });
 
   void test('run sequence has 12 frames that loop', () => {
-    const states = DogMonsterEntity._states;
+    const states = statesOf(DogMonsterEntity);
     for (let i = 1; i <= 12; i++) {
       const key = `dog_run${i}`;
       assert.ok(key in states, `missing state ${key}`);
@@ -71,7 +74,7 @@ void describe('DogMonsterEntity state machine', () => {
   });
 
   void test('attack sequence has 8 frames ending at dog_run1', () => {
-    const states = DogMonsterEntity._states;
+    const states = statesOf(DogMonsterEntity);
     for (let i = 1; i <= 8; i++) {
       const key = `dog_atta${i}`;
       assert.ok(key in states, `missing state ${key}`);
@@ -81,7 +84,7 @@ void describe('DogMonsterEntity state machine', () => {
   });
 
   void test('leap sequence has 9 frames ending at dog_run1', () => {
-    const states = DogMonsterEntity._states;
+    const states = statesOf(DogMonsterEntity);
     for (let i = 1; i <= 9; i++) {
       const key = `dog_leap${i}`;
       assert.ok(key in states, `missing state ${key}`);
@@ -91,7 +94,7 @@ void describe('DogMonsterEntity state machine', () => {
   });
 
   void test('pain sequences end at dog_run1', () => {
-    const states = DogMonsterEntity._states;
+    const states = statesOf(DogMonsterEntity);
     for (let i = 1; i <= 6; i++) {
       const key = `dog_pain${i}`;
       assert.ok(key in states, `missing state ${key}`);
@@ -108,7 +111,7 @@ void describe('DogMonsterEntity state machine', () => {
   });
 
   void test('death sequences do not loop', () => {
-    const states = DogMonsterEntity._states;
+    const states = statesOf(DogMonsterEntity);
     for (let i = 1; i <= 9; i++) {
       const key = `dog_die${i}`;
       assert.ok(key in states, `missing state ${key}`);
@@ -125,7 +128,7 @@ void describe('DogMonsterEntity state machine', () => {
   });
 
   void test('active states keep handlers and passive states omit them', () => {
-    const states = DogMonsterEntity._states;
+    const states = statesOf(DogMonsterEntity);
 
     for (const name of ['dog_stand1', 'dog_walk1', 'dog_run1', 'dog_atta1', 'dog_leap1', 'dog_leap2', 'dog_painb1', 'dog_painb2']) {
       assert.equal(typeof states[name].handler, 'function', `${name} handler should be a function`);

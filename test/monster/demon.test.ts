@@ -1,6 +1,9 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
+import { statesOf } from '../../../../../test/support/entityStates.ts';
+import { serializableFieldsOf } from '../../../../../test/support/serialization.ts';
+
 await import('../../GameAPI.ts');
 
 const { default: DemonMonster } = await import('../../entity/monster/Demon.ts');
@@ -28,7 +31,7 @@ void describe('DemonMonster class metadata', () => {
   });
 
   void test('serializableFields is a frozen array from @entity', () => {
-    const { serializableFields } = /** @type {{ serializableFields: unknown }} */ (/** @type {unknown} */ (DemonMonster));
+    const serializableFields = serializableFieldsOf(DemonMonster);
     assert.ok(Array.isArray(serializableFields));
     assert.ok(Object.isFrozen(serializableFields));
     assert.deepEqual(serializableFields, ['_isLeaping']);
@@ -37,12 +40,12 @@ void describe('DemonMonster class metadata', () => {
 
 void describe('DemonMonster state machine', () => {
   void test('_states is populated after _initStates', () => {
-    assert.ok(DemonMonster['_states'] !== null);
-    assert.equal(typeof DemonMonster['_states'], 'object');
+    assert.ok(statesOf(DemonMonster) !== null);
+    assert.equal(typeof statesOf(DemonMonster), 'object');
   });
 
   void test('stand sequence has 13 frames that loop', () => {
-    const states = DemonMonster['_states'];
+    const states = statesOf(DemonMonster);
     for (let i = 1; i <= 13; i++) {
       const key = `demon1_stand${i}`;
       assert.ok(key in states, `missing state ${key}`);
@@ -52,7 +55,7 @@ void describe('DemonMonster state machine', () => {
   });
 
   void test('walk and run sequences loop', () => {
-    const states = DemonMonster['_states'];
+    const states = statesOf(DemonMonster);
     for (let i = 1; i <= 8; i++) {
       const key = `demon1_walk${i}`;
       assert.ok(key in states, `missing state ${key}`);
@@ -69,7 +72,7 @@ void describe('DemonMonster state machine', () => {
   });
 
   void test('jump sequence keeps the retry loop and returns to run', () => {
-    const states = DemonMonster['_states'];
+    const states = statesOf(DemonMonster);
     for (let i = 1; i <= 10; i++) {
       const key = `demon1_jump${i}`;
       assert.ok(key in states, `missing state ${key}`);
@@ -82,7 +85,7 @@ void describe('DemonMonster state machine', () => {
   });
 
   void test('attack sequence ends at demon1_run1', () => {
-    const states = DemonMonster['_states'];
+    const states = statesOf(DemonMonster);
     for (let i = 1; i <= 15; i++) {
       const key = `demon1_atta${i}`;
       assert.ok(key in states, `missing state ${key}`);
@@ -92,7 +95,7 @@ void describe('DemonMonster state machine', () => {
   });
 
   void test('pain and death sequences terminate as expected', () => {
-    const states = DemonMonster['_states'];
+    const states = statesOf(DemonMonster);
     for (let i = 1; i <= 6; i++) {
       const key = `demon1_pain${i}`;
       assert.ok(key in states, `missing state ${key}`);
@@ -109,7 +112,7 @@ void describe('DemonMonster state machine', () => {
   });
 
   void test('active states keep handlers and passive states omit them', () => {
-    const states = DemonMonster['_states'];
+    const states = statesOf(DemonMonster);
 
     for (const name of ['demon1_stand1', 'demon1_walk1', 'demon1_run1', 'demon1_jump1', 'demon1_jump3', 'demon1_jump5', 'demon1_jump10', 'demon1_atta5', 'demon1_die6', 'demon1_die9']) {
       assert.equal(typeof states[name].handler, 'function', `${name} handler should be a function`);

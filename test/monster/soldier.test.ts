@@ -2,14 +2,26 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import Vector from '../../../../shared/Vector.ts';
+import type BaseEntity from '../../entity/BaseEntity.ts';
+import { createAiStub, createEntityStub, createInertEdict, createInertGameApi, createMutableEngineApi, recordSpawns, type EntityConstructor, type SpawnRequest, type WithMutableEngine } from '../../../../../test/support/entityMocks.ts';
+
+import { statesOf } from '../../../../../test/support/entityStates.ts';
+import { serializableFieldsOf } from '../../../../../test/support/serialization.ts';
 
 await import('../../GameAPI.ts');
 
 const { ArmySoldierMonster, ArmyEnforcerMonster } = await import('../../entity/monster/Soldier.ts');
-const { Laser } = await import('../../entity/Weapons.ts');
+const { DamageInflictor, Laser } = await import('../../entity/Weapons.ts');
 
 ArmySoldierMonster._initStates();
 ArmyEnforcerMonster._initStates();
+
+/** A soldier that lets a test read its serialized AI state. */
+class TestSoldier extends ArmySoldierMonster {
+  get aiState(): unknown {
+    return this._aiState;
+  }
+}
 
 /**
  * Create a soldier-family monster fixture with a minimal mock game API.
@@ -17,10 +29,10 @@ ArmyEnforcerMonster._initStates();
  * @param gameOverrides Overrides for the mock game API.
  * @returns Fixture state for the spawned monster.
  */
-function createMonsterFixture(MonsterClass, gameOverrides = {}) {
-  const spawnRequests = [];
-  const edict = { entity: null };
-  const engine = {
+function createMonsterFixture<T extends BaseEntity>(MonsterClass: EntityConstructor<T>, gameOverrides: object = {}) {
+  const spawnRequests: SpawnRequest[] = [];
+  const edict = createInertEdict();
+  const engine = createMutableEngineApi({
     IsLoading() {
       return false;
     },
@@ -31,7 +43,7 @@ function createMonsterFixture(MonsterClass, gameOverrides = {}) {
     },
     PrecacheSound() {
     },
-    SpawnEntity(classname, initialData = {}) {
+    SpawnEntity(classname: string, initialData: Record<string, unknown> = {}) {
       spawnRequests.push({ classname, initialData });
       return { entity: null };
     },
@@ -47,9 +59,8 @@ function createMonsterFixture(MonsterClass, gameOverrides = {}) {
       publish() {
       },
     },
-  };
-  const gameAPI = {
-    engine,
+  });
+  const gameAPI = createInertGameApi({
     time: 10,
     skill: 1,
     deathmatch: 0,
@@ -59,13 +70,13 @@ function createMonsterFixture(MonsterClass, gameOverrides = {}) {
       return false;
     },
     ...gameOverrides,
-  };
+  }, engine);
 
   const entity = new MonsterClass(edict, gameAPI).initializeEntity();
   edict.entity = entity;
   entity.origin = new Vector();
 
-  return { entity, gameAPI, spawnRequests };
+  return { entity: entity as WithMutableEngine<T>, gameAPI, spawnRequests };
 }
 
 /**
@@ -74,7 +85,7 @@ function createMonsterFixture(MonsterClass, gameOverrides = {}) {
  * @param expected Expected vector.
  * @param epsilon Allowed floating-point tolerance.
  */
-function assertVectorNear(actual, expected, epsilon = 1e-6) {
+function assertVectorNear(actual: Vector, expected: Vector, epsilon = 1e-6): void {
   for (let i = 0; i < 3; i++) {
     assert.ok(Math.abs(actual[i] - expected[i]) <= epsilon, `component ${i} mismatch: ${actual[i]} !== ${expected[i]}`);
   }
@@ -98,45 +109,50 @@ void describe('ArmySoldierMonster class metadata', () => {
   });
 
   void test('preserves the legacy serialized AI state field and keeps helpers runtime-only', () => {
-    const { entity } = createMonsterFixture(ArmySoldierMonster);
-    const serialized = entity._serializer.serialize();
+    const { entity } = createMonsterFixture(TestSoldier);
+    const serialized = entity.serialize();
 
-    assert.ok(Array.isArray(ArmySoldierMonster.serializableFields));
-    assert.ok(Object.isFrozen(ArmySoldierMonster.serializableFields));
-    assert.deepEqual(ArmySoldierMonster.serializableFields, ['_aiState']);
-    assert.equal(entity._aiState, null);
+    assert.ok(Array.isArray(serializableFieldsOf(ArmySoldierMonster)));
+    assert.ok(Object.isFrozen(serializableFieldsOf(ArmySoldierMonster)));
+    assert.deepEqual(serializableFieldsOf(ArmySoldierMonster), ['_aiState']);
+    assert.equal(entity.aiState, null);
     assert.ok('_aiState' in serialized);
     assert.ok(!('_damageInflictor' in serialized));
   });
 
-  void test('fire keeps the QuakeC lead target calculation and spread values', () => {
+  void test('fire keeps the QuakeC lead target calculation and spread values', (t) => {
     const { entity } = createMonsterFixture(ArmySoldierMonster);
-    const shots = [];
+    const shots: Array<{ count: number; direction: Vector; spread: Vector }> = [];
     let faceCalls = 0;
 
-    entity.enemy = {
+    entity.enemy = createEntityStub({
       origin: new Vector(100, 20, 40),
       velocity: new Vector(15, -10, 0),
-    };
-    entity._ai = {
+    });
+    entity._ai = createAiStub({
       face() {
         faceCalls++;
       },
-    };
+    });
     entity.attackSound = () => {
     };
-    entity._damageInflictor.fireBullets = (count, direction, spread) => {
+    t.mock.method(DamageInflictor.prototype, 'fireBullets', (count: number, direction: Vector, spread: Vector) => {
       shots.push({ count, direction: direction.copy(), spread: spread.copy() });
-    };
+    });
 
-    entity._fire();
+    // The shot is fired by the fourth frame of the attack sequence, which turns to face the enemy first.
+    const fireFrame = statesOf(ArmySoldierMonster).army_atk4.handler;
+    assert.ok(fireFrame);
+    fireFrame.call(entity, entity);
 
+    assert.ok(entity.enemy);
     const expectedDirection = entity.enemy.origin.copy()
       .subtract(entity.enemy.velocity.copy().multiply(0.2))
       .subtract(entity.origin);
     expectedDirection.normalize();
 
-    assert.equal(faceCalls, 1);
+    // One turn by the frame and one by the shot itself.
+    assert.equal(faceCalls, 2);
     assert.equal(shots.length, 1);
     assert.equal(shots[0].count, 4);
     assertVectorNear(shots[0].direction, expectedDirection);
@@ -146,7 +162,7 @@ void describe('ArmySoldierMonster class metadata', () => {
 
 void describe('ArmySoldierMonster state machine', () => {
   void test('stand, walk, and run sequences loop correctly', () => {
-    const states = ArmySoldierMonster._states;
+    const states = statesOf(ArmySoldierMonster);
 
     for (let i = 1; i <= 8; i++) {
       assert.equal(states[`army_stand${i}`].keyframe, `stand${i}`);
@@ -162,7 +178,7 @@ void describe('ArmySoldierMonster state machine', () => {
   });
 
   void test('attack, pain, and death transitions match the QuakeC flow', () => {
-    const states = ArmySoldierMonster._states;
+    const states = statesOf(ArmySoldierMonster);
 
     for (let i = 1; i <= 9; i++) {
       assert.equal(states[`army_atk${i}`].keyframe, `shoot${i}`);
@@ -176,7 +192,7 @@ void describe('ArmySoldierMonster state machine', () => {
   });
 
   void test('inactive sequences omit handlers where expected', () => {
-    const states = ArmySoldierMonster._states;
+    const states = statesOf(ArmySoldierMonster);
     assert.equal(states.army_pain1.handler, null);
     assert.equal(states.army_pain6.handler !== null, true);
     assert.equal(typeof states.army_painb2.handler, 'function');
@@ -202,34 +218,33 @@ void describe('ArmyEnforcerMonster class metadata', () => {
   });
 
   void test('serializableFields is a frozen empty array', () => {
-    assert.ok(Array.isArray(ArmyEnforcerMonster.serializableFields));
-    assert.ok(Object.isFrozen(ArmyEnforcerMonster.serializableFields));
-    assert.deepEqual(ArmyEnforcerMonster.serializableFields, []);
+    assert.ok(Array.isArray(serializableFieldsOf(ArmyEnforcerMonster)));
+    assert.ok(Object.isFrozen(serializableFieldsOf(ArmyEnforcerMonster)));
+    assert.deepEqual(serializableFieldsOf(ArmyEnforcerMonster), []);
   });
 
   void test('fire spawns a laser from the muzzle origin and updates movedir', () => {
-    const { entity, spawnRequests } = createMonsterFixture(ArmyEnforcerMonster);
-    let laserOrigin = null;
-    const laser = Object.create(Laser.prototype);
+    const { entity } = createMonsterFixture(ArmyEnforcerMonster);
+    let laserOrigin: Vector | null = null;
+    const laser = Object.create(Laser.prototype) as InstanceType<typeof Laser>;
 
-    laser.setOrigin = (origin) => {
+    laser.setOrigin = (origin: Vector) => {
       laserOrigin = origin.copy();
     };
 
     entity.origin = new Vector(10, 20, 30);
     entity.angles = new Vector();
-    entity.enemy = {
+    entity.enemy = createEntityStub({
       origin: new Vector(70, 60, 30),
-    };
-    entity.engine.SpawnEntity = (classname, initialData = {}) => {
-      spawnRequests.push({ classname, initialData });
-      return {
-        entity: laser,
-      };
-    };
+    });
+    const spawnRequests = recordSpawns(entity.engine, laser);
 
-    entity.fire();
+    // The laser is fired by the sixth frame of the attack sequence.
+    const fireFrame = statesOf(ArmyEnforcerMonster).enf_atk6.handler;
+    assert.ok(fireFrame);
+    fireFrame.call(entity, entity);
 
+    assert.ok(entity.enemy);
     const movedir = entity.enemy.origin.copy().subtract(entity.origin);
     movedir.normalize();
     const { forward, right } = entity.angles.angleVectors();
@@ -238,13 +253,14 @@ void describe('ArmyEnforcerMonster class metadata', () => {
     assert.equal(spawnRequests.length, 1);
     assert.equal(spawnRequests[0].initialData.owner, entity);
     assertVectorNear(entity.movedir, movedir);
+    assert.ok(laserOrigin);
     assertVectorNear(laserOrigin, expectedOrigin);
   });
 });
 
 void describe('ArmyEnforcerMonster state machine', () => {
   void test('stand, walk, and run sequences loop correctly', () => {
-    const states = ArmyEnforcerMonster._states;
+    const states = statesOf(ArmyEnforcerMonster);
 
     for (let i = 1; i <= 7; i++) {
       assert.equal(states[`enf_stand${i}`].keyframe, `stand${i}`);
@@ -263,7 +279,7 @@ void describe('ArmyEnforcerMonster state machine', () => {
   });
 
   void test('attack and pain sequences transition back to run', () => {
-    const states = ArmyEnforcerMonster._states;
+    const states = statesOf(ArmyEnforcerMonster);
     const attackFrames = ['attack1', 'attack2', 'attack3', 'attack4', 'attack5', 'attack6', 'attack7', 'attack8', 'attack5', 'attack6', 'attack7', 'attack8', 'attack9', 'attack10'];
 
     for (let i = 0; i < attackFrames.length; i++) {
@@ -278,13 +294,13 @@ void describe('ArmyEnforcerMonster state machine', () => {
   });
 
   void test('death sequences remain terminal', () => {
-    const states = ArmyEnforcerMonster._states;
+    const states = statesOf(ArmyEnforcerMonster);
     assert.equal(states.enf_die14.nextState, 'enf_die14');
     assert.equal(states.enf_fdie11.nextState, 'enf_fdie11');
   });
 
   void test('inactive sequences omit handlers where expected', () => {
-    const states = ArmyEnforcerMonster._states;
+    const states = statesOf(ArmyEnforcerMonster);
     assert.equal(states.enf_paina1.handler, null);
     assert.equal(states.enf_painb1.handler, null);
     assert.equal(states.enf_painc1.handler, null);

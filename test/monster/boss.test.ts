@@ -2,7 +2,11 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import Vector from '../../../../shared/Vector.ts';
+import type BaseEntity from '../../entity/BaseEntity.ts';
+import { createEntityStub, createInertEdict, createInertGameApi, createMutableEngineApi, type EntityConstructor, type WithMutableEngine } from '../../../../../test/support/entityMocks.ts';
 import { effect, moveType, solid, tentType } from '../../Defs.ts';
+
+import { statesOf } from '../../../../../test/support/entityStates.ts';
 
 await import('../../GameAPI.ts');
 
@@ -13,48 +17,23 @@ const ELECTRODE_STATE_TOP = 0;
 
 BossMonster._initStates();
 
+/** A boss that lets a test replace the animation state machine. */
+class TestBoss extends BossMonster {
+  stubRunState(handler: (nextState: string | null) => boolean): void {
+    this._runState = handler;
+  }
+}
+
 /**
  * Create a minimal boss fixture for focused behavior tests.
- * @param {typeof BossMonster} MonsterClass Monster constructor under test.
- * @param {object} [gameOverrides] Optional game API overrides.
- * @returns {BossMonster} Monster fixture instance.
+ * @param MonsterClass Monster constructor under test.
+ * @param gameOverrides Optional game API overrides.
+ * @returns Monster fixture instance.
  */
-function createBossFixture(MonsterClass, gameOverrides = {}) {
-  const edict = {
-    num: 1,
-    entity: null,
-    freeEdict() {},
-    setOrigin() {},
-    setModel() {},
-    setMinMaxSize() {},
-    walkMove() {
-      return false;
-    },
-    changeYaw() {
-      return 0;
-    },
-    dropToFloor() {
-      return true;
-    },
-    isOnTheFloor() {
-      return false;
-    },
-    makeStatic() {},
-    aim() {
-      return null;
-    },
-    moveToGoal() {
-      return false;
-    },
-    isInPXS() {
-      return true;
-    },
-    getNextBestClient() {
-      return null;
-    },
-  };
+function createBossFixture<T extends BaseEntity>(MonsterClass: EntityConstructor<T>, gameOverrides: object = {}): WithMutableEngine<T> {
+  const edict = createInertEdict();
 
-  const engine = {
+  const engine = createMutableEngineApi({
     IsLoading() {
       return false;
     },
@@ -72,70 +51,37 @@ function createBossFixture(MonsterClass, gameOverrides = {}) {
     eventBus: {
       publish() {},
     },
-  };
+  });
 
-  const gameAPI = {
-    engine,
+  const gameAPI = createInertGameApi({
     time: 3,
     skill: 1,
     deathmatch: 0,
     nomonsters: 0,
     ...gameOverrides,
-  };
+  }, engine);
 
   const entity = new MonsterClass(edict, gameAPI).initializeEntity();
   edict.entity = entity;
   entity.origin = new Vector(10, 20, 30);
   entity.angles = new Vector();
-  entity.enemy = {
+  entity.enemy = createEntityStub({
     origin: new Vector(90, 20, 30),
     velocity: new Vector(20, 0, 0),
     health: 100,
-  };
+  });
 
-  return entity;
+  return entity as WithMutableEngine<T>;
 }
 
 /**
  * Create a minimal event_lightning fixture.
- * @returns {EventLightningEntity} Lightning fixture instance.
+ * @returns Lightning fixture instance.
  */
-function createLightningFixture() {
-  const edict = {
-    num: 2,
-    entity: null,
-    freeEdict() {},
-    setOrigin() {},
-    setModel() {},
-    setMinMaxSize() {},
-    walkMove() {
-      return false;
-    },
-    changeYaw() {
-      return 0;
-    },
-    dropToFloor() {
-      return true;
-    },
-    isOnTheFloor() {
-      return false;
-    },
-    makeStatic() {},
-    aim() {
-      return null;
-    },
-    moveToGoal() {
-      return false;
-    },
-    isInPXS() {
-      return true;
-    },
-    getNextBestClient() {
-      return null;
-    },
-  };
+function createLightningFixture(): WithMutableEngine<InstanceType<typeof EventLightningEntity>> {
+  const edict = createInertEdict();
 
-  const engine = {
+  const engine = createMutableEngineApi({
     IsLoading() {
       return false;
     },
@@ -150,19 +96,18 @@ function createLightningFixture() {
     eventBus: {
       publish() {},
     },
-  };
+  });
 
-  const gameAPI = {
-    engine,
+  const gameAPI = createInertGameApi({
     time: 5,
     skill: 1,
     deathmatch: 0,
     nomonsters: 0,
-  };
+  }, engine);
 
   const entity = new EventLightningEntity(edict, gameAPI).initializeEntity();
   edict.entity = entity;
-  return entity;
+  return entity as WithMutableEngine<InstanceType<typeof EventLightningEntity>>;
 }
 
 void describe('Boss module metadata', () => {
@@ -175,7 +120,7 @@ void describe('Boss module metadata', () => {
 
 void describe('BossMonster state machine', () => {
   void test('rise, idle, missile, and shock loops keep the QuakeC transitions', () => {
-    const states = BossMonster._states;
+    const states = statesOf(BossMonster);
 
     assert.equal(states.boss_rise17.nextState, 'boss_missile1');
     assert.equal(states.boss_idle31.nextState, 'boss_idle1');
@@ -190,10 +135,10 @@ void describe('BossMonster state machine', () => {
 
 void describe('BossMonster QC fixes', () => {
   void test('spawn keeps the boss dormant but mesh-solid until awakened', () => {
-    const boss = createBossFixture(BossMonster);
+    const boss = createBossFixture(TestBoss);
     let published = null;
 
-    boss.engine.eventBus.publish = (eventName, entity) => {
+    boss.engine.eventBus.publish = (eventName: string, entity: unknown) => {
       published = { eventName, entity };
     };
 
@@ -204,19 +149,19 @@ void describe('BossMonster QC fixes', () => {
   });
 
   void test('use wakes the boss with the skill-scaled health and lava splash', () => {
-    const boss = createBossFixture(BossMonster, { skill: 0 });
+    const boss = createBossFixture(TestBoss, { skill: 0 });
     let stateName = null;
-    const tempEvents = [];
+    const tempEvents: Array<{ eventType: number; origin: Vector }> = [];
 
-    boss._runState = (nextState) => {
+    boss.stubRunState((nextState: string | null) => {
       stateName = nextState;
       return true;
-    };
-    boss.engine.DispatchTempEntityEvent = (eventType, origin) => {
+    });
+    boss.engine.DispatchTempEntityEvent = (eventType: number, origin: Vector) => {
       tempEvents.push({ eventType, origin });
     };
 
-    boss.use({ classname: 'player', origin: new Vector() });
+    boss.use(createEntityStub({ classname: 'player', origin: new Vector() }));
 
     assert.equal(boss.health, 1);
     assert.equal(boss.movetype, moveType.MOVETYPE_STEP);
@@ -226,24 +171,24 @@ void describe('BossMonster QC fixes', () => {
   });
 
   void test('takeLightningDamage steps through the classic shock states', () => {
-    const boss = createBossFixture(BossMonster);
+    const boss = createBossFixture(TestBoss);
     let stateName = null;
 
-    boss._runState = (nextState) => {
+    boss.stubRunState((nextState: string | null) => {
       stateName = nextState;
       return true;
-    };
+    });
     boss.health = 3;
 
-    boss.takeLightningDamage({ classname: 'player', origin: new Vector() });
+    boss.takeLightningDamage(createEntityStub({ classname: 'player', origin: new Vector() }));
     assert.equal(boss.health, 2);
     assert.equal(stateName, 'boss_shocka1');
 
-    boss.takeLightningDamage({ classname: 'player', origin: new Vector() });
+    boss.takeLightningDamage(createEntityStub({ classname: 'player', origin: new Vector() }));
     assert.equal(boss.health, 1);
     assert.equal(stateName, 'boss_shockb1');
 
-    boss.takeLightningDamage({ classname: 'player', origin: new Vector() });
+    boss.takeLightningDamage(createEntityStub({ classname: 'player', origin: new Vector() }));
     assert.equal(boss.health, 0);
     assert.equal(stateName, 'boss_shockc1');
   });
@@ -251,40 +196,8 @@ void describe('BossMonster QC fixes', () => {
 
 void describe('BossLavaball', () => {
   void test('spawn keeps the classic lavaball movement and fullbright effect', () => {
-    const boss = createBossFixture(BossMonster);
-    const edict = {
-      num: 3,
-      entity: null,
-      freeEdict() {},
-      setOrigin() {},
-      setModel() {},
-      setMinMaxSize() {},
-      walkMove() {
-        return false;
-      },
-      changeYaw() {
-        return 0;
-      },
-      dropToFloor() {
-        return true;
-      },
-      isOnTheFloor() {
-        return false;
-      },
-      makeStatic() {},
-      aim() {
-        return null;
-      },
-      moveToGoal() {
-        return false;
-      },
-      isInPXS() {
-        return true;
-      },
-      getNextBestClient() {
-        return null;
-      },
-    };
+    const boss = createBossFixture(TestBoss);
+    const edict = createInertEdict();
 
     const lavaball = new BossLavaball(edict, boss.game).initializeEntity();
     edict.entity = lavaball;
@@ -303,49 +216,49 @@ void describe('BossLavaball', () => {
 void describe('EventLightningEntity', () => {
   void test('fires aligned top electrodes and damages the boss once', () => {
     const lightning = createLightningFixture();
-    const beams = [];
-    const sounds = [];
-    const activator = { classname: 'player', origin: new Vector() };
+    const beams: Array<{ eventType: number; edictId: number; start: Vector; end: Vector }> = [];
+    const sounds: string[] = [];
+    const activator = createEntityStub({ classname: 'player', origin: new Vector() });
     let damageCalls = 0;
-    const boss = createBossFixture(BossMonster);
+    const boss = createBossFixture(TestBoss);
     boss.health = 3;
 
     // Use Object.create so the electrodes pass instanceof DoorEntity checks inside use().
-    const electrode1 = Object.create(DoorEntity.prototype);
+    const electrode1 = Object.create(DoorEntity.prototype) as InstanceType<typeof DoorEntity>;
     electrode1.state = ELECTRODE_STATE_TOP;
     electrode1.nextthink = 0;
     electrode1.mins = new Vector(-16, -16, -16);
     electrode1.maxs = new Vector(16, 16, 16);
     electrode1.absmin = new Vector(0, 0, 40);
 
-    const electrode2 = Object.create(DoorEntity.prototype);
+    const electrode2 = Object.create(DoorEntity.prototype) as InstanceType<typeof DoorEntity>;
     electrode2.state = ELECTRODE_STATE_TOP;
     electrode2.nextthink = 0;
     electrode2.mins = new Vector(-16, -16, -16);
     electrode2.maxs = new Vector(16, 16, 16);
     electrode2.absmin = new Vector(200, 0, 40);
 
-    boss.takeLightningDamage = (entity) => {
+    boss.takeLightningDamage = (entity: BaseEntity) => {
       damageCalls += 1;
       assert.equal(entity, activator);
     };
 
-    lightning.findAllEntitiesByFieldAndValue = function*(fieldName, value) {
+    lightning.findAllEntitiesByFieldAndValue = function*(fieldName: string, value: unknown) {
       if (fieldName === 'target' && value === 'lightning') {
         yield electrode1;
         yield electrode2;
       }
     };
-    lightning.findFirstEntityByFieldAndValue = (fieldName, value) => {
+    lightning.findFirstEntityByFieldAndValue = (fieldName: string, value: unknown) => {
       if (fieldName === 'classname' && value === BossMonster.classname) {
         return boss;
       }
       return null;
     };
-    lightning.engine.DispatchBeamEvent = (eventType, edictId, start, end) => {
+    lightning.engine.DispatchBeamEvent = (eventType: number, edictId: number, start: Vector, end: Vector) => {
       beams.push({ eventType, edictId, start, end });
     };
-    lightning.startSound = (_channel, soundName) => {
+    lightning.startSound = (_channel: number, soundName: string) => {
       sounds.push(soundName);
     };
 

@@ -2,6 +2,9 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import Vector from '../../../../shared/Vector.ts';
+import type { ScheduledThinkCallback } from '../../entity/BaseEntity.ts';
+import type { Sub } from '../../entity/Subs.ts';
+import { createInertEdict, createInertEngineApi, createInertGameApi, createSubStub, finishMove, type CalcMoveCall } from '../../../../../test/support/entityMocks.ts';
 import { attn, channel, damage, items, moveType, solid, worldType } from '../../Defs.ts';
 
 await import('../../GameAPI.ts');
@@ -10,78 +13,58 @@ const { PlayerEntity } = await import('../../entity/Player.ts');
 const { DoorEntity, SecretDoorEntity, flag } = await import('../../entity/props/Doors.ts');
 const { state } = await import('../../entity/props/BasePropEntity.ts');
 
+/** A door whose movement helper a test replaces, which the entity keeps to itself. */
+class TestDoor extends DoorEntity {
+  useSub(sub: Sub): void {
+    this._sub = sub;
+  }
+}
+
+/** A secret door whose movement helper a test replaces, which the entity keeps to itself. */
+class TestSecretDoor extends SecretDoorEntity {
+  useSub(sub: Sub): void {
+    this._sub = sub;
+  }
+}
+
+interface PortalCall {
+  readonly portal: number | null;
+  readonly isOpen: boolean;
+}
+
+interface SpawnRequest {
+  readonly classname: string;
+  readonly initialData: object;
+}
+
 /**
  * Create a minimal engine/game harness for door tests.
- * @returns {{ edict: object, engine: object, gameAPI: object, precachedSounds: string[], portalCalls: Array<{ portal: number | null, isOpen: boolean }>, setModelCalls: Array<string | null>, spawnRequests: Array<{ classname: string, initialData: object }> }} Harness data.
+ * @returns Harness data.
  */
 function createDoorHarness() {
-  const precachedSounds = [];
-  const portalCalls = [];
-  const setModelCalls = [];
-  const spawnRequests = [];
-  let boundEntity = null;
+  const precachedSounds: string[] = [];
+  const portalCalls: PortalCall[] = [];
+  const setModelCalls: Array<string | null> = [];
+  const spawnRequests: SpawnRequest[] = [];
+  let boundEntity: InstanceType<typeof DoorEntity> | InstanceType<typeof SecretDoorEntity> | null = null;
 
-  const edict = {
-    num: 1,
-    entity: null,
-    freeEdict() {},
-    setOrigin(origin) {
-      boundEntity?.origin.set(origin);
-    },
-    setModel(model) {
-      setModelCalls.push(model);
-    },
-    setMinMaxSize() {},
-    walkMove() {
-      return false;
-    },
-    changeYaw() {
-      return 0;
-    },
-    dropToFloor() {
-      return true;
-    },
-    isOnTheFloor() {
-      return false;
-    },
-    makeStatic() {},
-    aim() {
-      return null;
-    },
-    moveToGoal() {
-      return false;
-    },
-    isInPXS() {
-      return true;
-    },
-    getNextBestClient() {
-      return null;
-    },
+  const edict = createInertEdict();
+  edict.setOrigin = (origin: Vector): void => {
+    boundEntity?.origin.set(origin);
+  };
+  edict.setModel = (model: string | null): void => {
+    setModelCalls.push(model);
   };
 
-  const engine = {
-    IsLoading() {
-      return false;
-    },
-    PrecacheModel() {},
-    PrecacheSound(sound) {
+  const engine = createInertEngineApi({
+    PrecacheSound(sound: string): void {
       precachedSounds.push(sound);
     },
-    ParseQC() {
-      return null;
-    },
-    StartSound() {},
-    SpawnEntity(classname, initialData = {}) {
+    SpawnEntity(classname: string, initialData: object = {}) {
       spawnRequests.push({ classname, initialData });
       return { entity: null };
     },
-    FindByFieldAndValue() {
-      return null;
-    },
-    FindAllByFieldAndValue() {
-      return [];
-    },
-    SetAreaPortalState(portal, isOpen) {
+    SetAreaPortalState(portal: number | null, isOpen: boolean): void {
       portalCalls.push({ portal, isOpen });
     },
     GetModelPortal() {
@@ -90,17 +73,16 @@ function createDoorHarness() {
     eventBus: {
       publish() {},
     },
-  };
+  });
 
-  const gameAPI = {
-    engine,
+  const gameAPI = createInertGameApi({
     worldspawn: {
       worldtype: worldType.MEDIEVAL,
     },
     time: 3,
     deathmatch: 0,
     nomonsters: 0,
-  };
+  }, engine);
 
   return {
     edict,
@@ -110,7 +92,7 @@ function createDoorHarness() {
     portalCalls,
     setModelCalls,
     spawnRequests,
-    bindEntity(entity) {
+    bindEntity(entity: InstanceType<typeof DoorEntity> | InstanceType<typeof SecretDoorEntity>): void {
       boundEntity = entity;
       edict.entity = entity;
     },
@@ -119,22 +101,22 @@ function createDoorHarness() {
 
 /**
  * Create a minimal DoorEntity fixture that exercises explicit instance precache.
- * @returns {{ door: import('../../entity/props/Doors.ts').DoorEntity, gameAPI: object, precachedSounds: string[], portalCalls: Array<{ portal: number | null, isOpen: boolean }>, setModelCalls: Array<string | null>, spawnRequests: Array<{ classname: string, initialData: object }> }} Fixture data.
+ * @returns Fixture data.
  */
 function createDoorFixture() {
   const harness = createDoorHarness();
-  const door = new DoorEntity(harness.edict, harness.gameAPI).initializeEntity().precacheEntity();
+  const door = new TestDoor(harness.edict, harness.gameAPI).initializeEntity().precacheEntity();
   harness.bindEntity(door);
   return { door, ...harness };
 }
 
 /**
  * Create a minimal SecretDoorEntity fixture for focused behavior tests.
- * @returns {{ door: import('../../entity/props/Doors.ts').SecretDoorEntity, gameAPI: object, precachedSounds: string[], portalCalls: Array<{ portal: number | null, isOpen: boolean }>, setModelCalls: Array<string | null>, spawnRequests: Array<{ classname: string, initialData: object }> }} Fixture data.
+ * @returns Fixture data.
  */
 function createSecretDoorFixture() {
   const harness = createDoorHarness();
-  const door = new SecretDoorEntity(harness.edict, harness.gameAPI).initializeEntity().precacheEntity();
+  const door = new TestSecretDoor(harness.edict, harness.gameAPI).initializeEntity().precacheEntity();
   harness.bindEntity(door);
   return { door, ...harness };
 }
@@ -156,18 +138,15 @@ void describe('DoorEntity instance precache', () => {
 void describe('DoorEntity spawn and touch', () => {
   void test('applies QC defaults, key-door setup, and portal state during spawn', () => {
     const { door, portalCalls, setModelCalls } = createDoorFixture();
-    const scheduledThinks = [];
+    const scheduledThinks: Array<{ nextThink: number; callback: ScheduledThinkCallback<typeof door> }> = [];
     let setMovedirCalls = 0;
 
-    door._sub = {
+    door.useSub(createSubStub({
       setMovedir() {
         setMovedirCalls++;
         door.movedir.setTo(1, 0, 0);
       },
-      calcMove() {},
-      useTargets() {},
-      reset() {},
-    };
+    }));
     door._scheduleThink = (nextThink, callback) => {
       scheduledThinks.push({ nextThink, callback });
     };
@@ -204,16 +183,16 @@ void describe('DoorEntity spawn and touch', () => {
 
   void test('touch prints messages, enforces keys, and consumes the used key', () => {
     const { door, gameAPI } = createDoorFixture();
-    const centerPrints = [];
-    const soundCalls = [];
-    const usedBy = [];
-    const player = Object.create(PlayerEntity.prototype);
+    const centerPrints: string[] = [];
+    const soundCalls: unknown[][] = [];
+    const usedBy: unknown[] = [];
+    const player = Object.create(PlayerEntity.prototype) as InstanceType<typeof PlayerEntity>;
 
     player.items = 0;
-    player.centerPrint = (message) => {
+    player.centerPrint = (message: string) => {
       centerPrints.push(message);
     };
-    player.startSound = (...args) => {
+    player.startSound = (...args: unknown[]) => {
       soundCalls.push(args);
     };
 
@@ -284,10 +263,10 @@ void describe('SecretDoorEntity', () => {
 
   void test('use runs the open-close sequence and restores the closed state', () => {
     const { door, portalCalls } = createSecretDoorFixture();
-    const calcMoveCalls = [];
-    const scheduledThinks = [];
-    const usedTargets = [];
-    const soundCalls = [];
+    const calcMoveCalls: CalcMoveCall[] = [];
+    const scheduledThinks: Array<{ nextThink: number; callback: ScheduledThinkCallback<typeof door> }> = [];
+    const usedTargets: unknown[] = [];
+    const soundCalls: string[] = [];
 
     door.model = 'progs/secret.bsp';
     door.origin = new Vector();
@@ -295,16 +274,14 @@ void describe('SecretDoorEntity', () => {
     door.size = new Vector(16, 32, 64);
     door.spawn();
 
-    door._sub = {
+    door.useSub(createSubStub({
       calcMove(target, speed, callback) {
         calcMoveCalls.push({ target: target.copy(), speed, callback });
       },
       useTargets(usedByEntity) {
         usedTargets.push(usedByEntity);
       },
-      reset() {},
-      setMovedir() {},
-    };
+    }));
     door._scheduleThink = (nextThink, callback) => {
       scheduledThinks.push({ nextThink, callback });
     };
@@ -320,25 +297,25 @@ void describe('SecretDoorEntity', () => {
     assert.equal(calcMoveCalls[0].speed, 50);
     assert.deepEqual(portalCalls.at(-1), { portal: 7, isOpen: true });
 
-    calcMoveCalls[0].callback();
+    finishMove(calcMoveCalls[0], door);
     assert.equal(scheduledThinks.length, 1);
 
-    scheduledThinks[0].callback();
+    scheduledThinks[0].callback.call(door, door);
     assert.equal(calcMoveCalls.length, 2);
 
-    calcMoveCalls[1].callback();
+    finishMove(calcMoveCalls[1], door);
     assert.equal(scheduledThinks.length, 2);
 
-    scheduledThinks[1].callback();
+    scheduledThinks[1].callback.call(door, door);
     assert.equal(calcMoveCalls.length, 3);
 
-    calcMoveCalls[2].callback();
+    finishMove(calcMoveCalls[2], door);
     assert.equal(scheduledThinks.length, 3);
 
-    scheduledThinks[2].callback();
+    scheduledThinks[2].callback.call(door, door);
     assert.equal(calcMoveCalls.length, 4);
 
-    calcMoveCalls[3].callback();
+    finishMove(calcMoveCalls[3], door);
 
     assert.equal(door.takedamage, damage.DAMAGE_YES);
     assert.deepEqual(portalCalls.at(-1), { portal: 7, isOpen: false });

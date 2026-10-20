@@ -1,24 +1,78 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { captureRegisteredPages, createMockClientEngine, createMockSessionsChannel } from './fixtures.ts';
+import type { K as KeyCode } from '../../../../shared/Keys.ts';
+import { Action, KeyBindItem, MenuItem, SaveSlotItem, Toggle } from '../../../../engine/client/menu/MenuItem.ts';
+import type { MenuPage } from '../../../../engine/client/menu/MenuPage.ts';
+import type { Id1MenuOptions } from '../../client/Menu.ts';
+import { asClientEngineAPI, captureRegisteredPages, createMockClientEngine, createMockSessionsChannel, type MockTexture } from './fixtures.ts';
 
 await import('../../GameAPI.ts');
 
 const { K } = await import('../../../../shared/Keys.ts');
 const { default: Id1Menu } = await import('../../client/Menu.ts');
 
+type Widget<T extends MenuItem> = abstract new (...args: never[]) => T;
+
+/**
+ * Finds a page the menu registered.
+ * @param pages The captured pages.
+ * @param name The page name.
+ * @returns The page.
+ */
+function pageNamed(pages: Map<string, MenuPage>, name: string): MenuPage {
+  const page = pages.get(name);
+  assert.ok(page, `page "${name}" is registered`);
+  return page;
+}
+
+/**
+ * Reads an item of a page as the widget it is.
+ * @param page The page.
+ * @param index Where the item is in the page, negative from the end.
+ * @param WidgetClass The widget class the item is an instance of.
+ * @returns The item.
+ */
+function itemAt<T extends MenuItem>(page: MenuPage, index: number, WidgetClass: Widget<T>): T {
+  const item = page.items.at(index);
+  assert.ok(item instanceof WidgetClass, `item ${index} of the page is a ${WidgetClass.name}`);
+  return item;
+}
+
+/**
+ * Finds an item of a page by its label.
+ * @param page The page.
+ * @param label The label of the item.
+ * @param WidgetClass The widget class the item is an instance of.
+ * @returns The item.
+ */
+function itemLabelled<T extends MenuItem>(page: MenuPage, label: string, WidgetClass: Widget<T>): T {
+  const item = page.items.find((candidate) => candidate.label === label);
+  assert.ok(item instanceof WidgetClass, `the page has a ${WidgetClass.name} labelled "${label}"`);
+  return item;
+}
+
+/**
+ * The name of a page's picture, which the mock engine hands out as a {@link MockTexture}.
+ * @param pic The picture of the page.
+ * @returns Its name.
+ */
+function textureName(pic: MenuPage['titlePic']): string | undefined {
+  // The pictures come from the mock engine's LoadPic*, which makes MockTextures where the real one makes GLTextures.
+  return (pic as unknown as MockTexture | null | undefined)?.name;
+}
+
 /**
  * Initialize Id1Menu against a fresh mock engine and let any pending microtasks (e.g. the
  * async menuplyr translate-texture load) settle.
- * @param {import('../../client/Menu.ts').Id1MenuOptions} [options] options forwarded to Id1Menu.Init
- * @returns {Promise<{ engine: ReturnType<typeof createMockClientEngine>, pages: Map<string, object> }>} engine and captured pages
+ * @param options options forwarded to Id1Menu.Init
+ * @returns engine and captured pages
  */
-async function initId1Menu(options) {
+async function initId1Menu(options?: Id1MenuOptions) {
   const engine = createMockClientEngine();
   const pages = captureRegisteredPages(engine);
 
-  Id1Menu.Init(engine, options);
+  Id1Menu.Init(asClientEngineAPI(engine), options);
   await Promise.resolve();
 
   return { engine, pages };
@@ -39,24 +93,25 @@ void describe('Id1Menu.Init', () => {
 
   void test('main page has the five navigation buttons and closes on Escape', async () => {
     const { engine, pages } = await initId1Menu();
-    const mainPage = pages.get('main');
+    const mainPage = pageNamed(pages, 'main');
 
     assert.equal(mainPage.items.length, 5);
 
     engine.Menu.Open('main');
-    mainPage.items[0].action();
+    void itemAt(mainPage, 0, Action).action();
     assert.equal(engine.Menu.IsOpen('singleplayer'), true);
 
+    assert.ok(mainPage.onEscape);
     mainPage.onEscape();
     assert.equal(engine.Menu.IsEmpty(), true);
   });
 
   void test('singleplayer page starts a new game, disconnecting first if a server is active', async () => {
     const { engine, pages } = await initId1Menu();
-    const singlePlayerPage = pages.get('singleplayer');
+    const singlePlayerPage = pageNamed(pages, 'singleplayer');
     engine.SV.active = true;
 
-    singlePlayerPage.items[0].action();
+    void itemAt(singlePlayerPage, 0, Action).action();
 
     assert.deepEqual(engine.appendedConsoleText, ['disconnect\n']);
     assert.equal(engine.Menu.IsEmpty(), true);
@@ -64,22 +119,22 @@ void describe('Id1Menu.Init', () => {
 
   void test('save action is a no-op unless a single-player server is running and not mid-intermission', async () => {
     const { engine, pages } = await initId1Menu();
-    const singlePlayerPage = pages.get('singleplayer');
+    const singlePlayerPage = pageNamed(pages, 'singleplayer');
     engine.Menu.Open('singleplayer');
 
     // Not hosting at all.
-    singlePlayerPage.items[2].action();
+    void itemAt(singlePlayerPage, 2, Action).action();
     assert.equal(engine.Menu.IsOpen('save'), false);
 
     // Hosting, but mid-intermission.
     engine.SV.active = true;
     engine.CL.intermission = true;
-    singlePlayerPage.items[2].action();
+    void itemAt(singlePlayerPage, 2, Action).action();
     assert.equal(engine.Menu.IsOpen('save'), false);
 
     // Hosting, not mid-intermission, single player.
     engine.CL.intermission = false;
-    singlePlayerPage.items[2].action();
+    void itemAt(singlePlayerPage, 2, Action).action();
     assert.equal(engine.Menu.IsOpen('save'), true);
   });
 
@@ -91,23 +146,23 @@ void describe('Id1Menu.Init', () => {
         : { index, label: 'Empty slot', mapname: null, hasData: false }
     ));
 
-    const loadPage = pages.get('load');
+    const loadPage = pageNamed(pages, 'load');
     loadPage.onEnter();
 
     assert.equal(loadPage.items[0].label, 'Before the boss');
     assert.equal(loadPage.items[0].enabled, true);
-    assert.equal(loadPage.items[0].canDelete, true);
+    assert.equal(itemAt(loadPage, 0, SaveSlotItem).canDelete, true);
     assert.equal(loadPage.items[1].enabled, false);
 
-    const savePage = pages.get('save');
+    const savePage = pageNamed(pages, 'save');
     savePage.onEnter();
     assert.equal(savePage.items[0].label, 'Before the boss');
-    assert.equal(savePage.items[0].canDelete, true);
+    assert.equal(itemAt(savePage, 0, SaveSlotItem).canDelete, true);
   });
 
   void test('activating an empty load slot is a no-op; a filled one closes the menu and issues load', async () => {
     const { engine, pages } = await initId1Menu();
-    const loadPage = pages.get('load');
+    const loadPage = pageNamed(pages, 'load');
     engine.Menu.Open('load');
 
     loadPage.items[0].handleInput(K.ENTER);
@@ -126,8 +181,8 @@ void describe('Id1Menu.Init', () => {
 
   void test('options page toggles cl_forwardspeed/cl_backspeed together for Always Run', async () => {
     const { engine, pages } = await initId1Menu();
-    const optionsPage = pages.get('options');
-    const alwaysRun = optionsPage.items.find((item) => item.label === 'Always Run');
+    const optionsPage = pageNamed(pages, 'options');
+    const alwaysRun = itemLabelled(optionsPage, 'Always Run', Toggle);
 
     assert.equal(alwaysRun.isOn(), false);
 
@@ -141,8 +196,8 @@ void describe('Id1Menu.Init', () => {
   void test('options page inverts m_pitch for Invert Mouse', async () => {
     const { engine, pages } = await initId1Menu();
     engine.SetCvar('m_pitch', '1');
-    const optionsPage = pages.get('options');
-    const invertMouse = optionsPage.items.find((item) => item.label === 'Invert Mouse');
+    const optionsPage = pageNamed(pages, 'options');
+    const invertMouse = itemLabelled(optionsPage, 'Invert Mouse', Toggle);
 
     invertMouse.toggle();
 
@@ -151,16 +206,16 @@ void describe('Id1Menu.Init', () => {
 
   void test('keys page has one KeyBindItem per bindable command', async () => {
     const { pages } = await initId1Menu();
-    const keysPage = pages.get('keys');
+    const keysPage = pageNamed(pages, 'keys');
 
     assert.ok(keysPage.items.length > 0);
     assert.ok(keysPage.items.every((item) => 'command' in item));
-    assert.ok(keysPage.items.some((item) => item.command === '+attack'));
+    assert.ok(keysPage.items.some((item) => item instanceof KeyBindItem && item.command === '+attack'));
   });
 
   void test('help page cycles pages on Up/Down/Left/Right and falls back to default handling otherwise', async () => {
     const { pages } = await initId1Menu();
-    const helpPage = pages.get('help');
+    const helpPage = pageNamed(pages, 'help');
 
     assert.equal(helpPage.handleInput(K.RIGHTARROW), true);
     assert.equal(helpPage.handleInput(K.LEFTARROW), true);
@@ -174,18 +229,18 @@ void describe('Id1Menu.Init', () => {
 
   void test('quit page confirms on Y and cancels on N', async () => {
     const { engine, pages } = await initId1Menu();
-    const quitPage = pages.get('quit');
+    const quitPage = pageNamed(pages, 'quit');
     let forceQuitCalled = false;
     engine.Menu.ForceQuit = () => { forceQuitCalled = true; };
 
     engine.Menu.Open('main');
     engine.Menu.Push('quit');
 
-    assert.equal(quitPage.handleInput(110), true); // 'n'
+    assert.equal(quitPage.handleInput('n'.charCodeAt(0) as KeyCode), true); // 'n'
     assert.equal(engine.Menu.IsOpen('main'), true);
 
     engine.Menu.Push('quit');
-    assert.equal(quitPage.handleInput(121), true); // 'y'
+    assert.equal(quitPage.handleInput('y'.charCodeAt(0) as KeyCode), true); // 'y'
     assert.equal(forceQuitCalled, true);
   });
 
@@ -198,12 +253,13 @@ void describe('Id1Menu.Init', () => {
 
   void test('host.alert opens the alert page with the event title/message, and Enter dismisses it', async () => {
     const { engine, pages } = await initId1Menu();
-    const alertPage = pages.get('alert');
+    const alertPage = pageNamed(pages, 'alert');
 
     engine.moduleEventBus.publish('host.alert', { title: 'Host Error', message: 'boom', severity: 'error' });
 
     assert.equal(engine.Menu.IsOpen('alert'), true);
 
+    assert.ok(alertPage.onConfirm);
     alertPage.onConfirm();
     assert.equal(engine.Menu.IsEmpty(), true);
   });
@@ -224,8 +280,8 @@ void describe('Id1Menu.Init', () => {
     const { engine, pages } = await initId1Menu();
     engine.SetCvar('_cl_name', 'Ranger');
     engine.SetCvar('_cl_color', String((3 << 4) + 5));
-    const multiplayerPage = pages.get('multiplayer');
-    const joinAction = multiplayerPage.items[multiplayerPage.items.length - 1];
+    const multiplayerPage = pageNamed(pages, 'multiplayer');
+    const joinAction = itemAt(multiplayerPage, -1, Action);
 
     engine.CL.connected = false;
     multiplayerPage.onEnter();
@@ -238,14 +294,14 @@ void describe('Id1Menu.Init', () => {
 
   void test('multiplayer join pushes launch_server while disconnected, closes the menu while connected', async () => {
     const { engine, pages } = await initId1Menu();
-    const multiplayerPage = pages.get('multiplayer');
-    const joinAction = multiplayerPage.items[multiplayerPage.items.length - 1];
+    const multiplayerPage = pageNamed(pages, 'multiplayer');
+    const joinAction = itemAt(multiplayerPage, -1, Action);
 
     engine.Menu.Open('multiplayer');
     engine.CL.connected = false;
     multiplayerPage.onEnter();
 
-    joinAction.action();
+    void joinAction.action();
     assert.equal(engine.Menu.IsOpen('launch_server'), true);
 
     engine.Menu.Clear();
@@ -253,7 +309,7 @@ void describe('Id1Menu.Init', () => {
     engine.CL.connected = true;
     multiplayerPage.onEnter();
 
-    joinAction.action();
+    void joinAction.action();
     assert.equal(engine.Menu.IsEmpty(), true);
   });
 
@@ -261,13 +317,13 @@ void describe('Id1Menu.Init', () => {
     const { engine, pages } = await initId1Menu();
     engine.SetCvar('_cl_name', 'Ranger');
     engine.SetCvar('_cl_color', String((3 << 4) + 5));
-    const multiplayerPage = pages.get('multiplayer');
-    const joinAction = multiplayerPage.items[multiplayerPage.items.length - 1];
+    const multiplayerPage = pageNamed(pages, 'multiplayer');
+    const joinAction = itemAt(multiplayerPage, -1, Action);
 
     engine.CL.connected = true; // so action() just closes the menu instead of pushing launch_server
     multiplayerPage.onEnter(); // pre-fills name/color from the cvars above, unmodified since
 
-    joinAction.action();
+    void joinAction.action();
 
     // Neither field changed from what onEnter pre-filled -- a regression here (e.g. always
     // sending `color` even when unchanged) would spam the console with no-op commands on every
@@ -278,11 +334,11 @@ void describe('Id1Menu.Init', () => {
   void test('launch_server page builds its static items and lists sessions on entry', async () => {
     const { engine, pages } = await initId1Menu();
     const channel = createMockSessionsChannel([
-      { sessionId: 'abc', hostname: 'UNNAMED', map: 'dm3', currentPlayers: 2, maxPlayers: 8, colo: 'sea', country: 'US', settings: {} },
+      { sessionId: 'abc', hostname: 'UNNAMED', map: 'dm3', currentPlayers: 2, maxPlayers: 8, colo: 'sea', country: 'US', settings: {}, ping: null, pingUnreachable: false },
     ]);
     engine.Multiplayer.SubscribeSessions = channel.SubscribeSessions;
 
-    const launchServerPage = pages.get('launch_server');
+    const launchServerPage = pageNamed(pages, 'launch_server');
     launchServerPage.onEnter();
 
     const labels = launchServerPage.items.map((item) => item.label);
@@ -295,7 +351,7 @@ void describe('Id1Menu.Init', () => {
     const channel = createMockSessionsChannel([]);
     engine.Multiplayer.SubscribeSessions = channel.SubscribeSessions;
 
-    const launchServerPage = pages.get('launch_server');
+    const launchServerPage = pageNamed(pages, 'launch_server');
 
     launchServerPage.onEnter();
     assert.equal(channel.subscribeCount, 1);
@@ -321,13 +377,13 @@ void describe('Id1Menu.Init', () => {
     engine.Multiplayer.SubscribeSessions = createMockSessionsChannel([]).SubscribeSessions;
     engine.Multiplayer.RequestSessionsRefresh = () => { refreshRequests += 1; };
 
-    const launchServerPage = pages.get('launch_server');
+    const launchServerPage = pageNamed(pages, 'launch_server');
     launchServerPage.onEnter();
 
-    const refreshButton = launchServerPage.items.at(-1);
+    const refreshButton = itemAt(launchServerPage, -1, Action);
     assert.equal(refreshButton.label, 'Refresh Sessions');
 
-    refreshButton.action();
+    void refreshButton.action();
     assert.equal(refreshRequests, 1);
   });
 });
@@ -341,10 +397,10 @@ void describe('Id1Menu.Init with classicFrontend: false', () => {
 
   void test('does not set a root page, leaving that to the mod that replaces the front end', async () => {
     const engine = createMockClientEngine();
-    let rootPageName = null;
+    let rootPageName: string | null = null;
     engine.Menu.SetRootPage = (name) => { rootPageName = name; };
 
-    Id1Menu.Init(engine, { classicFrontend: false });
+    Id1Menu.Init(asClientEngineAPI(engine), { classicFrontend: false });
     await Promise.resolve();
 
     assert.equal(rootPageName, null);
@@ -352,11 +408,11 @@ void describe('Id1Menu.Init with classicFrontend: false', () => {
 
   void test('options page still has its titlePic/logoPic and toggles cl_forwardspeed for Always Run', async () => {
     const { pages } = await initId1Menu({ classicFrontend: false });
-    const optionsPage = pages.get('options');
-    const alwaysRun = optionsPage.items.find((item) => item.label === 'Always Run');
+    const optionsPage = pageNamed(pages, 'options');
+    const alwaysRun = itemLabelled(optionsPage, 'Always Run', Toggle);
 
-    assert.equal(optionsPage.titlePic?.name, 'p_option');
-    assert.equal(optionsPage.logoPic?.name, 'qplaque');
+    assert.equal(textureName(optionsPage.titlePic), 'p_option');
+    assert.equal(textureName(optionsPage.logoPic), 'qplaque');
 
     alwaysRun.toggle();
 
@@ -365,11 +421,11 @@ void describe('Id1Menu.Init with classicFrontend: false', () => {
 
   void test('keys page still has its titlePic and one KeyBindItem per bindable command', async () => {
     const { pages } = await initId1Menu({ classicFrontend: false });
-    const keysPage = pages.get('keys');
+    const keysPage = pageNamed(pages, 'keys');
 
-    assert.equal(keysPage.titlePic?.name, 'ttl_cstm');
+    assert.equal(textureName(keysPage.titlePic), 'ttl_cstm');
     assert.ok(keysPage.items.length > 0);
-    assert.ok(keysPage.items.some((item) => item.command === '+attack'));
+    assert.ok(keysPage.items.some((item) => item instanceof KeyBindItem && item.command === '+attack'));
   });
 
   void test('host.quit-requested still opens the quit page', async () => {

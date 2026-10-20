@@ -2,6 +2,11 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import Vector from '../../../../shared/Vector.ts';
+import type { ServerEdict } from '../../../../engine/server/Edict.ts';
+import type BaseEntity from '../../entity/BaseEntity.ts';
+import type { ScheduledThinkCallback } from '../../entity/BaseEntity.ts';
+import type { Sub } from '../../entity/Subs.ts';
+import { createInertEdict, createInertEngineApi, createInertGameApi, createSubStub, type CalcMoveCall } from '../../../../../test/support/entityMocks.ts';
 import { moveType, solid } from '../../Defs.ts';
 
 await import('../../GameAPI.ts');
@@ -10,104 +15,76 @@ const { PathCornerEntity } = await import('../../entity/Misc.ts');
 const { PlatformEntity, PlatformTriggerEntity, TrainEntity, TeleportTrainEntity } = await import('../../entity/props/Platforms.ts');
 const { state } = await import('../../entity/props/BasePropEntity.ts');
 
+/** A platform whose movement helper a test replaces, which the entity keeps to itself. */
+class TestPlatform extends PlatformEntity {
+  useSub(sub: Sub): void {
+    this._sub = sub;
+  }
+}
+
+/** A train whose movement helper a test replaces, which the entity keeps to itself. */
+class TestTrain extends TrainEntity {
+  useSub(sub: Sub): void {
+    this._sub = sub;
+  }
+}
+
+interface SpawnRequest {
+  readonly classname: string;
+  readonly initialData: object;
+}
+
+interface RecordedThink {
+  readonly nextThink: number;
+  readonly callback: ScheduledThinkCallback;
+  readonly identifier: string | null;
+}
+
 /**
  * Create a minimal mover harness for platform-family entity tests.
- * @returns {{ edict: object, engine: object, gameAPI: object, precachedSounds: string[], precachedModels: string[], setModelCalls: string[], spawnRequests: Array<{ classname: string, initialData: object }>, scheduledThinks: Array<{ nextThink: number, callback: Function, identifier?: string | null }> }} Harness data.
+ * @returns Harness data.
  */
 function createMoverHarness() {
-  const precachedSounds = [];
-  const precachedModels = [];
-  const setModelCalls = [];
-  const spawnRequests = [];
-  const scheduledThinks = [];
-  let boundEntity = null;
+  const precachedSounds: string[] = [];
+  const precachedModels: string[] = [];
+  const setModelCalls: Array<string | null> = [];
+  const spawnRequests: SpawnRequest[] = [];
+  const scheduledThinks: RecordedThink[] = [];
+  let boundEntity: BaseEntity | null = null;
 
-  const edict = {
-    num: 1,
-    entity: null,
-    freeEdict() {},
-    setOrigin(origin) {
-      boundEntity?.origin.set(origin);
-    },
-    setModel(model) {
-      setModelCalls.push(model);
-      if (boundEntity !== null) {
-        boundEntity.model = model;
-        boundEntity.modelindex = model ? 1 : 0;
-      }
-    },
-    setMinMaxSize(mins, maxs) {
-      if (boundEntity !== null) {
-        boundEntity.mins.set(mins);
-        boundEntity.maxs.set(maxs);
-        boundEntity.size = maxs.copy().subtract(mins);
-      }
-    },
-    walkMove() {
-      return false;
-    },
-    changeYaw() {
-      return 0;
-    },
-    dropToFloor() {
-      return true;
-    },
-    isOnTheFloor() {
-      return false;
-    },
-    makeStatic() {},
-    aim() {
-      return null;
-    },
-    moveToGoal() {
-      return false;
-    },
-    isInPXS() {
-      return true;
-    },
-    getNextBestClient() {
-      return null;
-    },
+  const edict: ServerEdict = createInertEdict();
+  edict.setOrigin = (origin: Vector): void => {
+    boundEntity?.origin.set(origin);
+  };
+  edict.setModel = (model: string | null): void => {
+    setModelCalls.push(model);
+    if (boundEntity !== null) {
+      boundEntity.model = model;
+      boundEntity.modelindex = model ? 1 : 0;
+    }
+  };
+  edict.setMinMaxSize = (mins: Vector, maxs: Vector): void => {
+    if (boundEntity !== null) {
+      boundEntity.mins.set(mins);
+      boundEntity.maxs.set(maxs);
+      boundEntity.size = maxs.copy().subtract(mins);
+    }
   };
 
-  const engine = {
-    IsLoading() {
-      return false;
-    },
-    PrecacheModel(model) {
+  const engine = createInertEngineApi({
+    PrecacheModel(model: string): void {
       precachedModels.push(model);
     },
-    PrecacheSound(sound) {
+    PrecacheSound(sound: string): void {
       precachedSounds.push(sound);
     },
-    StartSound() {},
-    SpawnAmbientSound() {},
-    SpawnEntity(classname, initialData = {}) {
+    SpawnEntity(classname: string, initialData: object = {}) {
       spawnRequests.push({ classname, initialData });
       return { entity: null };
     },
-    FindByFieldAndValue() {
-      return null;
-    },
-    FindAllByFieldAndValue() {
-      return [];
-    },
-    ParseQC() {
-      return null;
-    },
-    Traceline() {
-      return null;
-    },
-    SetAreaPortalState() {},
-    GetCvar() {
-      return { value: 0 };
-    },
-  };
+  });
 
-  const gameAPI = {
-    engine,
-    time: 0,
-  };
+  const gameAPI = createInertGameApi({ time: 0 }, engine);
 
   return {
     edict,
@@ -118,7 +95,7 @@ function createMoverHarness() {
     setModelCalls,
     spawnRequests,
     scheduledThinks,
-    bindEntity(entity) {
+    bindEntity(entity: BaseEntity): void {
       boundEntity = entity;
       edict.entity = entity;
       entity._scheduleThink = (nextThink, callback, identifier = null) => {
@@ -130,21 +107,21 @@ function createMoverHarness() {
 
 /**
  * Build a platform fixture for focused gameplay tests.
- * @returns {{ entity: InstanceType<typeof PlatformEntity>, edict: object, engine: object, gameAPI: object, precachedSounds: string[], precachedModels: string[], setModelCalls: string[], spawnRequests: Array<{ classname: string, initialData: object }>, scheduledThinks: Array<{ nextThink: number, callback: Function, identifier?: string | null }> }} Fixture data.
+ * @returns Fixture data.
  */
 function createPlatformFixture() {
   const harness = createMoverHarness();
-  const entity = new PlatformEntity(harness.edict, harness.gameAPI).initializeEntity().precacheEntity();
+  const entity = new TestPlatform(harness.edict, harness.gameAPI).initializeEntity().precacheEntity();
   harness.bindEntity(entity);
   return { entity, ...harness };
 }
 
 /**
  * Build a train-family fixture for focused gameplay tests.
- * @param {typeof TrainEntity | typeof TeleportTrainEntity} [EntityClass] Constructor under test.
- * @returns {{ entity: InstanceType<typeof TrainEntity>, edict: object, engine: object, gameAPI: object, precachedSounds: string[], precachedModels: string[], setModelCalls: string[], spawnRequests: Array<{ classname: string, initialData: object }>, scheduledThinks: Array<{ nextThink: number, callback: Function, identifier?: string | null }> }} Fixture data.
+ * @param EntityClass Constructor under test.
+ * @returns Fixture data.
  */
-function createTrainFixture(EntityClass = TrainEntity) {
+function createTrainFixture<T extends InstanceType<typeof TrainEntity>>(EntityClass: new (edict: ServerEdict, gameAPI: ReturnType<typeof createInertGameApi>) => T) {
   const harness = createMoverHarness();
   const entity = new EntityClass(harness.edict, harness.gameAPI).initializeEntity().precacheEntity();
   harness.bindEntity(entity);
@@ -181,7 +158,7 @@ void describe('PlatformEntity', () => {
 
   void test('targeted plats only honor the remote use once, matching QC plat_use', () => {
     const { entity } = createPlatformFixture();
-    const calcMoveCalls = [];
+    const calcMoveCalls: CalcMoveCall[] = [];
 
     entity.origin = new Vector();
     entity.model = 'progs/plat_targeted.bsp';
@@ -189,14 +166,11 @@ void describe('PlatformEntity', () => {
     entity.maxs = new Vector(16, 16, 32);
     entity.size = new Vector(32, 32, 32);
     entity.targetname = 'remote_plat';
-    entity._sub = {
+    entity.useSub(createSubStub({
       calcMove(target, speed, callback) {
         calcMoveCalls.push({ target: target.copy(), speed, callback });
       },
-      setMovedir() {},
-      useTargets() {},
-      reset() {},
-    };
+    }));
 
     entity.spawn();
     entity.use(entity);
@@ -210,14 +184,14 @@ void describe('PlatformEntity', () => {
 
 void describe('TrainEntity', () => {
   void test('finds the first corner, updates target to the next corner, and only activates once when targeted', () => {
-    const { entity } = createTrainFixture();
-    const calcMoveCalls = [];
-    const firstCorner = Object.assign(Object.create(PathCornerEntity.prototype), {
+    const { entity } = createTrainFixture(TestTrain);
+    const calcMoveCalls: CalcMoveCall[] = [];
+    const firstCorner = Object.assign(Object.create(PathCornerEntity.prototype) as InstanceType<typeof PathCornerEntity>, {
       origin: new Vector(100, 200, 300),
       target: 'corner_2',
       wait: 0,
     });
-    const secondCorner = Object.assign(Object.create(PathCornerEntity.prototype), {
+    const secondCorner = Object.assign(Object.create(PathCornerEntity.prototype) as InstanceType<typeof PathCornerEntity>, {
       origin: new Vector(400, 500, 600),
       target: 'corner_3',
       wait: 1.5,
@@ -229,14 +203,11 @@ void describe('TrainEntity', () => {
     entity.mins = new Vector(-16, -16, -16);
     entity.maxs = new Vector(16, 16, 16);
     entity.size = new Vector(32, 32, 32);
-    entity._sub = {
+    entity.useSub(createSubStub({
       calcMove(target, speed, callback) {
         calcMoveCalls.push({ target: target.copy(), speed, callback });
       },
-      setMovedir() {},
-      useTargets() {},
-      reset() {},
-    };
+    }));
     entity.findFirstEntityByFieldAndValue = (_field, value) => {
       if (value === 'corner_1') {
         return firstCorner;

@@ -1,40 +1,32 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
+import { serializableFieldsOf } from '../../../../../test/support/serialization.ts';
+
 const { serializable, serializableObject, Serializer } = await import('../../helper/MiscHelpers.ts');
 
 // ——————————————————————————————————————————
 // Minimal fixture classes.
-// Decorator syntax is not available in .mjs files, so the TC39 decorator
-// functions are called manually in the same order the runtime would invoke
-// them: field decorators first (innermost-to-outermost), then the class
-// decorator.
 // ——————————————————————————————————————————
 
-// @serializableObject class BaseClass { @serializable test = 'foo'; }
-serializable(undefined, { name: 'test' });
+@serializableObject
 class BaseClass {
-  test = 'foo';
+  @serializable test = 'foo';
 }
-serializableObject(BaseClass, {});
 
-// @serializableObject class SubClass extends BaseClass { @serializable test2 = 123; }
-serializable(undefined, { name: 'test2' });
+@serializableObject
 class SubClass extends BaseClass {
-  test2 = 123;
+  @serializable test2 = 123;
 }
-serializableObject(SubClass, {});
 
-// @serializableObject class AnotherSubClass extends SubClass { @serializable test3 = true; }
-serializable(undefined, { name: 'test3' });
+@serializableObject
 class AnotherSubClass extends SubClass {
-  test3 = true;
+  @serializable test3 = true;
 }
-serializableObject(AnotherSubClass, {});
 
 // A subclass with no new @serializable fields.
+@serializableObject
 class EmptySubClass extends BaseClass {}
-serializableObject(EmptySubClass, {});
 
 void describe('serializable / serializableObject decorators', () => {
   void describe('serializableFields static property', () => {
@@ -43,32 +35,32 @@ void describe('serializable / serializableObject decorators', () => {
     // Serializer.#collectSerializableFields at construction time.
 
     void test('base class holds only its own field', () => {
-      assert.ok(Array.isArray(BaseClass.serializableFields));
-      assert.ok(Object.isFrozen(BaseClass.serializableFields));
-      assert.deepEqual(BaseClass.serializableFields, ['test']);
+      assert.ok(Array.isArray(serializableFieldsOf(BaseClass)));
+      assert.ok(Object.isFrozen(serializableFieldsOf(BaseClass)));
+      assert.deepEqual(serializableFieldsOf(BaseClass), ['test']);
     });
 
     void test('subclass holds only its own field, not the inherited one', () => {
-      assert.ok(Array.isArray(SubClass.serializableFields));
-      assert.ok(Object.isFrozen(SubClass.serializableFields));
-      assert.deepEqual(SubClass.serializableFields, ['test2']);
+      assert.ok(Array.isArray(serializableFieldsOf(SubClass)));
+      assert.ok(Object.isFrozen(serializableFieldsOf(SubClass)));
+      assert.deepEqual(serializableFieldsOf(SubClass), ['test2']);
     });
 
     void test('deeply nested subclass holds only its own field', () => {
-      assert.ok(Array.isArray(AnotherSubClass.serializableFields));
-      assert.ok(Object.isFrozen(AnotherSubClass.serializableFields));
-      assert.deepEqual(AnotherSubClass.serializableFields, ['test3']);
+      assert.ok(Array.isArray(serializableFieldsOf(AnotherSubClass)));
+      assert.ok(Object.isFrozen(serializableFieldsOf(AnotherSubClass)));
+      assert.deepEqual(serializableFieldsOf(AnotherSubClass), ['test3']);
     });
 
     void test('subclass with no new @serializable fields gets an empty frozen array', () => {
-      assert.ok(Array.isArray(EmptySubClass.serializableFields));
-      assert.ok(Object.isFrozen(EmptySubClass.serializableFields));
-      assert.deepEqual(EmptySubClass.serializableFields, []);
+      assert.ok(Array.isArray(serializableFieldsOf(EmptySubClass)));
+      assert.ok(Object.isFrozen(serializableFieldsOf(EmptySubClass)));
+      assert.deepEqual(serializableFieldsOf(EmptySubClass), []);
     });
 
     void test('base class serializableFields is not mutated by subclass decoration', () => {
       // Re-check after all subclass decorators have run.
-      assert.deepEqual(BaseClass.serializableFields, ['test']);
+      assert.deepEqual(serializableFieldsOf(BaseClass), ['test']);
     });
   });
 
@@ -140,7 +132,7 @@ void describe('serializable / serializableObject decorators', () => {
       const data = serializer.serialize();
 
       const restored = {
-        invincible_sound_time: new Map(),
+        invincible_sound_time: new Map<number, number>(),
       };
       const restoredSerializer = Serializer.makeSerializable(restored, null);
       restoredSerializer.deserialize(data);

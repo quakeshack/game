@@ -8,37 +8,64 @@ import { effect } from '../../../Defs.ts';
 import { useClientStateOf } from '../../../../../../test/support/clientState.ts';
 import { createSingleLeafWorld } from '../../../../../../test/support/bspTree.ts';
 import { engineMocks } from '../../../../../../test/support/engineMocks.ts';
+import { createGameTrace, createInertEngineApi } from '../../../../../../test/support/entityMocks.ts';
+import { createBoundsModel } from '../../../../../../test/support/fixtures.ts';
+import { asClientEngineAPI } from '../fixtures.ts';
 
 await import('../../../GameAPI.ts');
 const { AirBubblesClientEdictHandler, BubbleClientEdictHandler } = await import('../../../client/entity/Bubbles.ts');
 
 const FRAMETIME = 0.1;
 
+interface Clock {
+  time: number;
+}
+
+interface WaterEngine {
+  probes: number;
+  contentsQueries: number;
+  readonly CL: { readonly time: number; readonly frametime: number };
+  DetermineStaticWorldContents(origin: Vector): number;
+  Traceline(start: Vector, end: Vector): ReturnType<typeof trace>;
+}
+
+interface SpawnParameters {
+  readonly delay?: number;
+  readonly age?: number;
+}
+
 /**
  * A trace result for a probe that hits nothing, or hits the world at the given fraction.
- * @param {number} fraction how far the probe got
- * @returns {object} a GameTrace-shaped mock trace
+ * @param fraction how far the probe got
+ * @returns a GameTrace-shaped mock trace
  */
-function trace(fraction) {
-  return {
-    solid: { all: false, start: false },
+function trace(fraction: number) {
+  return createGameTrace({
     fraction,
     plane: { normal: new Vector(0, 0, -1), distance: 0 },
     contents: { inOpen: true, inWater: true },
-    point: new Vector(),
-    entity: null,
-  };
+  });
+}
+
+/**
+ * A model of the bubble sprite with the bounds the engine would give it.
+ * @returns the model
+ */
+function bubbleModel() {
+  return createBoundsModel(new Vector(-8, -8, -8), new Vector(8, 8, 8), 'progs/s_bubble.spr');
 }
 
 /**
  * A mock ClientEngineAPI with water below `surfaceZ`, a ceiling at `ceilingZ`, and a controllable
  * clock. Records the world probes so tests can tell how often the handler traces.
- * @param {{time: number}} clock the mutable client clock
- * @param {{surfaceZ?: number, ceilingZ?: number}} world water surface and ceiling heights
- * @returns {object} the mock engine
+ * @param clock the mutable client clock
+ * @param world water surface and ceiling heights
+ * @param world.surfaceZ height of the water surface
+ * @param world.ceilingZ height of the ceiling
+ * @returns the mock engine
  */
-function createWaterEngine(clock, { surfaceZ = 1000, ceilingZ = 10000 } = {}) {
-  const engine = {
+function createWaterEngine(clock: Clock, { surfaceZ = 1000, ceilingZ = 10000 } = {}): WaterEngine {
+  const engine: WaterEngine = {
     probes: 0,
     contentsQueries: 0,
     CL: {
@@ -47,11 +74,11 @@ function createWaterEngine(clock, { surfaceZ = 1000, ceilingZ = 10000 } = {}) {
       },
       frametime: FRAMETIME,
     },
-    DetermineStaticWorldContents(origin) {
+    DetermineStaticWorldContents(origin: Vector): number {
       engine.contentsQueries += 1;
       return origin[2] < surfaceZ ? content.CONTENT_WATER : content.CONTENT_EMPTY;
     },
-    Traceline(start, end) {
+    Traceline(start: Vector, end: Vector) {
       engine.probes += 1;
       return trace(end[2] > ceilingZ ? (ceilingZ - start[2]) / (end[2] - start[2]) : 1.0);
     },
@@ -62,9 +89,9 @@ function createWaterEngine(clock, { surfaceZ = 1000, ceilingZ = 10000 } = {}) {
 
 /**
  * Runs a callback with a trivial single-leaf worldmodel installed so `setOrigin()` links for real.
- * @param {() => void} callback
+ * @param callback what to run
  */
-function withWorldmodel(callback) {
+function withWorldmodel(callback: () => void): void {
   const previousCL = engineMocks.CL;
 
   engineMocks.CL = { state: { worldmodel: createSingleLeafWorld() } };
@@ -80,18 +107,18 @@ function withWorldmodel(callback) {
 
 /**
  * Creates a bubble handler at the given origin and spawns it with the given start delay.
- * @param {object} engine the mock engine
- * @param {Vector} origin start position
- * @param {number} delay start delay in seconds
- * @returns {{handler: BubbleClientEdictHandler, clientEdict: ClientEdict}} the handler and its edict
+ * @param engine the mock engine
+ * @param origin start position
+ * @param delay start delay in seconds
+ * @returns the handler and its edict
  */
-function spawnBubble(engine, origin, delay = 0) {
+function spawnBubble(engine: WaterEngine, origin: Vector, delay = 0) {
   const clientEdict = new ClientEdict(-1);
-  clientEdict.model = { name: 'progs/s_bubble.spr', mins: new Vector(-8, -8, -8), maxs: new Vector(8, 8, 8) };
+  clientEdict.model = bubbleModel();
   clientEdict.angles.clear();
   clientEdict.setOrigin(origin);
 
-  const handler = new BubbleClientEdictHandler(clientEdict, engine);
+  const handler = new BubbleClientEdictHandler(clientEdict, asClientEngineAPI(engine));
   handler.spawn({ delay });
 
   return { handler, clientEdict };
@@ -99,10 +126,10 @@ function spawnBubble(engine, origin, delay = 0) {
 
 /**
  * Advances the clock and thinks once, like one client frame.
- * @param {{time: number}} clock the mutable client clock
- * @param {BubbleClientEdictHandler} handler the handler to run
+ * @param clock the mutable client clock
+ * @param handler the handler to run
  */
-function frame(clock, handler) {
+function frame(clock: Clock, handler: { think(): void }): void {
   clock.time += FRAMETIME;
   handler.think();
 }
@@ -256,36 +283,46 @@ void describe('BubbleClientEdictHandler', () => {
 
   void describe('spawnBurst', () => {
     void test('spawns one delayed bubble per count, 0.1 s apart, around the origin', () => {
-      const spawned = [];
+      interface SpawnedBubble {
+        classname: string;
+        model: { name: string } | null;
+        angles: Vector;
+        origin: Vector;
+        parameters: SpawnParameters | null;
+        setOrigin(origin: Vector): void;
+        spawn(parameters: SpawnParameters): void;
+      }
+
+      const spawned: SpawnedBubble[] = [];
       const engine = {
-        SpawnClientEntity(classname) {
-          const entity = {
+        SpawnClientEntity(classname: string): SpawnedBubble {
+          const entity: SpawnedBubble = {
             classname,
             model: null,
             angles: new Vector(Infinity, Infinity, Infinity),
-            origin: null,
+            origin: new Vector(),
             parameters: null,
-            setOrigin(origin) {
+            setOrigin(origin: Vector): void {
               entity.origin = origin.copy();
             },
-            spawn(parameters) {
+            spawn(parameters: SpawnParameters): void {
               entity.parameters = parameters;
             },
           };
           spawned.push(entity);
           return entity;
         },
-        ModForName(name) {
+        ModForName(name: string): { name: string } {
           return { name };
         },
       };
 
-      BubbleClientEdictHandler.spawnBurst(engine, new Vector(100, 200, 300), 4);
+      BubbleClientEdictHandler.spawnBurst(asClientEngineAPI(engine), new Vector(100, 200, 300), 4);
 
       assert.equal(spawned.length, 4);
       assert.ok(spawned.every((bubble) => bubble.classname === 'client_bubble'));
-      assert.ok(spawned.every((bubble) => bubble.model.name === 'progs/s_bubble.spr'));
-      assert.deepEqual(spawned.map((bubble) => Math.round(bubble.parameters.delay * 10)), [1, 2, 3, 4]);
+      assert.ok(spawned.every((bubble) => bubble.model?.name === 'progs/s_bubble.spr'));
+      assert.deepEqual(spawned.map((bubble) => Math.round((bubble.parameters?.delay ?? NaN) * 10)), [1, 2, 3, 4]);
       // spread is +/- 5 per axis; every bubble got its own origin snapshot
       for (const bubble of spawned) {
         assert.ok(Math.abs(bubble.origin[0] - 100) <= 5 && Math.abs(bubble.origin[1] - 200) <= 5 && Math.abs(bubble.origin[2] - 300) <= 5);
@@ -298,9 +335,9 @@ void describe('BubbleClientEdictHandler', () => {
 
 void describe('BubbleClientEdictHandler._precache', () => {
   void test('precaches the bubble sprite so clients can resolve it on any map', () => {
-    const models = [];
+    const models: string[] = [];
 
-    BubbleClientEdictHandler._precache({ PrecacheModel: (name) => models.push(name) });
+    BubbleClientEdictHandler._precache(createInertEngineApi({ PrecacheModel: (name: string) => models.push(name) }));
 
     assert.deepEqual(models, ['progs/s_bubble.spr']);
   });
@@ -310,7 +347,7 @@ void describe('AirBubblesClientEdictHandler', () => {
   void test('releases a bubble right away, then one every one to two seconds', () => {
     withWorldmodel(() => {
       const clock = { time: 50 };
-      const spawnTimes = [];
+      const spawnTimes: number[] = [];
       const engine = {
         CL: {
           get time() {
@@ -330,13 +367,13 @@ void describe('AirBubblesClientEdictHandler', () => {
             spawn() {},
           };
         },
-        ModForName(name) {
+        ModForName(name: string) {
           return { name };
         },
       };
       const clientEdict = new ClientEdict(-1);
       clientEdict.origin.setTo(5, 6, 7);
-      const handler = new AirBubblesClientEdictHandler(clientEdict, engine);
+      const handler = new AirBubblesClientEdictHandler(clientEdict, asClientEngineAPI(engine));
       handler.spawn();
 
       for (let i = 0; i < 100; i++) {
@@ -359,12 +396,13 @@ void describe('AirBubblesClientEdictHandler', () => {
   void describe('view culling', () => {
     /**
      * An engine whose PVS answer the test controls, recording every spawned bubble.
-     * @param {{time: number}} clock the mutable client clock
-     * @param {{visible: boolean}} view whether the spawner is in the PVS
-     * @returns {{engine: object, spawned: Array<{time: number, origin: Vector, parameters: object}>}} the mock engine and its spawns
+     * @param clock the mutable client clock
+     * @param view whether the spawner is in the PVS
+     * @param view.visible whether the spawner is in the PVS
+     * @returns the mock engine and its spawns
      */
-    function createCullingEngine(clock, view) {
-      const spawned = [];
+    function createCullingEngine(clock: Clock, view: { visible: boolean }) {
+      const spawned: Array<{ time: number; origin: Vector; parameters: SpawnParameters }> = [];
       const engine = {
         CL: {
           get time() {
@@ -377,21 +415,19 @@ void describe('AirBubblesClientEdictHandler', () => {
         },
         SpawnClientEntity() {
           const entity = {
-            origin: null,
-            parameters: null,
+            origin: new Vector(),
             model: null,
             angles: new Vector(),
-            setOrigin(origin) {
+            setOrigin(origin: Vector): void {
               entity.origin = origin.copy();
             },
-            spawn(parameters) {
-              entity.parameters = parameters;
+            spawn(parameters: SpawnParameters): void {
               spawned.push({ time: clock.time, origin: entity.origin, parameters });
             },
           };
           return entity;
         },
-        ModForName(name) {
+        ModForName(name: string) {
           return { name };
         },
       };
@@ -403,7 +439,7 @@ void describe('AirBubblesClientEdictHandler', () => {
       const clock = { time: 0 };
       const view = { visible: false };
       const { engine, spawned } = createCullingEngine(clock, view);
-      const handler = new AirBubblesClientEdictHandler(new ClientEdict(-1), engine);
+      const handler = new AirBubblesClientEdictHandler(new ClientEdict(-1), asClientEngineAPI(engine));
       handler.spawn();
 
       for (let i = 0; i < 100; i++) {
@@ -420,7 +456,7 @@ void describe('AirBubblesClientEdictHandler', () => {
       const { engine, spawned } = createCullingEngine(clock, view);
       const clientEdict = new ClientEdict(-1);
       clientEdict.origin.setTo(10, 20, 100);
-      const handler = new AirBubblesClientEdictHandler(clientEdict, engine);
+      const handler = new AirBubblesClientEdictHandler(clientEdict, asClientEngineAPI(engine));
       handler.spawn();
       handler.think(); // the first bubble comes out right away, at age 0
 
@@ -437,7 +473,7 @@ void describe('AirBubblesClientEdictHandler', () => {
       assert.ok(replayed.length >= 3 && replayed.length <= 6, `replayed ${replayed.length}`);
 
       for (const bubble of replayed) {
-        const age = bubble.parameters.age;
+        const age = bubble.parameters.age ?? NaN;
         assert.ok(age >= 0 && age <= 6, `age ${age}`);
         // 15 units per second of rise from the spawner's own height
         assert.ok(Math.abs(bubble.origin[2] - (100 + 15 * age)) < 1e-4);
@@ -449,7 +485,7 @@ void describe('AirBubblesClientEdictHandler', () => {
       const clock = { time: 0 };
       const view = { visible: true };
       const { engine, spawned } = createCullingEngine(clock, view);
-      const handler = new AirBubblesClientEdictHandler(new ClientEdict(-1), engine);
+      const handler = new AirBubblesClientEdictHandler(new ClientEdict(-1), asClientEngineAPI(engine));
       handler.spawn();
       handler.think();
 
@@ -462,7 +498,7 @@ void describe('AirBubblesClientEdictHandler', () => {
       const replayed = spawned.slice(1);
       // at most the last ten seconds: 5 to 10 bubbles, not 400
       assert.ok(replayed.length >= 5 && replayed.length <= 11, `replayed ${replayed.length}`);
-      assert.ok(replayed.every((bubble) => bubble.parameters.age <= 10));
+      assert.ok(replayed.every((bubble) => (bubble.parameters.age ?? NaN) <= 10));
     });
   });
 
@@ -471,9 +507,9 @@ void describe('AirBubblesClientEdictHandler', () => {
       withWorldmodel(() => {
         const clock = { time: 0 };
         const clientEdict = new ClientEdict(-1);
-        clientEdict.model = { name: 'progs/s_bubble.spr', mins: new Vector(-8, -8, -8), maxs: new Vector(8, 8, 8) };
+        clientEdict.model = bubbleModel();
         clientEdict.setOrigin(new Vector(0, 0, -5000));
-        const handler = new BubbleClientEdictHandler(clientEdict, createWaterEngine(clock));
+        const handler = new BubbleClientEdictHandler(clientEdict, asClientEngineAPI(createWaterEngine(clock)));
         handler.spawn({ delay: 0, age: 7 });
 
         clock.time = 2.9;
@@ -487,28 +523,28 @@ void describe('AirBubblesClientEdictHandler', () => {
     });
 
     void test('spawnBubble raises the origin by the rise of the age', () => {
-      let origin = null;
+      let origin: Vector | null = null;
       const engine = {
         SpawnClientEntity() {
           const entity = {
             model: null,
             angles: new Vector(),
-            setOrigin(value) {
+            setOrigin(value: Vector): void {
               origin = value.copy();
             },
             spawn() {},
           };
           return entity;
         },
-        ModForName(name) {
+        ModForName(name: string) {
           return { name };
         },
       };
       const start = new Vector(1, 2, 3);
 
-      BubbleClientEdictHandler.spawnBubble(engine, start, 0, 4);
+      BubbleClientEdictHandler.spawnBubble(asClientEngineAPI(engine), start, 0, 4);
 
-      assert.deepEqual([...origin], [1, 2, 63]); // 4 s * 15 units/s
+      assert.deepEqual([...(origin as Vector | null ?? [])], [1, 2, 63]); // 4 s * 15 units/s
       assert.deepEqual([...start], [1, 2, 3], 'the caller origin is left alone');
     });
   });
