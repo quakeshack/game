@@ -7,7 +7,7 @@ import type { PlayerEntity } from './entity/Player.ts';
 
 /**
  * The events the server side of id1 publishes on `ServerEngineAPI.eventBus`, and what they carry. Everything here is
- * documented in `docs/events.md` and the two are kept equal by `test/events-docs.test.mjs`.
+ * documented in `docs/events.md` and the two are kept equal by `test/core/events-docs.test.ts`.
  *
  * The types say what is published. A listener that wants more (a `PlayerEntity` that is a Hellwave player) narrows with
  * `instanceof` instead of declaring a narrower parameter.

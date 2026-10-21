@@ -41,7 +41,7 @@ Helpers that wrap an entity extend `EntityWrapper<T>` (`helper/MiscHelpers.ts`),
 
 ### Tests
 
-Tests are `.mjs` under `test/`, mirroring the source layout, and are not type-checked: after changing a signature, search them by hand. See the engine's `unit-tests.instructions.md` and its `writing-engine-tests` skill for the mock helpers.
+Tests are `.test.ts` under `test/`, mirroring the source layout, and are type-checked by the engine repo's `npm run typecheck`: a changed signature fails the build. They use the engine's `test/support/` as their shared kit (inert edicts, engine and game APIs, `statesOf`, `serializableFieldsOf`); see the engine's `unit-tests.instructions.md` and its `writing-engine-tests` skill for the mock helpers. A protected member is reached by a one-method subclass of the entity under test, a private one through its public path (a state handler, the engine boundary), not by a cast.
 
 - **Import `GameAPI.ts` first.** Entity files and `GameAPI.ts` import each other; importing one entity directly can invert the evaluation order and raise a TDZ error. Put `await import('../../GameAPI.ts');` at the top level before `await import('../../entity/monster/Fish.ts')` (path relative to `test/<subdir>/`).
 - **Call `Entity._initStates()` yourself** in a state-machine test; the registry does it during bootstrap.

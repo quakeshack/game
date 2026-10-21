@@ -201,7 +201,9 @@ export interface MockSpawnedClientEntity {
   spawn(): void;
 }
 
-interface MockClientEngineOverrides extends Partial<Omit<MockClientEngine, 'VID' | 'SCR' | 'CL'>> {
+interface MockClientEngineOverrides extends Partial<Omit<MockClientEngine, 'VID' | 'SCR' | 'CL' | 'Multiplayer' | 'PostProcess'>> {
+  Multiplayer?: Partial<MockClientEngine['Multiplayer']>;
+  PostProcess?: Partial<MockClientEngine['PostProcess']>;
   VID?: Partial<MockVideoState>;
   SCR?: Partial<Omit<MockScreenState, 'viewRect'>> & { viewRect?: Partial<MockViewRect> };
   CL?: Partial<MockClientState>;
@@ -396,6 +398,18 @@ export function captureRegisteredPages(engine: MockClientEngine): Map<string, Me
   };
 
   return registered;
+}
+
+/** The members of a discovered session a test must say; the rest are filled in as a session without a measured ping and a known location. */
+type MockSessionRequired = Pick<MockDiscoveredSession, 'sessionId' | 'hostname' | 'map' | 'currentPlayers' | 'maxPlayers'>;
+
+/**
+ * A discovered game session, as the lobby lists it.
+ * @param session What the test says about the session.
+ * @returns The session, without a ping and without a location unless the test gave them.
+ */
+export function createMockSession(session: MockSessionRequired & Partial<MockDiscoveredSession>): MockDiscoveredSession {
+  return { colo: null, country: null, settings: {}, ping: null, pingUnreachable: false, ...session };
 }
 
 export interface MockSessionDiscoveryChannel {
@@ -889,6 +903,14 @@ export function createMockClientEngine(
   return {
     ...baseEngine,
     ...overrides,
+    Multiplayer: {
+      ...baseEngine.Multiplayer,
+      ...(overrides.Multiplayer ?? {}),
+    },
+    PostProcess: {
+      ...baseEngine.PostProcess,
+      ...(overrides.PostProcess ?? {}),
+    },
     VID: {
       ...baseEngine.VID,
       ...(overrides.VID ?? {}),
