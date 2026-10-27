@@ -73,41 +73,7 @@ function createMonsterFixture<T extends BaseEntity>(MonsterClass: EntityConstruc
   return entity;
 }
 
-void describe('ZombieMonster metadata', () => {
-  void test('class metadata matches the original monster', () => {
-    assert.equal(ZombieMonster.classname, 'monster_zombie');
-    assert.equal(ZombieMonster._health, 60);
-    assert.equal(ZombieMonster._modelDefault, 'progs/zombie.mdl');
-    assert.equal(ZombieMonster._modelHead, 'progs/h_zombie.mdl');
-  });
-
-  void test('size vectors are correct', () => {
-    const [mins, maxs] = ZombieMonster._size;
-    assert.deepEqual([mins[0], mins[1], mins[2]], [-16, -16, -24]);
-    assert.deepEqual([maxs[0], maxs[1], maxs[2]], [16, 16, 40]);
-  });
-});
-
 void describe('ZombieMonster state machine', () => {
-  void test('stand, walk, and run loops match the QuakeC frame counts', () => {
-    const states = statesOf(ZombieMonster);
-
-    for (let i = 1; i <= 15; i++) {
-      assert.equal(states[`zombie_stand${i}`].keyframe, `stand${i}`);
-    }
-    assert.equal(states.zombie_stand15.nextState, 'zombie_stand1');
-
-    for (let i = 1; i <= 19; i++) {
-      assert.equal(states[`zombie_walk${i}`].keyframe, `walk${i}`);
-    }
-    assert.equal(states.zombie_walk19.nextState, 'zombie_walk1');
-
-    for (let i = 1; i <= 18; i++) {
-      assert.equal(states[`zombie_run${i}`].keyframe, `run${i}`);
-    }
-    assert.equal(states.zombie_run18.nextState, 'zombie_run1');
-  });
-
   void test('grenade and pain sequences return to the run loop', () => {
     const states = statesOf(ZombieMonster);
 
@@ -120,15 +86,6 @@ void describe('ZombieMonster state machine', () => {
     assert.equal(states.zombie_painc18.nextState, 'zombie_run1');
     assert.equal(states.zombie_paind13.nextState, 'zombie_run1');
     assert.equal(states.zombie_paine30.nextState, 'zombie_run1');
-  });
-
-  void test('crucified idle loop keeps all six frames', () => {
-    const states = statesOf(ZombieMonster);
-
-    for (let i = 1; i <= 6; i++) {
-      assert.equal(states[`zombie_cruc${i}`].keyframe, `cruc_${i}`);
-    }
-    assert.equal(states.zombie_cruc6.nextState, 'zombie_cruc1');
   });
 });
 

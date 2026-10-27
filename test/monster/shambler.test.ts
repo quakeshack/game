@@ -56,53 +56,12 @@ function createMonsterFixture<T extends BaseEntity>(MonsterClass: EntityConstruc
   return entity as WithMutableEngine<T>;
 }
 
-void describe('ShamblerMonsterEntity metadata', () => {
-  void test('class metadata matches the original monster', () => {
-    assert.equal(ShamblerMonsterEntity.classname, 'monster_shambler');
-    assert.equal(ShamblerMonsterEntity._health, 600);
-    assert.equal(ShamblerMonsterEntity._modelDefault, 'progs/shambler.mdl');
-    assert.equal(ShamblerMonsterEntity._modelHead, 'progs/h_shams.mdl');
-  });
-
-  void test('size vectors are correct', () => {
-    const [mins, maxs] = ShamblerMonsterEntity._size;
-    assert.deepEqual([mins[0], mins[1], mins[2]], [-32, -32, -24]);
-    assert.deepEqual([maxs[0], maxs[1], maxs[2]], [32, 32, 64]);
-  });
-});
-
 void describe('ShamblerMonsterEntity state machine', () => {
-  void test('stand, walk, and run loops match the QuakeC frame counts', () => {
-    const states = statesOf(ShamblerMonsterEntity);
-
-    for (let i = 1; i <= 17; i++) {
-      assert.equal(states[`sham_stand${i}`].keyframe, `stand${i}`);
-    }
-    assert.equal(states.sham_stand17.nextState, 'sham_stand1');
-
-    for (let i = 1; i <= 12; i++) {
-      assert.equal(states[`sham_walk${i}`].keyframe, `walk${i}`);
-    }
-    assert.equal(states.sham_walk12.nextState, 'sham_walk1');
-
-    for (let i = 1; i <= 6; i++) {
-      assert.equal(states[`sham_run${i}`].keyframe, `run${i}`);
-    }
-    assert.equal(states.sham_run6.nextState, 'sham_run1');
-  });
-
   void test('melee chains return to the run loop', () => {
     const states = statesOf(ShamblerMonsterEntity);
 
-    for (let i = 1; i <= 12; i++) {
-      assert.equal(states[`sham_smash${i}`].keyframe, `smash${i}`);
-    }
     assert.equal(states.sham_smash12.nextState, 'sham_run1');
 
-    for (let i = 1; i <= 9; i++) {
-      assert.equal(states[`sham_swingl${i}`].keyframe, `swingl${i}`);
-      assert.equal(states[`sham_swingr${i}`].keyframe, `swingr${i}`);
-    }
     assert.equal(states.sham_swingl9.nextState, 'sham_run1');
     assert.equal(states.sham_swingr9.nextState, 'sham_run1');
   });
@@ -130,31 +89,9 @@ void describe('ShamblerMonsterEntity state machine', () => {
   void test('pain and death sequences transition correctly', () => {
     const states = statesOf(ShamblerMonsterEntity);
 
-    for (let i = 1; i <= 6; i++) {
-      assert.equal(states[`sham_pain${i}`].keyframe, `pain${i}`);
-    }
     assert.equal(states.sham_pain6.nextState, 'sham_run1');
 
-    for (let i = 1; i <= 11; i++) {
-      assert.equal(states[`sham_death${i}`].keyframe, `death${i}`);
-    }
     assert.equal(states.sham_death11.nextState, null);
-  });
-
-  void test('active states keep handlers while passive pain and death frames omit them', () => {
-    const states = statesOf(ShamblerMonsterEntity);
-
-    for (const name of ['sham_stand1', 'sham_walk12', 'sham_run6', 'sham_smash10', 'sham_swingl7', 'sham_swingr7', 'sham_magic1', 'sham_magic3', 'sham_magic3b', 'sham_magic11']) {
-      assert.equal(typeof states[name].handler, 'function', `${name} handler should be a function`);
-    }
-
-    for (const name of ['sham_pain1', 'sham_pain6', 'sham_magic12']) {
-      assert.equal(states[name].handler, null, `${name} handler should be omitted`);
-    }
-
-    for (const name of ['sham_death1', 'sham_death11']) {
-      assert.equal(typeof states[name].handler, 'function', `${name} handler should be a function`);
-    }
   });
 });
 

@@ -2,10 +2,11 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { createInertGameApi } from '../../../../../test/support/entityMocks.ts';
+import { statesOf } from '../../../../../test/support/entityStates.ts';
 import { serializableFieldsOf } from '../../../../../test/support/serialization.ts';
 import type { ServerGameAPI } from '../../GameAPI.ts';
 import BaseEntity from '../../entity/BaseEntity.ts';
-import { serializableObject, serializable, Serializer } from '../../helper/MiscHelpers.ts';
+import { Serializer } from '../../helper/MiscHelpers.ts';
 
 /** BaseEntity is abstract; this is the entity with nothing added to it. */
 class PlainEntity extends BaseEntity {
@@ -75,11 +76,64 @@ void describe('@entity / @serializable decorators', () => {
     assert.ok('customProp' in serialized, 'includes own static array fields');
   });
 
-  void test('entity and serializable are exported functions', () => {
-    assert.equal(typeof serializableObject, 'function');
-    assert.equal(typeof serializable, 'function');
+});
+
+/** Two sequences, one looping with a handler and one terminal without, the way monsters define theirs. */
+class SequenceEntity extends BaseEntity {
+  static classname = 'sequence_entity';
+
+  readonly seenFrames: number[] = [];
+
+  static override _initStates(): void {
+    this._resetStates();
+    this._defineSequence('seq_walk', ['walk1', 'walk2', 'walk3'], function (this: SequenceEntity, frameIndex: number) {
+      this.seenFrames.push(frameIndex);
+    });
+    this._defineSequence('seq_die', ['death1', 'death2'], null, false);
+  }
+}
+
+SequenceEntity._initStates();
+
+void describe('BaseEntity._defineSequence', () => {
+  void test('numbers the states from 1 and gives each its frame', () => {
+    const states = statesOf(SequenceEntity);
+
+    assert.deepEqual(Object.keys(states), ['seq_walk1', 'seq_walk2', 'seq_walk3', 'seq_die1', 'seq_die2']);
+    assert.deepEqual(['seq_walk1', 'seq_walk2', 'seq_walk3'].map((name) => states[name].keyframe), ['walk1', 'walk2', 'walk3']);
   });
 
+  void test('chains the states and loops the last one back to the first', () => {
+    const states = statesOf(SequenceEntity);
+
+    assert.equal(states.seq_walk1.nextState, 'seq_walk2');
+    assert.equal(states.seq_walk2.nextState, 'seq_walk3');
+    assert.equal(states.seq_walk3.nextState, 'seq_walk1');
+  });
+
+  void test('ends a sequence defined without looping', () => {
+    const states = statesOf(SequenceEntity);
+
+    assert.equal(states.seq_die1.nextState, 'seq_die2');
+    assert.equal(states.seq_die2.nextState, null);
+  });
+
+  void test('calls the shared handler with the index of the frame it belongs to', () => {
+    const entity = new SequenceEntity(null, createInertGameApi()).initializeEntity();
+    const states = statesOf(SequenceEntity);
+
+    states.seq_walk3.handler!.call(entity, entity);
+    states.seq_walk1.handler!.call(entity, entity);
+
+    assert.deepEqual(entity.seenFrames, [2, 0]);
+  });
+
+  void test('leaves the states without a handler when none is given', () => {
+    const states = statesOf(SequenceEntity);
+
+    assert.equal(states.seq_die1.handler, null);
+    assert.equal(states.seq_die2.handler, null);
+  });
 });
 
 void describe('BasePropEntity decorator port', async () => {

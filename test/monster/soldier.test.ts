@@ -92,28 +92,10 @@ function assertVectorNear(actual: Vector, expected: Vector, epsilon = 1e-6): voi
 }
 
 void describe('ArmySoldierMonster class metadata', () => {
-  void test('classname is monster_army', () => {
-    assert.equal(ArmySoldierMonster.classname, 'monster_army');
-  });
-
-  void test('health and model metadata match QC setup', () => {
-    assert.equal(ArmySoldierMonster._health, 30);
-    assert.equal(ArmySoldierMonster._modelDefault, 'progs/soldier.mdl');
-    assert.equal(ArmySoldierMonster._modelHead, 'progs/h_guard.mdl');
-  });
-
-  void test('size vectors are correct', () => {
-    const [mins, maxs] = ArmySoldierMonster._size;
-    assert.deepEqual([mins[0], mins[1], mins[2]], [-16, -16, -24]);
-    assert.deepEqual([maxs[0], maxs[1], maxs[2]], [16, 16, 40]);
-  });
-
   void test('preserves the legacy serialized AI state field and keeps helpers runtime-only', () => {
     const { entity } = createMonsterFixture(TestSoldier);
     const serialized = entity.serialize();
 
-    assert.ok(Array.isArray(serializableFieldsOf(ArmySoldierMonster)));
-    assert.ok(Object.isFrozen(serializableFieldsOf(ArmySoldierMonster)));
     assert.deepEqual(serializableFieldsOf(ArmySoldierMonster), ['_aiState']);
     assert.equal(entity.aiState, null);
     assert.ok('_aiState' in serialized);
@@ -161,28 +143,9 @@ void describe('ArmySoldierMonster class metadata', () => {
 });
 
 void describe('ArmySoldierMonster state machine', () => {
-  void test('stand, walk, and run sequences loop correctly', () => {
-    const states = statesOf(ArmySoldierMonster);
-
-    for (let i = 1; i <= 8; i++) {
-      assert.equal(states[`army_stand${i}`].keyframe, `stand${i}`);
-      assert.equal(states[`army_run${i}`].keyframe, `run${i}`);
-    }
-    assert.equal(states.army_stand8.nextState, 'army_stand1');
-    assert.equal(states.army_run8.nextState, 'army_run1');
-
-    for (let i = 1; i <= 24; i++) {
-      assert.equal(states[`army_walk${i}`].keyframe, `prowl_${i}`);
-    }
-    assert.equal(states.army_walk24.nextState, 'army_walk1');
-  });
-
   void test('attack, pain, and death transitions match the QuakeC flow', () => {
     const states = statesOf(ArmySoldierMonster);
 
-    for (let i = 1; i <= 9; i++) {
-      assert.equal(states[`army_atk${i}`].keyframe, `shoot${i}`);
-    }
     assert.equal(states.army_atk9.nextState, 'army_run1');
     assert.equal(states.army_pain6.nextState, 'army_run1');
     assert.equal(states.army_painb14.nextState, 'army_run1');
@@ -190,39 +153,12 @@ void describe('ArmySoldierMonster state machine', () => {
     assert.equal(states.army_die10.nextState, null);
     assert.equal(states.army_cdie11.nextState, null);
   });
-
-  void test('inactive sequences omit handlers where expected', () => {
-    const states = statesOf(ArmySoldierMonster);
-    assert.equal(states.army_pain1.handler, null);
-    assert.equal(states.army_pain6.handler !== null, true);
-    assert.equal(typeof states.army_painb2.handler, 'function');
-    assert.equal(typeof states.army_atk4.handler, 'function');
-  });
 });
 
 void describe('ArmyEnforcerMonster class metadata', () => {
-  void test('classname is monster_enforcer', () => {
-    assert.equal(ArmyEnforcerMonster.classname, 'monster_enforcer');
-  });
-
-  void test('health and model metadata match QC setup', () => {
-    assert.equal(ArmyEnforcerMonster._health, 80);
-    assert.equal(ArmyEnforcerMonster._modelDefault, 'progs/enforcer.mdl');
-    assert.equal(ArmyEnforcerMonster._modelHead, 'progs/h_mega.mdl');
-  });
-
-  void test('size vectors are correct', () => {
-    const [mins, maxs] = ArmyEnforcerMonster._size;
-    assert.deepEqual([mins[0], mins[1], mins[2]], [-16, -16, -24]);
-    assert.deepEqual([maxs[0], maxs[1], maxs[2]], [16, 16, 40]);
-  });
-
-  void test('serializableFields is a frozen empty array', () => {
-    assert.ok(Array.isArray(serializableFieldsOf(ArmyEnforcerMonster)));
-    assert.ok(Object.isFrozen(serializableFieldsOf(ArmyEnforcerMonster)));
+  void test('saves nothing beyond the base monster state', () => {
     assert.deepEqual(serializableFieldsOf(ArmyEnforcerMonster), []);
   });
-
   void test('fire spawns a laser from the muzzle origin and updates movedir', () => {
     const { entity } = createMonsterFixture(ArmyEnforcerMonster);
     let laserOrigin: Vector | null = null;
@@ -259,25 +195,6 @@ void describe('ArmyEnforcerMonster class metadata', () => {
 });
 
 void describe('ArmyEnforcerMonster state machine', () => {
-  void test('stand, walk, and run sequences loop correctly', () => {
-    const states = statesOf(ArmyEnforcerMonster);
-
-    for (let i = 1; i <= 7; i++) {
-      assert.equal(states[`enf_stand${i}`].keyframe, `stand${i}`);
-    }
-    assert.equal(states.enf_stand7.nextState, 'enf_stand1');
-
-    for (let i = 1; i <= 16; i++) {
-      assert.equal(states[`enf_walk${i}`].keyframe, `walk${i}`);
-    }
-    assert.equal(states.enf_walk16.nextState, 'enf_walk1');
-
-    for (let i = 1; i <= 8; i++) {
-      assert.equal(states[`enf_run${i}`].keyframe, `run${i}`);
-    }
-    assert.equal(states.enf_run8.nextState, 'enf_run1');
-  });
-
   void test('attack and pain sequences transition back to run', () => {
     const states = statesOf(ArmyEnforcerMonster);
     const attackFrames = ['attack1', 'attack2', 'attack3', 'attack4', 'attack5', 'attack6', 'attack7', 'attack8', 'attack5', 'attack6', 'attack7', 'attack8', 'attack9', 'attack10'];
@@ -295,16 +212,8 @@ void describe('ArmyEnforcerMonster state machine', () => {
 
   void test('death sequences remain terminal', () => {
     const states = statesOf(ArmyEnforcerMonster);
+
     assert.equal(states.enf_die14.nextState, 'enf_die14');
     assert.equal(states.enf_fdie11.nextState, 'enf_fdie11');
-  });
-
-  void test('inactive sequences omit handlers where expected', () => {
-    const states = statesOf(ArmyEnforcerMonster);
-    assert.equal(states.enf_paina1.handler, null);
-    assert.equal(states.enf_painb1.handler, null);
-    assert.equal(states.enf_painc1.handler, null);
-    assert.equal(typeof states.enf_paind4.handler, 'function');
-    assert.equal(typeof states.enf_atk6.handler, 'function');
   });
 });

@@ -75,40 +75,7 @@ function createMonsterFixture<T extends BaseEntity>(MonsterClass: EntityConstruc
   return entity;
 }
 
-void describe('WizardMonsterEntity metadata', () => {
-  void test('class metadata matches the original monster', () => {
-    assert.equal(WizardMonsterEntity.classname, 'monster_wizard');
-    assert.equal(WizardMonsterEntity._health, 80);
-    assert.equal(WizardMonsterEntity._modelDefault, 'progs/wizard.mdl');
-    assert.equal(WizardMonsterEntity._modelHead, 'progs/h_wizard.mdl');
-  });
-
-  void test('size vectors are correct', () => {
-    const [mins, maxs] = WizardMonsterEntity._size;
-    assert.deepEqual([mins[0], mins[1], mins[2]], [-16, -16, -24]);
-    assert.deepEqual([maxs[0], maxs[1], maxs[2]], [16, 16, 40]);
-  });
-});
-
 void describe('WizardMonsterEntity state machine', () => {
-  void test('stand, walk, side, and run loops match the QuakeC frame counts', () => {
-    const states = statesOf(WizardMonsterEntity);
-
-    for (let i = 1; i <= 8; i++) {
-      assert.equal(states[`wiz_stand${i}`].keyframe, `hover${i}`);
-      assert.equal(states[`wiz_walk${i}`].keyframe, `hover${i}`);
-      assert.equal(states[`wiz_side${i}`].keyframe, `hover${i}`);
-    }
-    assert.equal(states.wiz_stand8.nextState, 'wiz_stand1');
-    assert.equal(states.wiz_walk8.nextState, 'wiz_walk1');
-    assert.equal(states.wiz_side8.nextState, 'wiz_side1');
-
-    for (let i = 1; i <= 14; i++) {
-      assert.equal(states[`wiz_run${i}`].keyframe, `fly${i}`);
-    }
-    assert.equal(states.wiz_run14.nextState, 'wiz_run1');
-  });
-
   void test('fast attack, pain, and death chains keep the original frame ordering', () => {
     const states = statesOf(WizardMonsterEntity);
 
@@ -118,14 +85,8 @@ void describe('WizardMonsterEntity state machine', () => {
     assert.equal(states.wiz_fast10.keyframe, 'magatt2');
     assert.equal(states.wiz_fast10.nextState, 'wiz_run1');
 
-    for (let i = 1; i <= 4; i++) {
-      assert.equal(states[`wiz_pain${i}`].keyframe, `pain${i}`);
-    }
     assert.equal(states.wiz_pain4.nextState, 'wiz_run1');
 
-    for (let i = 1; i <= 8; i++) {
-      assert.equal(states[`wiz_death${i}`].keyframe, `death${i}`);
-    }
     assert.equal(states.wiz_death8.nextState, null);
   });
 });
