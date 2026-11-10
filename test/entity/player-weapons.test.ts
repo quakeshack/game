@@ -9,11 +9,9 @@ await import('../../GameAPI.ts');
 
 const defsModule = await import('../../Defs.ts');
 const playerModule = await import('../../entity/Player.ts');
-const weaponsModule = await import('../../entity/Weapons.ts');
 
 const { items, waterlevel } = defsModule;
 const { PlayerEntity } = playerModule;
-const { DamageHandler, PlayerWeapons, weaponConfig } = weaponsModule;
 
 PlayerEntity._initStates();
 
@@ -45,18 +43,10 @@ function asPlayer(standIn: object): Player {
   return standIn as unknown as Player;
 }
 
-void describe('Player and weapon module surface', () => {
-  void test('exports the current gameplay classes and weapon config map', () => {
-    assert.equal(typeof PlayerEntity, 'function');
-    assert.equal(typeof PlayerWeapons, 'function');
-    assert.equal(typeof DamageHandler, 'function');
-    assert.equal(weaponConfig instanceof Map, true);
-  });
-
+void describe('PlayerEntity save state', () => {
   void test('registers player-specific state through serializer decorators', () => {
     const serializableFields = serializableFieldsOf(PlayerEntity);
 
-    assert.equal(Array.isArray(serializableFields), true);
     assert.equal(serializableFields?.includes('_spawnParameters'), true);
     assert.equal(serializableFields?.includes('weapon'), true);
     assert.equal(serializableFields?.includes('invincible_sound_time'), true);

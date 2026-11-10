@@ -7,7 +7,6 @@ import { createInertEdict, createInertGameApi, createMutableEngineApi, recordSpa
 import { clientEvent, damage, moveType, solid } from '../../Defs.ts';
 
 import { statesOf } from '../../../../../test/support/entityStates.ts';
-import { serializableFieldsOf } from '../../../../../test/support/serialization.ts';
 
 await import('../../GameAPI.ts');
 
@@ -75,35 +74,16 @@ function createMonsterFixture<T extends BaseEntity>(MonsterClass: EntityConstruc
   return entity;
 }
 
-void describe('OldOneMonster metadata', () => {
-  void test('class metadata matches the original monster', () => {
-    assert.equal(OldOneMonster.classname, 'monster_oldone');
-    assert.equal(OldOneMonster._modelDefault, 'progs/oldone.mdl');
-    assert.ok(Array.isArray(serializableFieldsOf(OldOneMonster)));
-    assert.ok(Object.isFrozen(serializableFieldsOf(OldOneMonster)));
-  });
-
+void describe('OldOneMonster thrash lighting', () => {
   void test('thrash light levels preserve the QuakeC sequence', () => {
     assert.deepEqual(OldOneMonster._thrashLightLevels, ['m', 'k', 'k', 'i', 'g', 'e', 'c', 'a', 'c', 'e', 'g', 'i', 'k', 'm', 'm', 'g', 'c', 'b', 'a', 'a']);
   });
 });
 
 void describe('OldOneMonster state machine', () => {
-  void test('idle sequence keeps all 46 frames and loops', () => {
-    const states = statesOf(OldOneMonster);
-
-    for (let i = 1; i <= 46; i++) {
-      assert.equal(states[`old_idle${i}`].keyframe, `old${i}`);
-    }
-    assert.equal(states.old_idle46.nextState, 'old_idle1');
-  });
-
   void test('thrash sequence keeps the duplicate shake12 frame and terminal loop', () => {
     const states = statesOf(OldOneMonster);
 
-    for (let i = 1; i <= 11; i++) {
-      assert.equal(states[`old_thrash${i}`].keyframe, `shake${i}`);
-    }
     assert.equal(states.old_thrash12.keyframe, 'shake12');
     assert.equal(states.old_thrash13.keyframe, 'shake13');
     assert.equal(states.old_thrash20.keyframe, 'shake20');

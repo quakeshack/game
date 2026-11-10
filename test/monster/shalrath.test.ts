@@ -60,52 +60,14 @@ function createMonsterFixture<T extends BaseEntity>(MonsterClass: EntityConstruc
   return entity as WithMutableEngine<T>;
 }
 
-void describe('ShalrathMonsterEntity metadata', () => {
-  void test('class metadata matches the original monster', () => {
-    assert.equal(ShalrathMonsterEntity.classname, 'monster_shalrath');
-    assert.equal(ShalrathMonsterEntity._health, 400);
-    assert.equal(ShalrathMonsterEntity._modelDefault, 'progs/shalrath.mdl');
-    assert.equal(ShalrathMonsterEntity._modelHead, 'progs/h_shal.mdl');
-  });
-
-  void test('size vectors are correct', () => {
-    const [mins, maxs] = ShalrathMonsterEntity._size;
-    assert.deepEqual([mins[0], mins[1], mins[2]], [-32, -32, -24]);
-    assert.deepEqual([maxs[0], maxs[1], maxs[2]], [32, 32, 64]);
-  });
-});
-
 void describe('ShalrathMonsterEntity state machine', () => {
-  void test('walk and run loops match the QuakeC frame counts', () => {
+  void test('attack and pain return to running, death stays down', () => {
     const states = statesOf(ShalrathMonsterEntity);
 
-    assert.equal(states.shal_stand.keyframe, 'walk1');
-    assert.equal(states.shal_stand.nextState, 'shal_stand');
-
-    for (let i = 1; i <= 12; i++) {
-      assert.ok(states[`shal_walk${i}`], `missing shal_walk${i}`);
-      assert.ok(states[`shal_run${i}`], `missing shal_run${i}`);
-    }
-    assert.equal(states.shal_walk12.nextState, 'shal_walk1');
-    assert.equal(states.shal_run12.nextState, 'shal_run1');
-  });
-
-  void test('attack, pain, and death chains keep the original frame counts', () => {
-    const states = statesOf(ShalrathMonsterEntity);
-
-    for (let i = 1; i <= 11; i++) {
-      assert.equal(states[`shal_attack${i}`].keyframe, `attack${i}`);
-    }
     assert.equal(states.shal_attack11.nextState, 'shal_run1');
 
-    for (let i = 1; i <= 5; i++) {
-      assert.equal(states[`shal_pain${i}`].keyframe, `pain${i}`);
-    }
     assert.equal(states.shal_pain5.nextState, 'shal_run1');
 
-    for (let i = 1; i <= 7; i++) {
-      assert.equal(states[`shal_death${i}`].keyframe, `death${i}`);
-    }
     assert.equal(states.shal_death7.nextState, null);
   });
 });

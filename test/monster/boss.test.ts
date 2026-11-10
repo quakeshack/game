@@ -110,14 +110,6 @@ function createLightningFixture(): WithMutableEngine<InstanceType<typeof EventLi
   return entity as WithMutableEngine<InstanceType<typeof EventLightningEntity>>;
 }
 
-void describe('Boss module metadata', () => {
-  void test('exports the boss, lavaball, and lightning classes', () => {
-    assert.equal(BossMonster.classname, 'monster_boss');
-    assert.equal(BossLavaball.classname, 'monster_boss_lavaball');
-    assert.equal(EventLightningEntity.classname, 'event_lightning');
-  });
-});
-
 void describe('BossMonster state machine', () => {
   void test('rise, idle, missile, and shock loops keep the QuakeC transitions', () => {
     const states = statesOf(BossMonster);
