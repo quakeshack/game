@@ -57,6 +57,7 @@ source/game/id1/
 │   └── ...
 ├── helper/           # Helper classes (AI, utilities)
 │   ├── AI.ts         # EntityAI base and NoopMonsterAI
+│   ├── ChaseNavigator.ts # Where a chasing monster heads: straight at its enemy, or along a navigation path
 │   ├── EntityIndex.ts # Spatial index helpers
 │   ├── GameStats.ts  # Frag/score tracking
 │   ├── MiscHelpers.ts # Serializer, decorators, EntityWrapper, plain-object save/load helpers
@@ -83,6 +84,7 @@ During the reimplementation I noticed some bugs/issues within the original Quake
 Beyond bugfixes and modernizing the architecture, this port introduces several new gameplay capabilities and modding enhancements out of the box, pushing beyond the limits of vanilla QuakeC:
 
 * **Player Interaction (`+use`)**: Built-in support for a dedicated `+use` (interact) button. Entities can be flagged with `FL_USEABLE`, enabling a Half-Life-style direct player interaction mechanism instead of just relying on proximity triggers (`touch`) or shooting.
+* **Monsters that find their way**: Monsters notice players and get angry like in QuakeC, but a walking monster that chases an enemy it can't reach directly follows a navigation path (the engine's `NavigateAsync`) instead of bumping into walls. `ChaseNavigator` (`helper/ChaseNavigator.ts`) decides each run frame: an enemy the monster sees close by on its own level is charged straight on; otherwise it heads along a path to where it last saw the enemy. A monster woken by another one, without seeing the player itself, heads to where any monster last saw a player. A monster that makes no headway for a second asks for a new path. Without a navigation mesh it is QuakeC's chase. Flying and swimming monsters chase as in QuakeC.
 * **Custom Blood Colors**: Entities that take damage (`takedamage`) can define custom color indices for their "blood" particles or spray via the `bloodcolor` field (e.g., buttons and doors use `colors.DUST` instead of red blood).
 * **Client-Side Game Code Capabilities**: Unlike QuakeC, this port has an entire client-side framework (`ClientGameAPI`) that handles logic like drawing dynamic HUD elements, managing intermission screens, and rendering effects (e.g., screen flashes, decals, or gibbing models) independently of the server.
 * **Complex Serialization (`Serializer` + Decorators)**: The game state management supports detailed object serialization via `@serializableObject`/`@serializable` TC39 decorators. The serializer is not tied to `ServerEngineAPI`; it can be attached to entities, helper objects, or plain state bags, and only needs an engine reference when it has to resolve edict-backed entity references during load. This goes far beyond QuakeC's simple `parm0...15` spawn parameters.
@@ -270,7 +272,7 @@ However, the engine reads from a set of must be defined properties. `BaseEntity`
 
 ### Helper Classes
 
-Helper classes extend `EntityWrapper` and are found in `entity/Weapons.ts` and `entity/Subs.ts`.
+Helper classes extend `EntityWrapper` and are found in `entity/Weapons.ts`, `entity/Subs.ts` and `helper/`.
 
 | Class | Purpose | Location |
 |-|-|-|
@@ -279,6 +281,8 @@ Helper classes extend `EntityWrapper` and are found in `entity/Weapons.ts` and `
 | `DamageHandler` | Brings all logic related to receiving and handling damage to an entity. Used by monsters, players, and breakable objects. | `entity/Weapons.ts` |
 | `DamageInflictor` | Brings more complex logic related to giving out damage. This is optional - every entity will expose `damage()` to inflict basic damage to another entity. | `entity/Weapons.ts` |
 | `Explosions` | A streamlined way to turn any entity into an explosion with proper effects and damage radius. | `entity/Weapons.ts` |
+| `QuakeEntityAI` | A monster's QuakeC AI: noticing players, getting angry when hurt, running, attacking. | `helper/AI.ts` |
+| `ChaseNavigator` | Where a chasing monster heads each run frame: straight at an enemy it sees, or along a navigation path to where it last saw it. Owned by `QuakeEntityAI`. | `helper/ChaseNavigator.ts` |
 
 ### Base Classes
 

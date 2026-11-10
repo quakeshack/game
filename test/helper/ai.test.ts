@@ -334,3 +334,40 @@ void describe('BaseMonster damage reaction', () => {
     assert.equal(ranAtEnemy, true);
   });
 });
+
+void describe('QuakeEntityAI hive mind', () => {
+  void test('infighting does not move where monsters think the player is', () => {
+    // foundTarget wrote any new enemy's position there, so a brawl redirected every monster chasing the player
+    const { monster } = createMonsterHuntingPlayer();
+    const shambler = createMonsterFixture(ShamblerEntity);
+    shambler.origin = new Vector(900, 900, 0);
+    monster.game.gameAI._sightEntityLastOrigin.set(new Vector(100, 0, 0));
+
+    aiOf(monster).reactToDamage(shambler);
+
+    assert.deepEqual([...monster.game.gameAI._sightEntityLastOrigin], [100, 0, 0]);
+  });
+
+  void test('a monster woken by another one heads where the player was last seen, not where it is', () => {
+    const monster = createMonsterFixture();
+    const sightMonster = createMonsterFixture();
+    const player = createPlayerFixture();
+    sightMonster.origin = new Vector(0, 64, 0);
+    sightMonster.enemy = player;
+    sightMonster.show_hostile = Infinity;
+    monster.game.gameAI._sightEntity = sightMonster;
+    monster.game.gameAI._sightEntityTime = monster.game.time;
+    monster.game.gameAI._sightEntityLastOrigin.set(new Vector(500, 0, 0));
+
+    // the monster that saw the player is in view, the player itself behind a wall
+    const playerEye = player.origin.copy().add(player.view_ofs);
+    monster.engine.Traceline = (_start: Vector, end: Vector) => createGameTrace({
+      fraction: end.equals(playerEye) ? 0.5 : 1.0,
+      contents: { inOpen: false, inWater: false },
+    });
+
+    assert.equal(aiOf(monster).findTarget(), true);
+    assert.equal(monster.enemy, player);
+    assert.deepEqual([...aiOf(monster).navigator.lastKnownOrigin!], [500, 0, 0]);
+  });
+});

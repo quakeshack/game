@@ -5,6 +5,7 @@ import Vector from '../../../shared/Vector.ts';
 import { damage, effect, flags, items, range } from '../Defs.ts';
 import BaseEntity from '../entity/BaseEntity.ts';
 import type BaseMonster from '../entity/monster/BaseMonster.ts';
+import { ChaseNavigator } from './ChaseNavigator.ts';
 import { serializableObject, EntityWrapper, serializable, Serializer } from './MiscHelpers.ts';
 
 type CombatTarget = MonsterActor | PlayerActor;
@@ -15,8 +16,13 @@ type CombatTarget = MonsterActor | PlayerActor;
 export class GameAI {
   readonly _game: ServerGameAPI;
 
+  /** The monster that last spotted a player, so that monsters seeing it wake up too (QuakeC's sight_entity). */
   _sightEntity: BaseEntity | null = null;
   _sightEntityTime = 0.0;
+  /**
+   * Where a monster last saw a player, the origin while none has. A monster woken by another one, without seeing
+   * the player itself, heads there.
+   */
   _sightEntityLastOrigin = new Vector();
 
   constructor(game: ServerGameAPI) {
@@ -292,9 +298,6 @@ class EnemyMetadata {
   @serializable infront = false;
   @serializable range: range = range.RANGE_FAR;
   @serializable yaw: number | null = null;
-  @serializable nextPathUpdateTime = 0.0;
-  @serializable nextKnownOriginTime = 0.0;
-  @serializable lastKnownOrigin = new Vector();
 
   constructor() {
     this._serializer = new Serializer(this, null);
@@ -305,8 +308,6 @@ class EnemyMetadata {
     this.infront = false;
     this.range = range.RANGE_FAR;
     this.yaw = null;
-    this.nextKnownOriginTime = 0.0;
-    this.nextPathUpdateTime = 0.0;
   }
 }
 
@@ -320,9 +321,8 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
   @serializable private _searchTime = 0;
   @serializable private _oldEnemy: CombatTarget | null = null;
   @serializable _attackState = ATTACK_STATE.AS_NONE;
-  @serializable private _path: Vector[] | null = null;
   @serializable private _enemyMetadata = new EnemyMetadata();
-  @serializable private _oldKnownOrigin: Vector | null = null;
+  @serializable private _navigator: ChaseNavigator<T> = new ChaseNavigator(this._entity);
   @serializable private _lookingLeft = false;
   @serializable private _moveDistance = 0;
   @serializable private _initialized = false;
@@ -339,7 +339,7 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
     this._moveDistance = 0;
     this._attackState = ATTACK_STATE.AS_NONE;
     this._enemyMetadata.clearTransientState();
-    this._path = null;
+    this._navigator.reset();
   }
 
   get enemyRange(): range {
@@ -361,82 +361,24 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
     return false;
   }
 
-  thinkNavigation(): void {
+  /**
+   * Where this monster's chase is heading, for debugging and tests.
+   * @returns The navigator.
+   */
+  get navigator(): ChaseNavigator<T> {
+    return this._navigator;
+  }
+
+  /**
+   * Lets go of an enemy whose edict was freed. Its slot may have been reused, nulling all its properties (including
+   * origin), and BaseMonster.think() calls _ai.think() before super.think(), so the stale-reference cleanup in
+   * BaseEntity.think() hasn't run yet.
+   */
+  _dropFreedEnemy(): void {
     const enemy = this._entity.enemy;
 
-    if (enemy === null) {
-      return;
-    }
-
-    // The enemy’s edict may have been freed and its slot reused, nulling all its
-    // properties (including origin). BaseMonster.think() calls _ai.think() before
-    // super.think(), so the stale-ref cleanup in BaseEntity.think() hasn’t run yet.
-    if (enemy.edict === null || enemy.edict.free) {
+    if (enemy !== null && (enemy.edict === null || enemy.edict.isFree())) {
       this._entity.enemy = null;
-      return;
-    }
-
-    if (this._entity.flags & (flags.FL_FLY | flags.FL_SWIM)) {
-      return;
-    }
-
-    if (this._oldKnownOrigin !== null) {
-      if (this._entity.origin.distanceTo(this._oldKnownOrigin) > 64.0) {
-        this._enemyMetadata.nextPathUpdateTime = 0.0;
-      }
-
-      this._oldKnownOrigin.set(this._entity.origin);
-    } else {
-      this._oldKnownOrigin = this._entity.origin.copy();
-    }
-
-    if (this._game.time > this._enemyMetadata.nextKnownOriginTime && this._enemyMetadata.isVisible) {
-      this._enemyMetadata.nextKnownOriginTime = this._game.time + 10.0;
-      this._enemyMetadata.nextPathUpdateTime = 0.0;
-      this._gameAI._sightEntityLastOrigin.set(enemy.origin);
-      console.debug(`${this._entity} updated sight of enemy ${enemy}, will search again in 10 seconds`);
-    }
-
-    if (this._game.time > this._enemyMetadata.nextPathUpdateTime && !this._gameAI._sightEntityLastOrigin.isOrigin()) {
-      this._engine.NavigateAsync(this._entity.origin, this._gameAI._sightEntityLastOrigin).then((newPath) => {
-        if (this._entity.edict === null || this._entity.edict.free) {
-          return;
-        }
-
-        if (newPath !== null) {
-          this._path = newPath;
-          console.debug(`${this._entity} updated path to enemy ${this._entity.enemy} with ${this._path.length} waypoints`);
-        } else {
-          console.warn(`${this._entity} could not find path to enemy ${this._entity.enemy}`);
-        }
-      }).catch((err: unknown) => {
-        console.error(`${this._entity} failed to compute path to enemy ${this._entity.enemy}: ${String(err)}`);
-      });
-
-      this._enemyMetadata.nextPathUpdateTime = this._game.time + 10.0 + Math.random() * 5.0;
-    }
-
-    if (this._path?.length) {
-      const a = this._entity.origin.copy();
-      a[2] = 0.0;
-      const b = this._path[0].copy();
-      b[2] = 0.0;
-
-      // if (this._game.time > this._enemyMetadata.nextPathUpdateTime) {
-      //   // dynamically test if the link is obstructed (e.g. closed doors)
-      //   const traversal = this._engine.EvaluateTraversalBetween(this._entity.origin, this._path[0], true);
-      //   if (traversal && !traversal.ok) {
-      //     console.debug(`${this._entity} found path to ${this._path[0]} obstructed: ${traversal.reason}, dropping path`);
-      //     this._path = [];
-      //     this._enemyMetadata.nextPathUpdateTime = 0.0;
-      //     return;
-      //   }
-      // }
-
-      if (a.distanceTo(b) < 32 * 1.41) {
-        const waypoint = this._path.shift();
-        console.debug(`${this._entity} reached waypoint ${waypoint}, ${this._path.length} waypoints left`);
-      }
     }
   }
 
@@ -445,7 +387,7 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
       this._initialize();
     }
 
-    this.thinkNavigation();
+    this._dropFreedEnemy();
   }
 
   _initialize(): void {
@@ -596,6 +538,15 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
 
     this.foundTarget(target);
 
+    if (client instanceof MonsterActor) {
+      // told by another monster without seeing the player: head where a monster last saw it
+      if (!this._gameAI._sightEntityLastOrigin.isOrigin() && !this._isVisible(target)) {
+        this._navigator.remember(this._gameAI._sightEntityLastOrigin);
+      }
+    } else {
+      this._gameAI._sightEntityLastOrigin.set(target.origin);
+    }
+
     return true;
   }
 
@@ -654,14 +605,12 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
     this._entity.enemy = targetEntity;
 
     if (!targetEntity.equals(previousEnemy)) {
-      console.debug(`${this._entity} acquired new enemy ${this._entity.enemy}, force computing a new path`);
-      this._enemyMetadata.nextPathUpdateTime = 0.0;
+      console.debug(`${this._entity} acquired new enemy ${targetEntity}`);
+      this._navigator.reset();
     }
 
-    this._gameAI._sightEntityLastOrigin.set(this._entity.enemy.origin);
-    this._enemyMetadata.nextKnownOriginTime = this._game.time + 10.0;
-
-    console.debug(`${this._entity} updated last seen and origin of ${this._entity.enemy}`);
+    // it saw the enemy, was hurt by it, or was sent after it: it knows where the enemy is
+    this._navigator.remember(targetEntity.origin);
 
     if (this._entity.enemy instanceof PlayerActor) {
       this._gameAI._sightEntity = this._entity;
@@ -850,6 +799,14 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
       this._searchTime = this._game.time + 5.0;
     }
 
+    if (isEnemyVisible && currentEnemy !== null) {
+      this._navigator.remember(currentEnemy.origin);
+
+      if (currentEnemy instanceof PlayerActor) {
+        this._gameAI._sightEntityLastOrigin.set(currentEnemy.origin);
+      }
+    }
+
     if (this._game.coop && this._searchTime < this._game.time) {
       if (this.findTarget()) {
         return;
@@ -887,7 +844,8 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
     }
 
     if (this._entity.goalentity) {
-      this._entity.moveToGoal(dist, this._path?.length ? this._path[0] : null);
+      const waypoint = currentEnemy !== null ? this._navigator.steer(currentEnemy, isEnemyVisible) : null;
+      this._entity.moveToGoal(dist, waypoint);
     }
   }
 
@@ -1017,10 +975,6 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
     if ((userEntity.items ?? 0) & items.IT_INVISIBILITY) {
       return;
     }
-
-    this._enemyMetadata.lastKnownOrigin.set(userEntity.origin);
-    this._enemyMetadata.nextKnownOriginTime = this._game.time + 10.0;
-    this._gameAI._sightEntityLastOrigin.set(userEntity.origin);
 
     this._entity.enemy = userEntity;
     this._entity._scheduleThink(this._game.time + 0.1, function (this: BaseEntity, _entity: BaseEntity): void {
