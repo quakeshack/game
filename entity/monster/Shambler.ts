@@ -258,14 +258,12 @@ $frame death7 death8 death9 death10 death11
     }
   }
 
-  override thinkPain(attackerEntity: BaseEntity, damage: number): void {
+  override thinkPain(_attackerEntity: BaseEntity, damage: number): void {
     this.painSound();
 
     if (this.health <= 0) {
       return;
     }
-
-    this._ai.foundTarget(attackerEntity, true);
 
     if (Math.random() * 400 > damage) {
       return;

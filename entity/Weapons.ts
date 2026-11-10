@@ -550,6 +550,11 @@ export class DamageHandler<T extends BaseEntity = BaseEntity> extends EntityWrap
       serverEvents(this._engine).publish('game.monster.injured', entity, attackerEntity, inflictorEntity);
     }
 
+    // get mad at the attacker first, so that the pain animation replaces the run state this starts
+    if (entity instanceof BaseMonster) {
+      entity.provoke(attackerEntity);
+    }
+
     if (entity.thinkPain) {
       entity.thinkPain(attackerEntity, inflictedDamage);
 

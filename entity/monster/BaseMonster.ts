@@ -157,10 +157,26 @@ export default abstract class BaseMonster extends BaseEntity {
   }
 
   /**
-   * When getting attacked.
+   * When getting attacked and surviving it, after `provoke` picked the attacker as the enemy, so a pain
+   * animation started here replaces the run state. Plays the pain reaction only, never picks the enemy.
    */
   thinkPain(_attackerEntity: BaseEntity, _damage: number): void {
-    this._ai.foundTarget(_attackerEntity, true);
+  }
+
+  /**
+   * Called by the damage handler right before `thinkPain`: gets mad at the attacker unless this monster puts up with it.
+   */
+  provoke(attackerEntity: BaseEntity): void {
+    this._ai.reactToDamage(attackerEntity);
+  }
+
+  /**
+   * Whether this monster turns on the monster that just hurt it. Monsters of the same kind put up with
+   * each other's stray shots, the rule of QuakeC's T_Damage.
+   * @returns True when the attacker becomes the new enemy.
+   */
+  retaliatesAgainst(attackerEntity: BaseEntity): boolean {
+    return attackerEntity.classname !== this.classname;
   }
 
   /**
@@ -168,7 +184,7 @@ export default abstract class BaseMonster extends BaseEntity {
    */
   hunt(entity: BaseEntity): void {
     this.pausetime = 0;
-    this._ai.foundTarget(entity, false);
+    this._ai.foundTarget(entity);
   }
 
   /**

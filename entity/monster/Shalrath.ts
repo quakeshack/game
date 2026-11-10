@@ -200,14 +200,12 @@ $frame walk11 walk12
     this.solid = solid.SOLID_NOT;
   }
 
-  override thinkPain(attackerEntity: BaseEntity, _damage: number): void {
+  override thinkPain(_attackerEntity: BaseEntity, _damage: number): void {
     void _damage;
 
     if (this.pain_finished > this.game.time) {
       return;
     }
-
-    this._ai.foundTarget(attackerEntity, true);
 
     this.painSound();
     this._runState('shal_pain1');

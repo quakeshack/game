@@ -168,12 +168,10 @@ $frame attacka9 attacka10 attacka11 attacka12 attacka13 attacka14 attacka15
     this._runState('demon1_atta1');
   }
 
-  override thinkPain(attackerEntity: BaseEntity, damage: number): void {
+  override thinkPain(_attackerEntity: BaseEntity, damage: number): void {
     if (this._isLeaping) {
       return;
     }
-
-    this._ai.foundTarget(attackerEntity, true);
 
     if (this.pain_finished > this.game.time) {
       return;

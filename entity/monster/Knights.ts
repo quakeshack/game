@@ -278,20 +278,19 @@ $frame deathb9 deathb10 deathb11
     this._runState('knight_atk1');
   }
 
-  override thinkPain(attackerEntity: BaseEntity, _damage: number): void {
+  override thinkPain(_attackerEntity: BaseEntity, _damage: number): void {
     if (this.pain_finished > this.game.time) {
       return;
     }
 
-    this._ai.foundTarget(attackerEntity, true);
+    this.pain_finished = this.game.time + 1;
 
     if (Math.random() < 0.85) {
-      this._runState('knight_pain1');
+      this._runState('knight_pain1'); // plays the pain sound on its first frame
       return;
     }
 
     this._runState('knight_painb1');
-    this.pain_finished = this.game.time + 1;
     this.painSound();
   }
 
@@ -666,12 +665,11 @@ $frame magicc9 magicc10 magicc11
     this.startSound(channel.CHAN_WEAPON, 'knight/sword1.wav');
   }
 
-  override thinkPain(attackerEntity: BaseEntity, damage: number): void {
+  override thinkPain(_attackerEntity: BaseEntity, damage: number): void {
     if (this.pain_finished > this.game.time) {
       return;
     }
 
-    this._ai.foundTarget(attackerEntity, true);
     this.painSound();
 
     if (this.game.time - this.pain_finished > 5) {

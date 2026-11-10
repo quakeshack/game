@@ -125,11 +125,18 @@ export class EntityAI<T extends BaseMonster = BaseMonster> extends EntityWrapper
   }
 
   /**
-   * Signalizes that a target entity has been found.
+   * Signals that a target entity has been found: the monster makes it its enemy and starts running after it.
    */
-  foundTarget(targetEntity: BaseEntity, fromPain = false): void {
+  foundTarget(targetEntity: BaseEntity): void {
     void targetEntity;
-    void fromPain;
+    console.assert(false, 'implement this');
+  }
+
+  /**
+   * Reacts to being hurt by an attacker, before the monster plays its pain animation.
+   */
+  reactToDamage(attackerEntity: BaseEntity): void {
+    void attackerEntity;
     console.assert(false, 'implement this');
   }
 
@@ -195,7 +202,10 @@ export class NoopMonsterAI<T extends BaseMonster = BaseMonster> extends EntityAI
     return false;
   }
 
-  override foundTarget(_targetEntity: BaseEntity, _fromPain = false): void {
+  override foundTarget(_targetEntity: BaseEntity): void {
+  }
+
+  override reactToDamage(_attackerEntity: BaseEntity): void {
   }
 
   override use(_userEntity: BaseEntity): void {
@@ -529,10 +539,12 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
     let client: BaseEntity | null = null;
     const self = this._entity;
 
+    // spawnflags & 3: ambushing monsters only wake up on really seeing the player, not another monster getting angry
     if (this._gameAI._sightEntityTime >= this._game.time - 0.1 && !(self.spawnflags & 3)) {
       client = this._gameAI._sightEntity;
 
-      if (client instanceof MonsterActor && self.equals(client.enemy)) {
+      // the monster that spotted someone is after our enemy already
+      if (client instanceof MonsterActor && this._isSameEntity(client.enemy, self.enemy)) {
         return false;
       }
     } else {
@@ -573,27 +585,62 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
       }
     }
 
-    if (client instanceof PlayerActor) {
-      self.enemy = client;
-    } else if (client instanceof MonsterActor) {
-      const resolvedEnemy = client.enemy;
-      if (!(resolvedEnemy instanceof PlayerActor)) {
-        self.enemy = null;
-        return false;
-      }
+    // a monster that got angry leads us to the player it is after
+    const target = client instanceof MonsterActor ? client.enemy : client;
 
-      self.enemy = resolvedEnemy;
-    } else {
-      self.enemy = null;
+    // unlike QuakeC, which overwrote self.enemy before this check and then reset it to world,
+    // a failed lookup keeps the current enemy
+    if (!(target instanceof PlayerActor) || target.equals(self.enemy)) {
       return false;
     }
 
-    this.foundTarget(self.enemy, false);
+    this.foundTarget(target);
 
     return true;
   }
 
-  override foundTarget(targetEntity: BaseEntity, fromPain = false): void {
+  /**
+   * Whether two enemy slots name the same entity, nobody counting as the same as nobody.
+   * @returns True when both are null or the same entity.
+   */
+  _isSameEntity(left: BaseEntity | null, right: BaseEntity | null): boolean {
+    if (left === null || right === null) {
+      return left === right;
+    }
+
+    return left.equals(right);
+  }
+
+  /**
+   * Gets mad at the attacker, the reaction to damage of QuakeC’s T_Damage. A monster does not turn on its
+   * current enemy again, on itself or on a monster it puts up with (`BaseMonster.retaliatesAgainst`), and
+   * remembers the player it turned away from so that it can go back to it.
+   * Runs before the pain handler, so a pain animation replaces the run state started here.
+   */
+  override reactToDamage(attackerEntity: BaseEntity): void {
+    const self = this._entity;
+
+    if (!(attackerEntity instanceof PlayerActor) && !(attackerEntity instanceof MonsterActor)) {
+      return;
+    }
+
+    if (self.equals(attackerEntity) || attackerEntity.equals(self.enemy)) {
+      return;
+    }
+
+    if (!self.retaliatesAgainst(attackerEntity)) {
+      return;
+    }
+
+    // only a player is worth coming back to, so infighting with a third monster does not make it forget the player
+    if (self.enemy instanceof PlayerActor) {
+      this._oldEnemy = self.enemy;
+    }
+
+    this.foundTarget(attackerEntity);
+  }
+
+  override foundTarget(targetEntity: BaseEntity): void {
     if (!this._stillAlive()) {
       return;
     }
@@ -603,13 +650,10 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
     }
 
     const previousEnemy = this._entity.enemy;
-    if (previousEnemy instanceof PlayerActor || previousEnemy instanceof MonsterActor) {
-      this._oldEnemy = previousEnemy;
-    }
 
     this._entity.enemy = targetEntity;
 
-    if (!this._entity.enemy.equals(this._oldEnemy)) {
+    if (!targetEntity.equals(previousEnemy)) {
       console.debug(`${this._entity} acquired new enemy ${this._entity.enemy}, force computing a new path`);
       this._enemyMetadata.nextPathUpdateTime = 0.0;
     }
@@ -626,10 +670,14 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
 
     this._entity.show_hostile = this._game.time + 1.0;
     this._entity.sightSound();
-    this._huntTarget(fromPain);
+    this._huntTarget();
   }
 
-  _huntTarget(fromPain: boolean): void {
+  /**
+   * Heads for the enemy and starts running. A pain animation started right after replaces the run state,
+   * as it shares its `animation-state-machine` think.
+   */
+  _huntTarget(): void {
     if (!this._stillAlive()) {
       return;
     }
@@ -643,14 +691,12 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
     this._entity.goalentity = enemy;
     this._entity.ideal_yaw = enemy.origin.copy().subtract(this._entity.origin).toYaw();
 
-    if (!fromPain) {
-      this._entity._scheduleThink(this._game.time + 0.05, function (this: BaseEntity, entity: BaseEntity): void {
-        console.assert(entity instanceof MonsterActor, 'run-think callback requires a monster entity');
-        if (entity instanceof MonsterActor) {
-          entity.thinkRun();
-        }
-      }, 'animation-state-machine');
-    }
+    this._entity._scheduleThink(this._game.time + 0.05, function (this: BaseEntity, entity: BaseEntity): void {
+      console.assert(entity instanceof MonsterActor, 'run-think callback requires a monster entity');
+      if (entity instanceof MonsterActor) {
+        entity.thinkRun();
+      }
+    }, 'animation-state-machine');
 
     this._entity.attackFinished(1.0);
   }
@@ -782,7 +828,7 @@ export class QuakeEntityAI<T extends BaseMonster = BaseMonster> extends EntityAI
         this._entity.enemy = null;
 
         if (this._oldEnemy !== null && (this._oldEnemy.health ?? 0) > 0) {
-          this.foundTarget(this._oldEnemy, false);
+          this.foundTarget(this._oldEnemy);
         } else if (this._entity.movetarget) {
           this._entity.thinkWalk();
           return;

@@ -200,9 +200,8 @@ $frame death1 death2 death3 death4 death5 death6 death7 death8
     this._runState('wiz_run1');
   }
 
-  override thinkPain(attackerEntity: BaseEntity, damageAmount: number): void {
+  override thinkPain(_attackerEntity: BaseEntity, damageAmount: number): void {
     this.startSound(channel.CHAN_VOICE, 'wizard/wpain.wav');
-    this._ai.foundTarget(attackerEntity, true);
     if (Math.random() * 70 > damageAmount) {
       // Did not flinch.
       return;

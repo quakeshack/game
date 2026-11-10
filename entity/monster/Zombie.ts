@@ -382,7 +382,19 @@ $frame cruc_1 cruc_2 cruc_3 cruc_4 cruc_5 cruc_6
     super._postSpawn();
   }
 
-  override thinkPain(attackerEntity: BaseEntity, damageAmount: number): void {
+  /**
+   * A zombie knocked to the ground ignores new attackers. QuakeC would switch it to running, cutting off
+   * the getting-up sequence that makes it solid again.
+   */
+  override provoke(attackerEntity: BaseEntity): void {
+    if (this.inpain === 2) {
+      return;
+    }
+
+    super.provoke(attackerEntity);
+  }
+
+  override thinkPain(_attackerEntity: BaseEntity, damageAmount: number): void {
     this.health = (this.constructor as typeof ZombieMonster)._health;
 
     if (damageAmount < 9) {
@@ -392,8 +404,6 @@ $frame cruc_1 cruc_2 cruc_3 cruc_4 cruc_5 cruc_6
     if (this.inpain === 2) {
       return;
     }
-
-    this._ai.foundTarget(attackerEntity, true);
 
     if (damageAmount >= 25) {
       this.inpain = 2;

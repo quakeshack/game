@@ -155,8 +155,7 @@ $frame pain9
     this._runState('f_atta1');
   }
 
-  override thinkPain(attackerEntity: BaseEntity, _damage: number): void {
-    this._ai.foundTarget(attackerEntity, true);
+  override thinkPain(_attackerEntity: BaseEntity, _damage: number): void {
     this.painSound();
     this._runState('f_pain1');
   }

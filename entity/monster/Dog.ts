@@ -224,8 +224,7 @@ $frame walk1 walk2 walk3 walk4 walk5 walk6 walk7 walk8
     this._runState('dog_atta1');
   }
 
-  override thinkPain(attackerEntity: BaseEntity, _damage: number): void {
-    this._ai.foundTarget(attackerEntity, true);
+  override thinkPain(_attackerEntity: BaseEntity, _damage: number): void {
     this.painSound();
 
     if (Math.random() > 0.5) {

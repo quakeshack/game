@@ -208,12 +208,18 @@ $frame prowl_17 prowl_18 prowl_19 prowl_20 prowl_21 prowl_22 prowl_23 prowl_24
     this._runState('army_atk1');
   }
 
-  override thinkPain(attackerEntity: BaseEntity, _damage: number): void {
+  /**
+   * Soldiers shoot back at anyone, other soldiers included, like in Quake.
+   * @returns Always true.
+   */
+  override retaliatesAgainst(_attackerEntity: BaseEntity): boolean {
+    return true;
+  }
+
+  override thinkPain(_attackerEntity: BaseEntity, _damage: number): void {
     if (this.pain_finished > this.game.time) {
       return;
     }
-
-    this._ai.foundTarget(attackerEntity, true);
 
     const random = Math.random();
     if (random < 0.2) {
@@ -499,12 +505,11 @@ $frame paind17 paind18 paind19
     laser.setOrigin(origin);
   }
 
-  override thinkPain(attackerEntity: BaseEntity, _damage: number): void {
+  override thinkPain(_attackerEntity: BaseEntity, _damage: number): void {
     if (this.pain_finished > this.game.time) {
       return;
     }
 
-    this._ai.foundTarget(attackerEntity, true);
     const random = Math.random();
 
     this.pain_finished = this.game.time + 1.0;
