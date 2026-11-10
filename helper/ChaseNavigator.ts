@@ -57,6 +57,8 @@ export class ChaseNavigator<T extends BaseMonster = BaseMonster> extends EntityW
   @serializable private _path: Vector[] = [];
   /** Where the current path leads, null without one. */
   @serializable private _pathGoal: Vector | null = null;
+  /** Game time the current path was asked for: a door that started blocking since may stand across it. */
+  @serializable private _pathTime = 0.0;
   /** Whether a new path should be asked for as soon as the throttle allows. */
   @serializable private _replanWanted = false;
   /** Game time before which no path is asked for. */
@@ -181,6 +183,10 @@ export class ChaseNavigator<T extends BaseMonster = BaseMonster> extends EntityW
       this._replanWanted = true;
     }
 
+    if (this._path.length > 0 && this._pathTime < this._game.gameAI._navigationChangeTime) {
+      this._replanWanted = true;
+    }
+
     this.#advance(time);
 
     if (this._path.length === 0) {
@@ -269,13 +275,13 @@ export class ChaseNavigator<T extends BaseMonster = BaseMonster> extends EntityW
 
     // with its box the path only takes links a monster of its size walks: no drops, nothing too narrow for it
     this._engine.NavigateAsync(entity.origin.copy(), goal, { mins: entity.mins, maxs: entity.maxs }).then((path) => {
-      this.#receive(sequence, goal, stuckWaypoint, path);
+      this.#receive(sequence, time, goal, stuckWaypoint, path);
     }).catch((error: unknown) => {
       console.error(`${entity} failed to compute a path to ${goal}: ${String(error)}`);
     });
   }
 
-  #receive(sequence: number, goal: Vector, stuckWaypoint: Vector | null, path: Vector[] | null): void {
+  #receive(sequence: number, requestTime: number, goal: Vector, stuckWaypoint: Vector | null, path: Vector[] | null): void {
     // a newer request was sent, or the enemy changed since
     if (sequence !== this.#requestSequence) {
       return;
@@ -289,6 +295,7 @@ export class ChaseNavigator<T extends BaseMonster = BaseMonster> extends EntityW
     }
 
     this._pathGoal = goal;
+    this._pathTime = requestTime;
 
     if (path === null) {
       console.debug(`${entity} found no path to ${goal}`);

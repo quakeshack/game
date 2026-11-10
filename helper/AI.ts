@@ -24,6 +24,8 @@ export class GameAI {
    * the player itself, heads there.
    */
   _sightEntityLastOrigin = new Vector();
+  /** When a door last started blocking monster paths: a path asked for before it may lead into that door. */
+  _navigationChangeTime = 0.0;
 
   constructor(game: ServerGameAPI) {
     this._game = game;

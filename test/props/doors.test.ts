@@ -2,6 +2,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import Vector from '../../../../shared/Vector.ts';
+import type BaseEntity from '../../entity/BaseEntity.ts';
 import type { ScheduledThinkCallback } from '../../entity/BaseEntity.ts';
 import type { Sub } from '../../entity/Subs.ts';
 import { createInertEdict, createInertEngineApi, createInertGameApi, createSubStub, finishMove, type CalcMoveCall } from '../../../../../test/support/entityMocks.ts';
@@ -12,6 +13,7 @@ await import('../../GameAPI.ts');
 const { PlayerEntity } = await import('../../entity/Player.ts');
 const { DoorEntity, SecretDoorEntity, flag } = await import('../../entity/props/Doors.ts');
 const { state } = await import('../../entity/props/BasePropEntity.ts');
+const { TriggerFieldEntity } = await import('../../entity/Subs.ts');
 
 /** A door whose movement helper a test replaces, which the entity keeps to itself. */
 class TestDoor extends DoorEntity {
@@ -37,11 +39,19 @@ interface SpawnRequest {
   readonly initialData: object;
 }
 
+/** Whom a door told navigation it blocks. */
+interface NavigationReport {
+  readonly monsters: boolean;
+  readonly players: boolean;
+}
+
 /**
  * Create a minimal engine/game harness for door tests.
+ * @param spawnsTriggerField Whether spawning an entity yields a trigger field, as a door chain asks for one.
  * @returns Harness data.
  */
-function createDoorHarness() {
+function createDoorHarness(spawnsTriggerField = false) {
+  const navigationReports: NavigationReport[] = [];
   const precachedSounds: string[] = [];
   const portalCalls: PortalCall[] = [];
   const setModelCalls: Array<string | null> = [];
@@ -62,7 +72,14 @@ function createDoorHarness() {
     },
     SpawnEntity(classname: string, initialData: object = {}) {
       spawnRequests.push({ classname, initialData });
-      return { entity: null };
+      return { entity: spawnsTriggerField ? Object.create(TriggerFieldEntity.prototype) as InstanceType<typeof TriggerFieldEntity> : null };
+    },
+    SetNavigationBlocked(_edict: unknown, monsters: boolean, players: boolean): void {
+      navigationReports.push({ monsters, players });
+    },
+    // a saved door refers to itself as its owner and linked door
+    GetEdictById() {
+      return edict;
     },
     SetAreaPortalState(portal: number | null, isOpen: boolean): void {
       portalCalls.push({ portal, isOpen });
@@ -82,6 +99,7 @@ function createDoorHarness() {
     time: 3,
     deathmatch: 0,
     nomonsters: 0,
+    gameAI: { _navigationChangeTime: 0 },
   }, engine);
 
   return {
@@ -92,6 +110,7 @@ function createDoorHarness() {
     portalCalls,
     setModelCalls,
     spawnRequests,
+    navigationReports,
     bindEntity(entity: InstanceType<typeof DoorEntity> | InstanceType<typeof SecretDoorEntity>): void {
       boundEntity = entity;
       edict.entity = entity;
@@ -103,8 +122,8 @@ function createDoorHarness() {
  * Create a minimal DoorEntity fixture that exercises explicit instance precache.
  * @returns Fixture data.
  */
-function createDoorFixture() {
-  const harness = createDoorHarness();
+function createDoorFixture(spawnsTriggerField = false) {
+  const harness = createDoorHarness(spawnsTriggerField);
   const door = new TestDoor(harness.edict, harness.gameAPI).initializeEntity().precacheEntity();
   harness.bindEntity(door);
   return { door, ...harness };
@@ -320,5 +339,142 @@ void describe('SecretDoorEntity', () => {
     assert.equal(door.takedamage, damage.DAMAGE_YES);
     assert.deepEqual(portalCalls.at(-1), { portal: 7, isOpen: false });
     assert.equal(soundCalls.at(-1), 'doors/basesec2.wav');
+  });
+});
+
+void describe('door navigation reports', () => {
+  /**
+   * Spawns a door across a corridor whose moves the test finishes, and runs its door-linking think.
+   * @returns The door, its moves and thinks, and what it reported.
+   */
+  function spawnDoor(setup: (door: TestDoor) => void, spawnsTriggerField = false) {
+    const fixture = createDoorFixture(spawnsTriggerField);
+    const { door } = fixture;
+    const calcMoveCalls: CalcMoveCall[] = [];
+    const scheduledThinks: Array<ScheduledThinkCallback<typeof door>> = [];
+
+    door.useSub(createSubStub({
+      setMovedir() {
+        door.movedir.setTo(0, 0, 1);
+      },
+      calcMove(target, speed, callback) {
+        calcMoveCalls.push({ target: target.copy(), speed, callback });
+      },
+    }));
+    door._scheduleThink = (_nextThink, callback) => {
+      scheduledThinks.push(callback);
+    };
+    door.startSound = () => {};
+    door.model = '*3';
+    door.size = new Vector(16, 64, 96);
+    setup(door);
+    door.spawn();
+    // links the doors, after which it is known who opens it
+    scheduledThinks.shift()!.call(door, door);
+
+    return { ...fixture, calcMoveCalls, scheduledThinks };
+  }
+
+  const player = Object.create(PlayerEntity.prototype) as InstanceType<typeof PlayerEntity>;
+
+  void test('a plain door blocks nobody: its trigger field opens it for monsters and players', () => {
+    const { navigationReports } = spawnDoor(() => {}, true);
+
+    assert.deepEqual(navigationReports.at(-1), { monsters: false, players: false });
+  });
+
+  void test('a door fired by a button blocks both until it is open, and again once it starts closing', () => {
+    const { door, navigationReports, calcMoveCalls, scheduledThinks, gameAPI } = spawnDoor((spawned) => {
+      spawned.targetname = 'gate';
+    });
+
+    assert.deepEqual(navigationReports.at(-1), { monsters: true, players: true });
+
+    door.use(player);
+    assert.deepEqual(navigationReports.at(-1), { monsters: true, players: true });
+
+    finishMove(calcMoveCalls[0], door);
+    assert.deepEqual(navigationReports.at(-1), { monsters: false, players: false });
+
+    gameAPI.time = 12;
+    scheduledThinks.shift()!.call(door, door);
+    assert.equal(door.state, state.STATE_DOWN);
+    assert.deepEqual(navigationReports.at(-1), { monsters: true, players: true });
+    // chasing monsters ask again: their paths may lead through it
+    assert.equal(gameAPI.gameAI._navigationChangeTime, 12);
+  });
+
+  void test('a door that must be shot open blocks monsters, not players', () => {
+    const { navigationReports } = spawnDoor((spawned) => {
+      spawned.health = 20;
+    });
+
+    assert.deepEqual(navigationReports.at(-1), { monsters: true, players: false });
+  });
+
+  void test('a START_OPEN door rests out of the way, and blocks once fired', () => {
+    // navigation recorded its links where the map draws it, which is where it moves to when fired
+    const { door, navigationReports } = spawnDoor((spawned) => {
+      spawned.targetname = 'trap';
+      spawned.spawnflags = flag.DOOR_START_OPEN;
+    });
+
+    assert.deepEqual(navigationReports.at(-1), { monsters: false, players: false });
+
+    door.use(player);
+    assert.deepEqual(navigationReports.at(-1), { monsters: true, players: true });
+  });
+
+  void test('a door restored by a saved game reports where it is, not where it spawned', () => {
+    const { door, navigationReports } = spawnDoor((spawned) => {
+      spawned.targetname = 'gate';
+    });
+    door.state = state.STATE_TOP;
+    const saved = door.serialize();
+    door.state = state.STATE_BOTTOM;
+
+    door.deserialize(saved);
+
+    assert.deepEqual(navigationReports.at(-1), { monsters: false, players: false });
+  });
+
+  void test('a secret door is out of the way only after its second leg', () => {
+    const { door, navigationReports } = createSecretDoorFixture();
+    const calcMoveCalls: CalcMoveCall[] = [];
+    const scheduledThinks: Array<ScheduledThinkCallback<typeof door>> = [];
+
+    door.model = '*4';
+    door.origin = new Vector();
+    door.angles = new Vector();
+    door.size = new Vector(16, 32, 64);
+    door.spawn();
+    assert.deepEqual(navigationReports.at(-1), { monsters: true, players: true });
+
+    door.useSub(createSubStub({
+      // like the real helper: moving while the move lasts, at its end, still, when it calls back
+      calcMove(target, speed, callback) {
+        door.velocity = target.copy().subtract(door.origin);
+        calcMoveCalls.push({ target: target.copy(), speed, callback: function (this: BaseEntity) {
+          this.origin.set(target);
+          this.velocity.clear();
+          callback?.call(this);
+        } });
+      },
+    }));
+    door._scheduleThink = (_nextThink, callback) => {
+      scheduledThinks.push(callback);
+    };
+    door.startSound = () => {};
+
+    door.use(door);
+    finishMove(calcMoveCalls[0], door);
+    assert.deepEqual(navigationReports.at(-1), { monsters: true, players: true });
+
+    scheduledThinks.shift()!.call(door, door);
+    finishMove(calcMoveCalls[1], door);
+    assert.deepEqual(navigationReports.at(-1), { monsters: false, players: false });
+
+    scheduledThinks.shift()!.call(door, door);
+    assert.deepEqual(navigationReports.at(-1), { monsters: true, players: true });
   });
 });

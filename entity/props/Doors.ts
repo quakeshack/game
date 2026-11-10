@@ -1,4 +1,4 @@
-import type { ServerEdict } from '../../../../shared/GameInterfaces.ts';
+import type { SerializedData, ServerEdict } from '../../../../shared/GameInterfaces.ts';
 import type { ServerGameAPI } from '../../GameAPI.ts';
 import type BaseEntity from '../BaseEntity.ts';
 
@@ -48,6 +48,56 @@ export abstract class BaseDoorEntity extends BasePropEntity {
   @serializable max_health = 0;
   @serializable portal = -1;
   @serializable _doormarker = 'door';
+
+  /**
+   * Whether the door rests away from where the map draws it. Navigation recorded the links the door cuts where the
+   * map draws it, which for most doors is closed.
+   * @returns True while the door rests out of the way.
+   */
+  protected abstract _isOutOfTheWay(): boolean;
+
+  /**
+   * Whether a walking monster gets past the door while it is in the way, by opening it itself.
+   * @returns True when monsters open it.
+   */
+  protected _monstersOpen(): boolean {
+    return false;
+  }
+
+  /**
+   * Whether a player gets past the door while it is in the way, by opening it or shooting it open.
+   * @returns True when players open it.
+   */
+  protected _playersOpen(): boolean {
+    return false;
+  }
+
+  /**
+   * Tells navigation whom the door blocks right now: while it is in the way or moving, monster paths leave out the
+   * links through it unless monsters open it themselves, player paths unless players do. A door that starts blocking
+   * monsters makes chasing monsters ask for a new path, which may have led through it.
+   */
+  protected _reportNavigation(): void {
+    if (this.edict === null) {
+      return;
+    }
+
+    const inTheWay = !this._isOutOfTheWay();
+    const monsters = inTheWay && !this._monstersOpen();
+    const players = inTheWay && !this._playersOpen();
+
+    this.engine.SetNavigationBlocked(this.edict, monsters, players);
+
+    if (monsters) {
+      this.game.gameAI._navigationChangeTime = this.game.time;
+    }
+  }
+
+  override deserialize(data: SerializedData): void {
+    super.deserialize(data);
+    // navigation knows the door as it spawned, not as it was saved
+    this._reportNavigation();
+  }
 
   protected _startDoorVoice(soundName: string | null): void {
     console.assert(soundName !== null, 'Door sound must be initialized before playback');
@@ -200,6 +250,7 @@ export abstract class BaseDoorEntity extends BasePropEntity {
 
     this._startDoorVoice(this.noise2);
     this.state = state.STATE_DOWN;
+    this._reportNavigation();
 
     if (this.max_health > 0) {
       this.takedamage = damage.DAMAGE_YES;
@@ -215,6 +266,7 @@ export abstract class BaseDoorEntity extends BasePropEntity {
   protected _doorHitBottom(): void {
     this._startDoorVoice(this.noise1);
     this.state = state.STATE_BOTTOM;
+    this._reportNavigation();
 
     const sub = this._sub;
     console.assert(sub !== null, 'BaseDoorEntity requires Sub helper');
@@ -250,6 +302,7 @@ export abstract class BaseDoorEntity extends BasePropEntity {
 
     this._startDoorVoice(this.noise2);
     this.state = state.STATE_UP;
+    this._reportNavigation();
 
     sub.calcMove(this.pos2, this.speed, () => {
       this._doorHitTop();
@@ -260,6 +313,7 @@ export abstract class BaseDoorEntity extends BasePropEntity {
   protected _doorHitTop(): void {
     this._startDoorVoice(this.noise1);
     this.state = state.STATE_TOP;
+    this._reportNavigation();
 
     if (this.spawnflags & DoorFlag.DOOR_TOGGLE) {
       return;
@@ -353,6 +407,32 @@ export class DoorEntity extends BaseDoorEntity {
 
   get netname(): string {
     return 'a door';
+  }
+
+  protected override _isOutOfTheWay(): boolean {
+    // a START_OPEN door rests out of the way at pos1 and moves to where the map draws it when fired
+    const restsOutOfTheWay = (this.spawnflags & DoorFlag.DOOR_START_OPEN) !== 0 ? state.STATE_BOTTOM : state.STATE_TOP;
+
+    return this.state === restsOutOfTheWay;
+  }
+
+  protected override _monstersOpen(): boolean {
+    // the trigger field of a door chain opens it for any living actor, monsters included
+    return this.#master()._triggerField !== null;
+  }
+
+  protected override _playersOpen(): boolean {
+    const master = this.#master();
+
+    return master._triggerField !== null || master.max_health > 0 || master.health > 0;
+  }
+
+  /**
+   * The door that owns the chain this door belongs to, itself before the doors are linked.
+   * @returns The chain's master.
+   */
+  #master(): BaseDoorEntity {
+    return this.owner instanceof BaseDoorEntity ? this.owner : this;
   }
 
   constructor(edict: ServerEdict | null, gameAPI: ServerGameAPI) {
@@ -472,9 +552,10 @@ export class DoorEntity extends BaseDoorEntity {
     }
 
     // LinkDoors must wait until all door entities have spawned so the combined
-    // bounds can be computed correctly.
+    // bounds can be computed correctly. Only then is it known who opens the door.
     this._scheduleThink(this.ltime + 0.1, () => {
       this._linkDoors();
+      this._reportNavigation();
     });
   }
 
@@ -585,6 +666,11 @@ export class SecretDoorEntity extends BaseDoorEntity {
     return 'a secret door';
   }
 
+  protected override _isOutOfTheWay(): boolean {
+    // it rests out of the way after its second leg, until it starts back
+    return this._dest2 !== null && this.origin.equals(this._dest2) && this.velocity.isOrigin();
+  }
+
   constructor(edict: ServerEdict | null, gameAPI: ServerGameAPI) {
     super(edict, gameAPI);
     this._damageHandler = new DamageHandler(this);
@@ -653,6 +739,8 @@ export class SecretDoorEntity extends BaseDoorEntity {
     }
 
     this.engine.SetAreaPortalState(this.portal, false);
+    // monsters can't shoot or touch it open, and a player's path giving away a secret would spoil it
+    this._reportNavigation();
   }
 
   thinkDie(attackerEntity: BaseEntity): void {
@@ -735,6 +823,7 @@ export class SecretDoorEntity extends BaseDoorEntity {
       this._stepMove(1);
     });
     this._startDoorVoice(this.noise2);
+    this._reportNavigation();
 
     if (this.portal >= 0) {
       this.engine.SetAreaPortalState(this.portal, true);
@@ -768,6 +857,7 @@ export class SecretDoorEntity extends BaseDoorEntity {
 
       case 3:
         this._startDoorVoice(this.noise3);
+        this._reportNavigation();
         if ((this.spawnflags & SecretDoorEntity.SECRET_OPEN_ONCE) === 0) {
           this._scheduleThink(this.ltime + this.wait, () => {
             this._stepMove(4);
@@ -783,6 +873,7 @@ export class SecretDoorEntity extends BaseDoorEntity {
         sub.calcMove(this._dest1, this.speed, () => {
           this._stepMove(5);
         });
+        this._reportNavigation();
         break;
 
       case 5:

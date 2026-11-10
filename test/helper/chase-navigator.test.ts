@@ -49,7 +49,7 @@ function createHarness(): Harness {
   const gameAPI = createInertGameApi({
     time: 10,
     worldspawn: { worldtype: worldType.MEDIEVAL },
-    gameAI: { _sightEntity: null, _sightEntityTime: 0, _sightEntityLastOrigin: new Vector() },
+    gameAI: { _sightEntity: null, _sightEntityTime: 0, _sightEntityLastOrigin: new Vector(), _navigationChangeTime: 0 },
   }, engine);
   const edict = createInertEdict();
   const monster = new OgreEntity(edict, gameAPI).initializeEntity();
@@ -198,6 +198,24 @@ void describe('ChaseNavigator', () => {
       assert.deepEqual(pointsOf(harness.navigator.path), []);
     });
 
+    void test('asks for a new path when a door started blocking monsters after it asked', async () => {
+      // the door may stand across the path it got; without this it walks into the door and waits for its stuck timer
+      const harness = createHarness();
+      const enemy = enemyAt(harness, 400, 0, 0);
+      harness.navigator.remember(enemy.origin);
+      harness.navigator.steer(enemy, false);
+      await answer(harness.requests[0], [new Vector(200, 0, 0), new Vector(400, 0, 0)]);
+
+      harness.clock.time += 1.5;
+      harness.navigator.steer(enemy, false);
+      assert.equal(harness.requests.length, 1);
+
+      harness.monster.game.gameAI._navigationChangeTime = harness.clock.time;
+      harness.clock.time += 0.1;
+      harness.navigator.steer(enemy, false);
+      assert.equal(harness.requests.length, 2);
+    });
+
     void test('asks at most once a second when the enemy keeps moving', async () => {
       const harness = createHarness();
       const enemy = enemyAt(harness, 400, 0, 0);
@@ -295,6 +313,7 @@ void describe('ChaseNavigator', () => {
         '_hasMemory',
         '_path',
         '_pathGoal',
+        '_pathTime',
         '_replanWanted',
         '_nextRequestTime',
         '_pathOnlyUntil',
