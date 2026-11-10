@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import Vector from '../../../../shared/Vector.ts';
+import type { ServerEngineAPI } from '../../../../shared/GameInterfaces.ts';
 import { createInertEdict, createInertGameApi, createMutableEngineApi } from '../../../../../test/support/entityMocks.ts';
 import { serializableFieldsOf } from '../../../../../test/support/serialization.ts';
 
@@ -11,10 +12,14 @@ await import('../../GameAPI.ts');
 const { ChaseNavigator } = await import('../../helper/ChaseNavigator.ts');
 const { default: OgreEntity } = await import('../../entity/monster/Ogre.ts');
 
+/** The box a path is asked for. */
+type NavigationBox = Parameters<ServerEngineAPI['NavigateAsync']>[2];
+
 /** A path request the test answers when it wants to. */
 interface PathRequest {
   readonly start: Vector;
   readonly goal: Vector;
+  readonly box: NavigationBox | null;
   readonly resolve: (path: Vector[] | null) => void;
 }
 
@@ -33,9 +38,9 @@ interface Harness {
 function createHarness(): Harness {
   const requests: PathRequest[] = [];
   const engine = createMutableEngineApi({
-    NavigateAsync(start: Vector, goal: Vector) {
+    NavigateAsync(start: Vector, goal: Vector, box: NavigationBox | null = null) {
       return new Promise<Vector[] | null>((resolve) => {
-        requests.push({ start: start.copy(), goal: goal.copy(), resolve });
+        requests.push({ start: start.copy(), goal: goal.copy(), box, resolve });
       });
     },
     ConsoleDebug() {},
@@ -117,6 +122,20 @@ void describe('ChaseNavigator', () => {
 
       assert.equal(harness.navigator.steer(enemy, true), null);
       assert.equal(harness.requests.length, 1);
+    });
+
+    void test('asks for a path a monster of its size walks', () => {
+      // without its box the path would drop off ledges and squeeze through gaps the monster can't take
+      const harness = createHarness();
+      harness.monster.mins = new Vector(-32, -32, -24);
+      harness.monster.maxs = new Vector(32, 32, 64);
+      const enemy = enemyAt(harness, 600, 0, 0);
+      harness.navigator.remember(enemy.origin);
+
+      harness.navigator.steer(enemy, false);
+
+      const box = harness.requests[0].box!;
+      assert.deepEqual([...box.mins, ...box.maxs], [-32, -32, -24, 32, 32, 64]);
     });
 
     void test('leaves an enemy close by to the QuakeC chase, which stops when close enough', () => {

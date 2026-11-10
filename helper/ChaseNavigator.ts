@@ -267,7 +267,8 @@ export class ChaseNavigator<T extends BaseMonster = BaseMonster> extends EntityW
     this._stuckWaypoint = null;
     this._nextRequestTime = time + ChaseNavigator.REQUEST_INTERVAL + Math.random() * ChaseNavigator.REQUEST_STAGGER;
 
-    this._engine.NavigateAsync(entity.origin.copy(), goal).then((path) => {
+    // with its box the path only takes links a monster of its size walks: no drops, nothing too narrow for it
+    this._engine.NavigateAsync(entity.origin.copy(), goal, { mins: entity.mins, maxs: entity.maxs }).then((path) => {
       this.#receive(sequence, goal, stuckWaypoint, path);
     }).catch((error: unknown) => {
       console.error(`${entity} failed to compute a path to ${goal}: ${String(error)}`);
