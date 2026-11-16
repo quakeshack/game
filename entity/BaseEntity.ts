@@ -126,6 +126,9 @@ export default abstract class BaseEntity {
   @serializable model: string | null = null;
   @serializable modelindex = 0;
   @serializable frame = 0;
+  @serializable sequence = -1;
+  @serializable animtime: number | null = null;
+  @serializable framerate = 1;
   @serializable skin = 0;
   @serializable effects = effect.EF_NONE;
   @serializable alpha = 1.0;
