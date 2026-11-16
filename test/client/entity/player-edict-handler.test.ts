@@ -32,6 +32,10 @@ function createFlashingPlayer(muzzle: Vector | null) {
       lights.push(light);
       return light;
     },
+    SetEntityJointAngles(): boolean {
+      return false;
+    },
+    SetEntityPitchesBody(): void {},
     GetMuzzleFlashOrigin(entity: ClientEdict, out: Vector): boolean {
       asked.push(entity);
 
@@ -84,5 +88,92 @@ void describe('PlayerClientEdictHandler muzzle flash', () => {
 
     assert.equal(lights.length, 0);
     assert.equal(asked.length, 0);
+  });
+});
+
+interface JointCall {
+  readonly joint: string;
+  readonly angles: Vector;
+}
+
+/**
+ * @param pitch The pitch of the player entity, a third of the look pitch.
+ * @param joints The joints the model has; the engine says no to any other.
+ * @returns A handler, and what it asked the engine to do.
+ */
+function createLookingPlayer(pitch: number, joints: readonly string[]) {
+  const calls: JointCall[] = [];
+  const pitchesBody: boolean[] = [];
+  const engine = {
+    SetEntityJointAngles(_entity: ClientEdict, joint: string, angles: Vector): boolean {
+      calls.push({ joint, angles: angles.copy() });
+      return joints.includes(joint);
+    },
+    SetEntityPitchesBody(_entity: ClientEdict, value: boolean): void {
+      pitchesBody.push(value);
+    },
+  };
+  const clientEdict = new ClientEdict(3);
+  clientEdict.angles.setTo(pitch, 90, 0);
+  clientEdict.anglesPrevious.setTo(pitch, 90, 0);
+
+  return { handler: new PlayerClientEdictHandler(clientEdict, asClientEngineAPI(engine)), calls, pitchesBody };
+}
+
+void describe('PlayerClientEdictHandler look pitch', () => {
+  void test('three times the entity pitch is the look pitch, spread over the spine, neck and head so that the head takes the whole of it', () => {
+    const { handler, calls } = createLookingPlayer(10, ['spine0', 'spine1', 'neck', 'head']);
+
+    handler.emit();
+
+    assert.deepEqual(calls.map((call) => call.joint), ['spine0', 'spine1', 'neck', 'head']);
+    const shares = calls.map((call) => call.angles[0] / 30);
+    assertNear(shares[0]!, 0.15);
+    assertNear(shares[1]!, 0.25);
+    assertNear(shares[2]!, 0.25);
+    assertNear(shares[3]!, 0.35);
+    assertNear(shares.reduce((sum, share) => sum + share, 0), 1.0);
+    assert.ok(calls.every((call) => call.angles[1] === 0 && call.angles[2] === 0), 'pitch only');
+  });
+
+  void test('looking down bends the other way', () => {
+    const { handler, calls } = createLookingPlayer(-20, ['spine0', 'spine1', 'neck', 'head']);
+
+    handler.emit();
+
+    assertNear(calls[3]!.angles[0], -21);
+  });
+
+  void test('a model that bends keeps its body upright', () => {
+    const { handler, pitchesBody } = createLookingPlayer(10, ['spine0', 'spine1', 'neck', 'head']);
+
+    handler.emit();
+
+    assert.deepEqual(pitchesBody, [false]);
+  });
+
+  void test('a model without those joints (the alias player) keeps tilting as a whole', () => {
+    const { handler, pitchesBody } = createLookingPlayer(10, []);
+
+    handler.emit();
+
+    assert.deepEqual(pitchesBody, [true]);
+  });
+
+  void test('a rig that has only some of the joints bends with those and keeps the body upright', () => {
+    const { handler, pitchesBody } = createLookingPlayer(10, ['spine1', 'head']);
+
+    handler.emit();
+
+    assert.deepEqual(pitchesBody, [false]);
+  });
+
+  void test('an entity whose angles are not known yet is left alone', () => {
+    const { handler, calls, pitchesBody } = createLookingPlayer(Infinity, ['spine0']);
+
+    handler.emit();
+
+    assert.equal(calls.length, 0);
+    assert.equal(pitchesBody.length, 0);
   });
 });
