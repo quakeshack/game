@@ -25,8 +25,9 @@ interface Flash {
 function createFlashingPlayer(muzzle: Vector | null) {
   const lights: Flash[] = [];
   const asked: ClientEdict[] = [];
+  const clock = { time: 10, frametime: 0.016 };
   const engine = {
-    CL: { time: 10 },
+    CL: clock,
     AllocDlight(): Flash {
       const light = { origin: new Vector(), radius: 0, die: 0, color: new Vector(), minlight: 0 };
       lights.push(light);
@@ -52,7 +53,7 @@ function createFlashingPlayer(muzzle: Vector | null) {
   clientEdict.angles.setTo(0, 0, 0);
   clientEdict.effects = effect.EF_MUZZLEFLASH;
 
-  return { handler: new PlayerClientEdictHandler(clientEdict, asClientEngineAPI(engine)), lights, asked, clientEdict };
+  return { handler: new PlayerClientEdictHandler(clientEdict, asClientEngineAPI(engine)), lights, asked, clientEdict, clock };
 }
 
 void describe('PlayerClientEdictHandler muzzle flash', () => {
@@ -91,6 +92,54 @@ void describe('PlayerClientEdictHandler muzzle flash', () => {
   });
 });
 
+void describe('PlayerClientEdictHandler shots read between frames', () => {
+  void test('a shot whose bit was already cleared again when the frame came still lights, from where the engine puts the muzzle', () => {
+    const { handler, lights, clientEdict, clock } = createFlashingPlayer(new Vector(131, 207, 288));
+    clientEdict.effects = 0;
+    handler.emit(); // the first frame: nothing was shot yet
+
+    clock.time += 0.1;
+    clientEdict.muzzleFlashCount++; // two datagrams in one frame: the bit came and went before the handler looked
+    clientEdict.muzzleFlashTime = clock.time;
+    handler.emit();
+
+    assert.equal(lights.length, 1);
+    assertNear(lights[0]!.origin[0], 131);
+  });
+
+  void test('a shot read at the start of a very slow frame still lights: the frame\'s own length does not make it old', () => {
+    const { handler, lights, clientEdict, clock } = createFlashingPlayer(null);
+    clientEdict.effects = 0;
+    handler.emit();
+
+    clientEdict.muzzleFlashCount++;
+    clientEdict.muzzleFlashTime = clock.time; // read when the frame began ...
+    clock.frametime = 0.45;
+    clock.time += 0.45; // ... which then took 450 ms before the handlers ran
+    handler.emit();
+
+    assert.equal(lights.length, 1);
+  });
+
+  void test('the same shot lights once, and a shot that was read long ago does not light at all', () => {
+    const { handler, lights, clientEdict, clock } = createFlashingPlayer(null);
+    clientEdict.effects = 0;
+    handler.emit();
+
+    clientEdict.muzzleFlashCount++;
+    clientEdict.muzzleFlashTime = clock.time;
+    handler.emit();
+    handler.emit();
+    assert.equal(lights.length, 1);
+
+    clientEdict.muzzleFlashCount++;
+    clientEdict.muzzleFlashTime = clock.time;
+    clock.time += 5; // the player was out of view
+    handler.emit();
+    assert.equal(lights.length, 1);
+  });
+});
+
 interface JointCall {
   readonly joint: string;
   readonly angles: Vector;
@@ -105,6 +154,7 @@ function createLookingPlayer(pitch: number, joints: readonly string[]) {
   const calls: JointCall[] = [];
   const pitchesBody: boolean[] = [];
   const engine = {
+    CL: { time: 10, frametime: 0.016 },
     SetEntityJointAngles(_entity: ClientEdict, joint: string, angles: Vector): boolean {
       calls.push({ joint, angles: angles.copy() });
       return joints.includes(joint);

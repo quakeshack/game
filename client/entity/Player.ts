@@ -14,6 +14,9 @@ const LOOK_JOINTS = [
   ['head', 0.35],
 ] as const;
 
+/** How long after the frame that read it a shot is still worth a flash, in seconds: a flash lasts a fifth of a second. */
+const SHOT_FRESH_TIME = 0.2;
+
 /**
  * The server sends a third of the view pitch as the player entity's pitch (`angles[0] = -v_angle[0] / 3`), to tilt the body of an alias
  * model only a little. The look angle is what it was.
@@ -27,6 +30,26 @@ export class PlayerClientEdictHandler extends BaseClientEdictHandler {
   static readonly classname = 'player';
 
   readonly #jointAngles = new Vector();
+
+  /** The shots (`ClientEdict.muzzleFlashCount`) that the last `emit()` knew of, `null` before the first. */
+  #shotsSeen: number | null = null;
+
+  /**
+   * How many shots were fired since the previous `emit()` and are still fresh, for the `emit()` that is running. The bit of `EF_MUZZLEFLASH`
+   * can be set and cleared again between two frames (two datagrams read in one frame), so the count the engine keeps is what to ask;
+   * a shot that the player was out of view for is left out, and the first `emit()` reports none.
+   */
+  protected _newShots = 0;
+
+  #countNewShots(): void {
+    const shots = this.clientEdict.muzzleFlashCount;
+    const fresh = this.#shotsSeen === null ? 0 : shots - this.#shotsSeen;
+    // the shot was stamped with the clock as it stood when the frame began to read messages, so by now it is one frame old whatever happened
+    const recent = this.engine.CL.time - this.clientEdict.muzzleFlashTime < SHOT_FRESH_TIME + this.engine.CL.frametime;
+
+    this.#shotsSeen = shots;
+    this._newShots = fresh > 0 && recent ? fresh : 0;
+  }
 
   /**
    * Bends the spine, neck and head of a skeletal player model with the look pitch, and keeps the body itself upright then. A model
@@ -52,6 +75,7 @@ export class PlayerClientEdictHandler extends BaseClientEdictHandler {
 
   override emit(): void {
     this.#bendWithLookPitch();
+    this.#countNewShots();
 
     const extended = this.clientEdict.extended;
     const extendedItems = extended?.items ?? 0;
@@ -72,7 +96,7 @@ export class PlayerClientEdictHandler extends BaseClientEdictHandler {
       dynamicLight.die = this.engine.CL.time + 0.1;
     }
 
-    if ((this.clientEdict.effects & effect.EF_MUZZLEFLASH) !== 0) {
+    if ((this.clientEdict.effects & effect.EF_MUZZLEFLASH) !== 0 || this._newShots > 0) {
       const dynamicLight = this.engine.AllocDlight(this.clientEdict.num);
       const flashOrigin = new Vector();
 
