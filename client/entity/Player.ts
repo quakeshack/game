@@ -31,12 +31,19 @@ export class PlayerClientEdictHandler extends BaseClientEdictHandler {
 
     if ((this.clientEdict.effects & effect.EF_MUZZLEFLASH) !== 0) {
       const dynamicLight = this.engine.AllocDlight(this.clientEdict.num);
-      const forwardVector = this.clientEdict.angles.angleVectors().forward;
-      dynamicLight.origin = new Vector(
-        this.clientEdict.origin[0] + 20.0 * forwardVector[0],
-        this.clientEdict.origin[1] + 20.0 * forwardVector[1],
-        this.clientEdict.origin[2] + 16.0 + 20.0 * forwardVector[2],
-      );
+      const flashOrigin = new Vector();
+
+      if (this.engine.GetMuzzleFlashOrigin(this.clientEdict, flashOrigin)) {
+        // a player model with a tag at the muzzle, or a weapon in the hand that has one
+        dynamicLight.origin = flashOrigin;
+      } else {
+        const forwardVector = this.clientEdict.angles.angleVectors().forward;
+        dynamicLight.origin = new Vector(
+          this.clientEdict.origin[0] + 20.0 * forwardVector[0],
+          this.clientEdict.origin[1] + 20.0 * forwardVector[1],
+          this.clientEdict.origin[2] + 16.0 + 20.0 * forwardVector[2],
+        );
+      }
       dynamicLight.radius = 200.0 + Math.random() * 32.0;
       dynamicLight.minlight = 32.0;
       dynamicLight.die = this.engine.CL.time + 0.2;

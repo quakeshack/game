@@ -15,6 +15,8 @@ type WeaponItemKey = 'IT_SHELLS' | 'IT_NAILS' | 'IT_ROCKETS' | 'IT_CELLS';
 interface WeaponConfigEntry {
   readonly ammoSlot: WeaponAmmoSlot | null;
   readonly viewModel: string;
+  /** The model other players see in the hand (attached to the player's weapon tag). id1 itself leaves it out, a game that ships such models sets it. */
+  readonly playerModel?: string;
   readonly items?: WeaponItemKey;
   readonly priority: number;
 }

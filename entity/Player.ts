@@ -175,6 +175,9 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     'items',
   ];
 
+  /** The model of a living player. A game that ships its own (a skeletal one, say) overrides it; it keeps the frame order of `progs/player.mdl`. */
+  static _modelPlayer = 'progs/player.mdl';
+
   static _backpackLimits = {
     ammo_nails: 200,
     ammo_cells: 100,
@@ -357,7 +360,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
     engineAPI.PrecacheSound('misc/water1.wav'); // swimming
     engineAPI.PrecacheSound('misc/water2.wav'); // swimming
 
-    engineAPI.PrecacheModel('progs/player.mdl');
+    engineAPI.PrecacheModel(this._modelPlayer);
     engineAPI.PrecacheModel('progs/eyes.mdl');
     engineAPI.PrecacheModel('progs/h_player.mdl');
 
@@ -1507,7 +1510,7 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
 
     this.setModel('progs/eyes.mdl', false);
     this._modelIndex.eyes = this.modelindex;
-    this.setModel('progs/player.mdl', false);
+    this.setModel((this.constructor as typeof PlayerEntity)._modelPlayer, false);
     this._modelIndex.player = this.modelindex;
 
     this.setSize(hull[0][0], hull[0][1], false);

@@ -3,7 +3,7 @@ import { describe, test } from 'node:test';
 
 import type Vector from '../../../../shared/Vector.ts';
 import type { PlayerEntity as Player } from '../../entity/Player.ts';
-import { createInertGameApi } from '../../../../../test/support/entityMocks.ts';
+import { createInertEngineApi, createInertGameApi } from '../../../../../test/support/entityMocks.ts';
 
 await import('../../GameAPI.ts');
 
@@ -279,5 +279,24 @@ void describe('PlayerEntity powerup timers', () => {
 
     assert.equal(player.air_finished, 22);
     assert.equal(player.items & items.IT_SUIT, items.IT_SUIT);
+  });
+});
+
+void describe('PlayerEntity model', () => {
+  void test('a game can swap the player model, and the swapped one is what gets precached', () => {
+    class SkeletalPlayer extends PlayerEntity {
+      static override _modelPlayer = 'progs/player.iqm';
+    }
+
+    const precache = (entityClass: typeof PlayerEntity): string[] => {
+      const models: string[] = [];
+      entityClass._precache(createInertEngineApi({ PrecacheModel: (name: string) => models.push(name) }));
+      return models;
+    };
+
+    assert.ok(precache(PlayerEntity).includes('progs/player.mdl'));
+    const swapped = precache(SkeletalPlayer);
+    assert.ok(swapped.includes('progs/player.iqm'));
+    assert.ok(!swapped.includes('progs/player.mdl'));
   });
 });
